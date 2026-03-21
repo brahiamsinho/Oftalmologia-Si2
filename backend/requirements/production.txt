@@ -1,0 +1,12 @@
+# Requirements producción
+-r base.txt
+
+# Servidor
+gunicorn>=21.2
+
+# Static files
+whitenoise>=6.6
+
+# Monitoring (preparado para futuro)
+# sentry-sdk>=1.40
+# django-health-check>=3.18
