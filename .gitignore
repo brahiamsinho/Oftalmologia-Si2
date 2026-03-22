@@ -71,8 +71,8 @@ mobile/.metadata
 # =========================
 # AI / Agent & Docs
 # =========================
-docs/
-Agent.md
+#docs/
+#Agent.md
 
 # =========================
 # Docker
