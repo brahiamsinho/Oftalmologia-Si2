@@ -63,7 +63,6 @@ mobile/.metadata
 # =========================
 # Environment & Secrets
 # =========================
-.env
 .env.local
 .env.*.local
 !.env.example
