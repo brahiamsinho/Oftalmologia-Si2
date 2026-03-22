@@ -42,45 +42,45 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Stats cards
-            Row(
+            const Row(
               children: [
                 Expanded(
                   child: _StatCard(
                     icon: Icons.people_outline,
                     title: 'Pacientes',
                     value: '—',
-                    color: const Color(0xFF0F766E),
+                    color: Color(0xFF0F766E),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: _StatCard(
                     icon: Icons.calendar_today_outlined,
                     title: 'Citas Hoy',
                     value: '—',
-                    color: const Color(0xFF1E40AF),
+                    color: Color(0xFF1E40AF),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Row(
+            const Row(
               children: [
                 Expanded(
                   child: _StatCard(
                     icon: Icons.medical_services_outlined,
                     title: 'Doctores',
                     value: '—',
-                    color: const Color(0xFFF59E0B),
+                    color: Color(0xFFF59E0B),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: _StatCard(
                     icon: Icons.assignment_outlined,
                     title: 'Consultas',
                     value: '—',
-                    color: const Color(0xFF16A34A),
+                    color: Color(0xFF16A34A),
                   ),
                 ),
               ],
@@ -166,7 +166,7 @@ class _StatCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: color, size: 20),
@@ -175,15 +175,15 @@ class _StatCard extends StatelessWidget {
             Text(
               value,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 2),
             Text(
               title,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey,
-              ),
+                    color: Colors.grey,
+                  ),
             ),
           ],
         ),

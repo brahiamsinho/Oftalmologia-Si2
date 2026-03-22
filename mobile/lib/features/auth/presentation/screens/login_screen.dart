@@ -54,8 +54,8 @@ class LoginScreen extends StatelessWidget {
                       const SizedBox(height: 32),
 
                       // Email field
-                      TextField(
-                        decoration: const InputDecoration(
+                      const TextField(
+                        decoration: InputDecoration(
                           labelText: 'Correo electrónico',
                           hintText: 'doctor@clinica.com',
                           prefixIcon: Icon(Icons.email_outlined),
@@ -65,8 +65,8 @@ class LoginScreen extends StatelessWidget {
                       const SizedBox(height: 16),
 
                       // Password field
-                      TextField(
-                        decoration: const InputDecoration(
+                      const TextField(
+                        decoration: InputDecoration(
                           labelText: 'Contraseña',
                           hintText: '••••••••',
                           prefixIcon: Icon(Icons.lock_outline),

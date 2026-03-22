@@ -1,11 +1,22 @@
-/// Helpers — Funciones utilitarias compartidas.
+// Helpers — Funciones utilitarias compartidas.
 
 /// Formatea una fecha ISO a formato legible.
 String formatDate(String isoDate) {
   final date = DateTime.parse(isoDate);
   final months = [
-    '', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+    '',
+    'Ene',
+    'Feb',
+    'Mar',
+    'Abr',
+    'May',
+    'Jun',
+    'Jul',
+    'Ago',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dic',
   ];
   return '${date.day} ${months[date.month]} ${date.year}';
 }

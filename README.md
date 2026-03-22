@@ -4,13 +4,13 @@ Sistema integral para clínica oftalmológica — gestión de pacientes, citas, 
 
 ## Stack Tecnológico
 
-| Capa | Tecnología | Puerto Dev |
-|------|-----------|------------|
-| Backend | Django 5 + DRF | :8000 |
-| Frontend | Next.js 14 (App Router) | :3000 |
-| Mobile | Flutter | — |
-| Base de Datos | PostgreSQL 16 | :5432 |
-| Contenedores | Docker + Docker Compose | — |
+| Capa          | Tecnología              | Puerto Dev |
+| ------------- | ----------------------- | ---------- |
+| Backend       | Django 5 + DRF          | :8000      |
+| Frontend      | Next.js 14 (App Router) | :3000      |
+| Mobile        | Flutter                 | —          |
+| Base de Datos | PostgreSQL 16           | :5432      |
+| Contenedores  | Docker + Docker Compose | —          |
 
 ## Requisitos Previos
 
@@ -76,6 +76,61 @@ docker-compose down
 
 # Reconstruir después de cambios en requirements/packages
 docker-compose up --build
+```
+
+## Comandos Esenciales Mobile (Flutter)
+
+```bash
+# Ir al módulo mobile
+cd mobile
+
+# Verificar instalación y entorno Flutter/Android
+flutter doctor -v
+
+# Descargar dependencias
+flutter pub get
+
+# Ejecutar análisis estático
+flutter analyze
+
+# Formatear código Dart
+dart format lib
+
+# Ver dispositivos disponibles
+flutter devices
+
+# Ejecutar app en modo debug
+flutter run
+
+# Limpiar build y cache local del proyecto
+flutter clean
+```
+
+### Build (compilación)
+
+```bash
+# Android APK (debug/release)
+flutter build apk --debug
+flutter build apk --release
+
+# Android App Bundle (Play Store)
+flutter build appbundle --release
+
+# Web
+flutter build web
+
+# Windows Desktop (si está habilitado)
+flutter build windows
+
+# iOS (solo en macOS)
+flutter build ios --release
+```
+
+### Comando recomendado para actualizar dependencias
+
+```bash
+# Ver paquetes desactualizados
+flutter pub outdated
 ```
 
 ## Licencia
