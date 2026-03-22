@@ -78,6 +78,31 @@ docker-compose down
 docker-compose up --build
 ```
 
+## Comandos Esenciales Backend (Django + Docker)
+
+```bash
+# Crear nuevas migraciones
+docker-compose exec backend python manage.py makemigrations
+
+# Aplicar migraciones
+docker-compose exec backend python manage.py migrate
+
+# Ver estado de migraciones
+docker-compose exec backend python manage.py showmigrations
+
+# Crear superusuario
+docker-compose exec backend python manage.py createsuperuser
+
+# Abrir shell de Django
+docker-compose exec backend python manage.py shell
+
+# Correr tests
+docker-compose exec backend python manage.py test
+
+# Recolectar archivos estáticos (entorno tipo producción)
+docker-compose exec backend python manage.py collectstatic --noinput
+```
+
 ## Comandos Esenciales Mobile (Flutter)
 
 ```bash
