@@ -1,42 +1,55 @@
 """
 Oftalmología Si2 — URL Configuration
 ======================================
-Rutas principales del proyecto.
-Agrega las URLs de cada app bajo /api/v1/<app>/ cuando estén listas.
+Todas las rutas del proyecto bajo /api/
 """
-
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-    TokenVerifyView,
-)
 
-# API v1 patterns
-api_v1_patterns = [
-    # Authentication — JWT
-    path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('auth/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+api_patterns = [
+    # Core — Health check
+    path('', include('apps.core.urls')),
 
-    # Agrega las URLs de tus apps aquí cuando estén listas:
-    # path('users/', include('apps.users.urls')),
-    # path('patients/', include('apps.patients.urls')),
-    # path('doctors/', include('apps.doctors.urls')),
-    # path('appointments/', include('apps.appointments.urls')),
-    # path('medical-records/', include('apps.medical_records.urls')),
-    # path('health/', include('apps.core.urls')),
+    # Auth + Usuarios
+    path('', include('apps.users.urls')),
+
+    # Roles y asignaciones usuario-rol
+    path('', include('apps.roles.urls')),
+
+    # Permisos granulares
+    path('', include('apps.permisos.urls')),
+
+    # Bitácora (app separada — solo lectura via API)
+    path('', include('apps.bitacora.urls')),
+
+    # Pacientes
+    path('', include('apps.pacientes.urls')),
+
+    # Especialistas
+    path('', include('apps.especialistas.urls')),
+
+    # Historias Clínicas (Ruta principal)
+    path('', include('apps.historial_clinico.urls')),
+    
+    # Sub-registros de Historias Clínicas (Rutas anidadas)
+    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.antecedentes.urls')),
+    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.diagnosticos.urls')),
+    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.tratamientos.urls')),
+    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.evoluciones.urls')),
+    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.recetas.urls')),
+
+    # Citas, Tipos de cita, Disponibilidades
+    path('', include('apps.citas.urls')),
 ]
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/v1/', include((api_v1_patterns, 'api-v1'))),
+    path('api/', include((api_patterns, 'api'))),
 ]
 
-# Servir media/static en desarrollo
+# Media y static en desarrollo
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
