@@ -1,29 +1,33 @@
 """
-Oftalmología Si2 — Django Base Settings
-========================================
-Configuración compartida entre todos los entornos.
-"""
+config/settings.py
+============================
+Configuración única de Django — un solo archivo.
+Los valores específicos de entorno se controlan vía .env
 
-import os
+Para producción, sobreescribe via variables de entorno:
+  DJANGO_DEBUG=False
+  DJANGO_SECRET_KEY=tu-clave-segura
+  CORS_ALLOWED_ORIGINS=https://tudominio.com
+  (ver .env.example para la lista completa)
+"""
 from datetime import timedelta
 from pathlib import Path
 
-from decouple import config, Csv
+from decouple import Csv, config
+
+# BASE_DIR apunta a la raíz /backend/
+# __file__ está en /backend/config/settings.py → .parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # =============================================================================
-# PATHS
-# =============================================================================
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-
-# =============================================================================
-# SECURITY
+# SEGURIDAD
 # =============================================================================
 SECRET_KEY = config('DJANGO_SECRET_KEY', default='INSECURE-change-me-in-production')
-DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('DJANGO_ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
+ALLOWED_HOSTS = config('DJANGO_ALLOWED_HOSTS', default='*', cast=Csv())
 
 # =============================================================================
-# APPLICATIONS
+# APLICACIONES
 # =============================================================================
 DJANGO_APPS = [
     'django.contrib.admin',
@@ -37,14 +41,26 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
 ]
 
 LOCAL_APPS = [
-    # Agrega tus aplicaciones locales aquí cuando las crees, ejemplo:
-    # 'apps.core',
-    # 'apps.users',
+    'apps.core',            # Utilidades transversales, health check, permissions
+    'apps.users',           # Usuario (CustomUser) + Auth + TokenRecuperacion
+    'apps.roles',           # Rol, UsuarioRol, RolPermiso
+    'apps.permisos',        # Permiso (granular por módulo)
+    'apps.bitacora',        # Registro de auditoría del sistema
+    'apps.pacientes',        # Paciente
+    'apps.especialistas',     # Especialista (médicos/especialistas)
+    'apps.historial_clinico',
+    'apps.antecedentes',
+    'apps.diagnosticos',
+    'apps.tratamientos',
+    'apps.evoluciones',
+    'apps.recetas',
+    'apps.citas',    # Citas, tipos y disponibilidades
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -88,7 +104,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
 # =============================================================================
-# DATABASE — PostgreSQL
+# BASE DE DATOS — PostgreSQL
 # =============================================================================
 DATABASES = {
     'default': {
@@ -105,23 +121,23 @@ DATABASES = {
 }
 
 # =============================================================================
-# CUSTOM USER MODEL
+# MODELO DE USUARIO PERSONALIZADO
 # =============================================================================
-# Descomenta cuando crees tu modelo de usuario personalizado:
-# AUTH_USER_MODEL = 'users.User'
+AUTH_USER_MODEL = 'users.Usuario'
 
 # =============================================================================
-# PASSWORD VALIDATION
+# VALIDACIÓN DE CONTRASEÑAS
 # =============================================================================
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-     'OPTIONS': {'min_length': 8}},
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 8},
+    },
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Password hashers — Argon2 preferido (más seguro)
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',
     'django.contrib.auth.hashers.PBKDF2PasswordHasher',
@@ -130,7 +146,7 @@ PASSWORD_HASHERS = [
 ]
 
 # =============================================================================
-# INTERNATIONALIZATION
+# INTERNACIONALIZACIÓN
 # =============================================================================
 LANGUAGE_CODE = 'es'
 TIME_ZONE = 'America/Santo_Domingo'
@@ -138,23 +154,25 @@ USE_I18N = True
 USE_TZ = True
 
 # =============================================================================
-# STATIC & MEDIA FILES
+# ARCHIVOS ESTÁTICOS Y MULTIMEDIA
 # =============================================================================
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# =============================================================================
-# DEFAULT PRIMARY KEY
-# =============================================================================
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # =============================================================================
 # DJANGO REST FRAMEWORK
 # =============================================================================
+_drf_renderer_classes = (
+    'rest_framework.renderers.JSONRenderer',
+    'rest_framework.renderers.BrowsableAPIRenderer',  # Solo se ve si DEBUG=True
+)
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -169,10 +187,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
-    'DEFAULT_RENDERER_CLASSES': (
-        'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
-    ),
+    'DEFAULT_RENDERER_CLASSES': _drf_renderer_classes,
     'DEFAULT_THROTTLE_CLASSES': (
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
@@ -202,19 +217,45 @@ SIMPLE_JWT = {
 # =============================================================================
 # CORS
 # =============================================================================
-CORS_ALLOWED_ORIGINS = config(
-    'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:3000',
-    cast=Csv()
-)
-CORS_ALLOW_CREDENTIALS = True
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOWED_ORIGINS = config(
+        'CORS_ALLOWED_ORIGINS', default='http://localhost:3000', cast=Csv()
+    )
+    CORS_ALLOW_CREDENTIALS = True
 
 # =============================================================================
-# SECURITY HEADERS (base — overridden per environment)
+# HEADERS DE SEGURIDAD
 # =============================================================================
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_BROWSER_XSS_FILTER = True
+
+# En producción (DEBUG=False) activar HTTPS headers:
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31_536_000  # 1 año
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# =============================================================================
+# EMAIL (Mailhog en Docker dev | SMTP real en producción via .env)
+# =============================================================================
+EMAIL_BACKEND = config(
+    'EMAIL_BACKEND',
+    default='django.core.mail.backends.smtp.EmailBackend',
+)
+EMAIL_HOST = config('EMAIL_HOST', default='mailhog')
+EMAIL_PORT = config('EMAIL_PORT', default=1025, cast=int)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@oftalmologia.local')
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 
 # =============================================================================
 # LOGGING
@@ -248,9 +289,14 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
         'apps': {
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'DEBUG' if DEBUG else 'INFO',
             'propagate': False,
         },
     },
