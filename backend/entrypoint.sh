@@ -7,12 +7,6 @@ while ! nc -z "${POSTGRES_HOST}" "${POSTGRES_PORT}"; do
 done
 echo "PostgreSQL is ready!"
 
-echo "Generating migrations..."
-python manage.py makemigrations --noinput
-
-echo "Applying database migrations..."
-python manage.py migrate --noinput
-
 echo "Collecting static files..."
 python manage.py collectstatic --noinput 2>/dev/null || true
 

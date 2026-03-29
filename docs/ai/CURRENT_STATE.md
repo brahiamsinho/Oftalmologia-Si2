@@ -6,6 +6,8 @@ Etapa **SPRINT 1 BACKEND COMPLETO**. Toda la lógica del Backend ha sido impleme
 ## Qué Ya Está Hecho
 - Arquitectura Modular instalada: `/backend`, `/frontend`, `/mobile`.
 - Infraestructura Docker y PostgreSQL conectada de forma estable.
+- **Doble ciclo de migraciones evitado**: El `entrypoint.sh` solo espera a Postgres y levanta el sistema, dejando `makemigrations`, `migrate` y `seed` bajo el control del desarrollador.
+- **Seeders Implementados**: Módulo `/backend/seeders/` con `seed_admin.py`, `seed_roles.py`, `seed_permisos.py` y `seed_tipos_cita.py`. Idempotentes vía `python manage.py seed`.
 - **Mailhog** agregado al `docker-compose.yml` para captura de emails en desarrollo (`:8025`).
 - **CustomUser (`apps.users.Usuario`)** con 5 tipos: ADMIN, ADMINISTRATIVO, MEDICO, ESPECIALISTA, PACIENTE.
 - **`AUTH_USER_MODEL = 'users.Usuario'`** activado en settings.
@@ -66,8 +68,6 @@ Etapa **SPRINT 1 BACKEND COMPLETO**. Toda la lógica del Backend ha sido impleme
 - `GET /health/` — Health check
 
 ## Qué Falta (Pendientes Inmediatos)
-- Correr `docker-compose up --build` para verificar que todo migra correctamente
-- Crear datos iniciales (fixtures) para TipoCita y Roles base
 - Frontend: consumir la API
 - Mobile: integrar Flutter con la API
 
