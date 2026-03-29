@@ -38,38 +38,11 @@ Cambios pequeños (bug fix simple) = delegar a sub-agente sin SDD.
 
 ---
 
-## 2. Dominio del Sistema y Lógica de Negocio (En Construcción 🚧)
+## 2. Dominio del Sistema y Lógica de Negocio
 
-*Nota: La lógica de negocio no está cerrada. Las reglas, roles y flujos exactos se irán definiendo y documentando en esta sección a medida que el proyecto avance.*
-
-### 2.1 Entidades Base (Esquema preliminar)
-```
-📋 Paciente
-  id, nombre, apellido, cedula, fecha_nacimiento, sexo
-  teléfono, email, dirección, antecedentes_medicos, alergias
-
-📅 Cita
-  id, paciente, doctor, fecha_hora, tipo_examen, estado, notas
-
-📝 Historia Clínica
-  id, paciente, fecha, diagnostico, tratamiento, prescripcion
-  examenes_realizados (refraction, fundoscopy, etc.)
-
-👨‍⚕️ Doctor/Usuario
-  id, nombre, especialidad, cedula_profesional
-
-🔬 Examen
-  id, tipo, resultados, fecha
-```
-
-### 2.2 Roles del Sistema (Borrador)
-- **Admin:** Control total desde la Web.
-- **Doctor:** Gestión de su agenda médica, historias clínicas y carga de exámenes.
-- **Recepción:** Gestión de turnos y carga inicial de pacientes en Web.
-- **Paciente:** Acceso a la App Mobile para sacar turnos, ver estado y leer sus recetas/exámenes.
-
-### 2.3 Reglas de Negocio Clave (A definir)
-- *(Espacio reservado para reglas duras como: "Un paciente no puede cancelar un turno 24hs antes", o "Solo un doctor puede alterar una historia clínica cerrada").*
+> **⚠️ IMPORTANTE: La lógica de negocio fue extraída a un documento dedicado.**
+> **LEER OBLIGATORIAMENTE:** 👉 `logicadenegocio.md` en la raíz del proyecto.
+> Ahí se definen los modelos de dominio (Paciente, Cirugía, Chatbot, etc.), los roles actualizados (incluyendo al Paciente en App y al Sistema IA) y las reglas duras del flujo médico.
 
 ---
 
