@@ -32,17 +32,18 @@ cp .env.example .env
 # 3. Construir y levantar los contenedores
 docker-compose up --build
 
-# 4. Aplicar migraciones (primera vez)
+# 4. Generar y aplicar migraciones (primera vez o al modificar modelos)
+docker-compose exec backend python manage.py makemigrations
 docker-compose exec backend python manage.py migrate
 
-# 5. Crear superusuario
-docker-compose exec backend python manage.py createsuperuser
+# 5. Poblar base de datos (crea superusuario 'admin', roles, permisos y tipos de cita)
+docker-compose exec backend python manage.py seed
 ```
 
 ## Acceso
 
 - **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:8000/api/v1/
+- **Backend API:** http://localhost:8000/api/
 - **Django Admin:** http://localhost:8000/admin/
 
 ## Estructura del Proyecto
@@ -90,8 +91,9 @@ docker-compose exec backend python manage.py migrate
 # Ver estado de migraciones
 docker-compose exec backend python manage.py showmigrations
 
-# Crear superusuario
-docker-compose exec backend python manage.py createsuperuser
+# Poblar base de datos inicial (admin, roles, etc.)
+docker-compose exec backend python manage.py seed
+docker-compose exec backend python manage.py seed --only admin  # Solo admin
 
 # Abrir shell de Django
 docker-compose exec backend python manage.py shell

@@ -30,6 +30,23 @@ docs/
 - UUIDs como PK para entidades principales
 - Nunca editar migraciones ya aplicadas
 
+### Comandos de Base de Datos y Backend
+
+El proyecto usa contenedores Docker. Para realizar cambios en la estructura de la base de datos o poblarla con datos iniciales (seeders):
+
+```bash
+# 1. Generar migraciones (después de cambiar models.py)
+docker-compose exec backend python manage.py makemigrations
+
+# 2. Aplicar migraciones a la BD
+docker-compose exec backend python manage.py migrate
+
+# 3. Poblar datos iniciales obligatorios (Roles, Permisos, Tipos Cita y Superusuario Admin)
+docker-compose exec backend python manage.py seed
+```
+
+> **Nota:** El comando `seed` es seguro e idempotente, lo que significa que se puede ejecutar varias veces sin crear duplicados.
+
 ## Guía Rápida de Comandos Flutter (Mobile)
 
 Ejecutar desde la carpeta `mobile/`.

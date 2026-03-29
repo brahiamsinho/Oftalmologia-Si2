@@ -40,10 +40,7 @@ services:
         condition: service_healthy
     networks:
       - oftalmologia_net
-    command: >
-      sh -c "python manage.py makemigrations --noinput &&
-             python manage.py migrate --noinput &&
-             python manage.py runserver 0.0.0.0:8000"
+    command: python manage.py runserver 0.0.0.0:8000
 
   # ---- Next.js Frontend ----
   frontend:
@@ -64,6 +61,16 @@ services:
     networks:
       - oftalmologia_net
     command: npm run dev
+
+  # ---- Mailhog (Captura de emails en desarrollo) ----
+  mailhog:
+    image: mailhog/mailhog:latest
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP — Django envía correos aquí
+      - "8025:8025"   # Web UI — ver emails en http://localhost:8025
+    networks:
+      - oftalmologia_net
 
 volumes:
   postgres_data:
