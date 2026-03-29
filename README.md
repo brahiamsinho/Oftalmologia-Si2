@@ -42,7 +42,7 @@ docker-compose exec backend python manage.py createsuperuser
 ## Acceso
 
 - **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:8000/api/v1/
+- **Backend API:** http://localhost:8000/api/
 - **Django Admin:** http://localhost:8000/admin/
 
 ## Estructura del Proyecto
