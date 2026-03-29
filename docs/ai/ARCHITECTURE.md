@@ -23,3 +23,15 @@ Sistema distribuido basado en arquitectura modular. El ecosistema es un Monorepo
 ## Flujo General del Sistema Diferenciado
 - **Web Flow:** Browser -> Next.js Render/Fetch -> API Django -> PostgreSQL -> API Django -> UI State.
 - **Mobile Flow:** Dispositivo (iOS/Android) -> Flutter Dio HTTP -> API Django -> PostgreSQL -> API Django -> BloC/Provider State -> UI Render.
+
+## Diseño de la API REST (Decisión de Enrutamiento Anidado)
+Para maximizar la **seguridad de datos clínicos (HIPAA/Data Leak Prevention)** y la consistencia del estado en el cliente, todas las entidades que le pertenezcan a un perfil maestro deben usar **URLs Anidadas** en lugar de planas.
+
+Ejemplo implementado: Para acceder o crear recetas, diagnósticos o evoluciones, la API requiere la ruta:
+`POST /api/historial-clinico/{id}/recetas/`
+
+**Justificación para Agentes/Desarrolladores Futuros:**
+1. **Prevención de Fuga de Datos (Escenario GET):** Una URL plana (`GET /api/diagnosticos/`) permitiría que un error u omisión de parámetros en el frontend devuelva datos de todos los pacientes de la base de datos de golpe. La URL anidada fuerza un error 404 si el sistema escanea sin el ID del paciente, bloqueando la filtración.
+2. **Prevención de Corrupción de Estado (Escenario POST):** Si un Frontend en React/Flutter sufre un bug y confunde los IDs guardados en caché al cambiar de pestaña entre dos pacientes, una URL libre (`POST /api/recetas/` mandando `"id_historial": X` en el body JSON) guardaría el diagnóstico en el paciente equivocado, incurriendo en negligencia médica grave. Las rutas anidadas inyectan de forma inmutable a quién le pertenece la relación directamente desde la URL principal (`/historial-clinico/{ID_CORRECTO}/`). El backend prioriza el ID de la URL y sobreescribe cualquier ID corrupto enviado en el JSON, y los Middlewares interceptan la solicitud antes de siquiera tocar la vista para corroborar acceso.
+
+**REGLA:** Nunca abstraer o aplanar los submódulos clínicos. Mantener la dependencia en la URL.
