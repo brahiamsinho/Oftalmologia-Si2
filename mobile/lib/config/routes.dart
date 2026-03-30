@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
-import '../features/auth/presentation/screens/login_screen.dart';
+import '../features/auth/presentation/screens/mobile_login_screen.dart';
+import '../features/auth/presentation/screens/register_screen.dart';
 import '../features/home/presentation/screens/home_screen.dart';
 
 /// Configuración de rutas de la aplicación.
@@ -10,7 +11,12 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/login',
       name: 'login',
-      builder: (context, state) => const LoginScreen(),
+      builder: (context, state) => const MobileLoginScreen(),
+    ),
+    GoRoute(
+      path: '/register',
+      name: 'register',
+      builder: (context, state) => const RegisterScreen(),
     ),
 
     // Home / Dashboard
