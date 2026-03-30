@@ -4,7 +4,6 @@ Serializers exclusivos del dominio de usuarios y autenticación.
 
 Roles/Permisos → apps/roles/serializers.py y apps/permisos/serializers.py
 """
-from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
@@ -56,32 +55,32 @@ class RegistroSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    """Acepta username o email en el campo 'login'."""
-    login = serializers.CharField(label='Username o Email')
+    """
+    Login solo con correo electrónico (campo `email`).
+    Verifica contraseña con check_password (evita fallos raros de authenticate()).
+    """
+    email = serializers.EmailField()
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
 
     def validate(self, data):
-        login_val = data.get('login', '').strip()
+        email_val = (data.get('email') or '').strip()
         password = data.get('password', '')
 
-        if '@' in login_val:
-            try:
-                obj = Usuario.objects.get(email=login_val)
-                username = obj.username
-            except Usuario.DoesNotExist:
-                raise serializers.ValidationError({'login': 'Credenciales incorrectas.'})
-        else:
-            username = login_val
+        usuario = Usuario.objects.filter(email__iexact=email_val).first()
+        if not usuario:
+            raise serializers.ValidationError({'email': 'Credenciales incorrectas.'})
+        if not usuario.check_password(password):
+            raise serializers.ValidationError({'email': 'Credenciales incorrectas.'})
+        if not usuario.is_active:
+            raise serializers.ValidationError({'email': 'Cuenta desactivada.'})
+        if usuario.estado == 'BLOQUEADO':
+            raise serializers.ValidationError(
+                {'email': 'Cuenta bloqueada. Contacta al administrador.'}
+            )
+        if usuario.estado == 'INACTIVO':
+            raise serializers.ValidationError({'email': 'Cuenta inactiva.'})
 
-        user = authenticate(username=username, password=password)
-        if not user:
-            raise serializers.ValidationError({'login': 'Credenciales incorrectas.'})
-        if user.estado == 'BLOQUEADO':
-            raise serializers.ValidationError({'login': 'Cuenta bloqueada. Contacta al administrador.'})
-        if user.estado == 'INACTIVO':
-            raise serializers.ValidationError({'login': 'Cuenta inactiva.'})
-
-        data['user'] = user
+        data['user'] = usuario
         return data
 
 

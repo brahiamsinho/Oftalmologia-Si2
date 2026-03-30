@@ -6,10 +6,11 @@ class AppTheme {
   AppTheme._();
 
   // ---- Colores ----
-  static const Color primaryColor = Color(0xFF0F766E);
-  static const Color primaryLight = Color(0xFF14B8A6);
-  static const Color primaryDark = Color(0xFF0D5F58);
-  static const Color secondaryColor = Color(0xFF1E40AF);
+  static const Color primaryColor = Color(0xFF2563EB);
+  static const Color primaryLight = Color(0xFF60A5FA);
+  static const Color primaryDark = Color(0xFF1D4ED8);
+  static const Color secondaryColor = Color(0xFF1E3A8A);
+  static const Color primaryBlue = Color(0xFF2563EB);
   static const Color accentColor = Color(0xFFF59E0B);
   static const Color errorColor = Color(0xFFDC2626);
   static const Color successColor = Color(0xFF16A34A);
@@ -67,19 +68,20 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: backgroundColor,
+        fillColor: const Color(0xFFFFFFFF),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: primaryColor, width: 2),
         ),
+        hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
@@ -90,9 +92,10 @@ class AppTheme {
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
           elevation: 0,
+          minimumSize: const Size(double.infinity, 52),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(16),
           ),
           textStyle: const TextStyle(
             fontWeight: FontWeight.w600,

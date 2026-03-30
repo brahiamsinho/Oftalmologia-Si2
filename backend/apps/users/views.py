@@ -126,8 +126,9 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     """
-    POST /api/v1/auth/login/
-    Acepta username o email. Retorna JWT + datos del usuario.
+    POST /api/auth/login/
+    Body: { "email": "...", "password": "..." } — solo correo electrónico.
+    Retorna JWT + datos del usuario.
     """
     permission_classes = [AllowAny]
 

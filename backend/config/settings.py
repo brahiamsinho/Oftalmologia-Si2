@@ -10,6 +10,7 @@ Para producción, sobreescribe via variables de entorno:
   CORS_ALLOWED_ORIGINS=https://tudominio.com
   (ver .env.example para la lista completa)
 """
+import hashlib
 from datetime import timedelta
 from pathlib import Path
 
@@ -24,7 +25,23 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # =============================================================================
 SECRET_KEY = config('DJANGO_SECRET_KEY', default='INSECURE-change-me-in-production')
 DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
-ALLOWED_HOSTS = config('DJANGO_ALLOWED_HOSTS', default='*', cast=Csv())
+
+
+def _jwt_signing_key() -> str:
+    """HS256 exige clave HMAC ≥ 32 bytes; si SECRET_KEY es corta, se deriva SHA-256 hex (64 chars)."""
+    raw = SECRET_KEY
+    if len(raw.encode('utf-8')) >= 32:
+        return raw
+    return hashlib.sha256(raw.encode('utf-8')).hexdigest()
+# En DEBUG se añade '*' para que el móvil pueda usar la IP LAN (ej. 192.168.x.x) sin listar cada host.
+_csv_hosts = config(
+    'DJANGO_ALLOWED_HOSTS',
+    default='localhost,127.0.0.1,0.0.0.0',
+    cast=Csv(),
+)
+ALLOWED_HOSTS = list(_csv_hosts)
+if DEBUG and '*' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('*')
 
 # =============================================================================
 # APLICACIONES
@@ -209,6 +226,7 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(
         days=config('JWT_REFRESH_TOKEN_LIFETIME', default=7, cast=int)
     ),
+    'SIGNING_KEY': _jwt_signing_key(),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),

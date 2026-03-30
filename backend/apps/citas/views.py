@@ -23,6 +23,8 @@ from rest_framework.response import Response
 from apps.bitacora.models import AccionBitacora
 from apps.core.permissions import IsAdministrativoOrAdmin, IsMedicoOrAdmin
 from apps.core.utils import get_client_ip, registrar_bitacora
+from apps.especialistas.models import Especialista
+from apps.pacientes.models import Paciente
 
 from .models import Cita, DisponibilidadEspecialista, EstadoCita, TipoCita
 from .serializers import (
@@ -68,6 +70,26 @@ class CitaViewSet(viewsets.ModelViewSet):
     ]
     ordering_fields = ['fecha_hora_inicio', 'estado', 'fecha_creacion']
     ordering = ['fecha_hora_inicio']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if not user.is_authenticated:
+            return Cita.objects.none()
+        tipo = getattr(user, 'tipo_usuario', '') or ''
+        if tipo == 'PACIENTE':
+            paciente = Paciente.objects.filter(usuario=user).first()
+            if not paciente:
+                return Cita.objects.none()
+            return qs.filter(id_paciente=paciente)
+        if tipo in ('MEDICO', 'ESPECIALISTA'):
+            esp = Especialista.objects.filter(usuario=user).first()
+            if not esp:
+                return Cita.objects.none()
+            return qs.filter(id_especialista=esp)
+        if tipo in ('ADMIN', 'ADMINISTRATIVO'):
+            return qs
+        return Cita.objects.none()
 
     def perform_create(self, serializer):
         cita = serializer.save(creado_por=self.request.user)
