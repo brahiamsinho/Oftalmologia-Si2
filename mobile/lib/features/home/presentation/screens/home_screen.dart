@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-/// Pantalla principal — Dashboard resumen.
-class HomeScreen extends StatelessWidget {
+import '../../../auth/presentation/providers/session_notifier.dart';
+import 'patient_home_screen.dart';
+
+/// Pantalla principal — paciente (Figma) o resumen staff.
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(sessionNotifierProvider);
+    if (user?.tipoUsuario == 'PACIENTE') {
+      return const PatientHomeScreen();
+    }
+
     final theme = Theme.of(context);
+    final greeting =
+        user == null ? 'Bienvenido' : 'Hola, ${user.displayName}';
 
     return Scaffold(
       appBar: AppBar(
@@ -17,8 +29,12 @@ class HomeScreen extends StatelessWidget {
             onPressed: () {},
           ),
           IconButton(
-            icon: const Icon(Icons.person_outline),
-            onPressed: () {},
+            icon: const Icon(Icons.logout_rounded),
+            tooltip: 'Cerrar sesión',
+            onPressed: () async {
+              await ref.read(sessionNotifierProvider.notifier).signOut();
+              if (context.mounted) context.go('/login');
+            },
           ),
         ],
       ),
@@ -27,21 +43,20 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Saludo
             Text(
-              'Bienvenido, Doctor',
+              greeting,
               style: theme.textTheme.headlineSmall,
             ),
             const SizedBox(height: 4),
             Text(
-              'Resumen de tu actividad',
+              user?.tipoUsuario == 'PACIENTE'
+                  ? 'Tu espacio en la clínica'
+                  : 'Resumen de actividad',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: Colors.grey,
               ),
             ),
             const SizedBox(height: 24),
-
-            // Stats cards
             const Row(
               children: [
                 Expanded(
@@ -56,7 +71,7 @@ class HomeScreen extends StatelessWidget {
                 Expanded(
                   child: _StatCard(
                     icon: Icons.calendar_today_outlined,
-                    title: 'Citas Hoy',
+                    title: 'Citas hoy',
                     value: '—',
                     color: Color(0xFF1E40AF),
                   ),
@@ -69,7 +84,7 @@ class HomeScreen extends StatelessWidget {
                 Expanded(
                   child: _StatCard(
                     icon: Icons.medical_services_outlined,
-                    title: 'Doctores',
+                    title: 'Equipo',
                     value: '—',
                     color: Color(0xFFF59E0B),
                   ),
@@ -86,10 +101,8 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 32),
-
-            // Próximas citas
             Text(
-              'Próximas Citas',
+              'Próximas citas',
               style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -112,7 +125,7 @@ class HomeScreen extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: 0,
         onDestinationSelected: (index) {
-          // TODO: Implementar navegación
+          // TODO: rutas por módulo (pacientes, citas, perfil)
         },
         destinations: const [
           NavigationDestination(
@@ -141,7 +154,6 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-/// Tarjeta de estadística.
 class _StatCard extends StatelessWidget {
   final IconData icon;
   final String title;

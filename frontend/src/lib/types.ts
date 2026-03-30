@@ -7,7 +7,7 @@
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 export interface LoginCredentials {
-  login: string;    // acepta username O email (el backend los diferencia con @)
+  email: string;
   password: string;
 }
 

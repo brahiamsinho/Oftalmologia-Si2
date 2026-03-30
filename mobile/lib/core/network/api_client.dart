@@ -1,13 +1,13 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import '../../config/app_config.dart';
+import '../storage/secure_storage.dart';
 
 /// Cliente HTTP configurado con Dio.
-/// Maneja autenticación JWT automáticamente.
+/// Maneja autenticación JWT automáticamente (tokens en [SecureStorageService]).
 class ApiClient {
   static ApiClient? _instance;
   late final Dio _dio;
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   ApiClient._() {
     _dio = Dio(
@@ -22,26 +22,29 @@ class ApiClient {
       ),
     );
 
-    // Request interceptor — agregar JWT
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = await _storage.read(key: 'access_token');
-          if (token != null) {
+          final token = await SecureStorageService.getAccessToken();
+          if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
           handler.next(options);
         },
         onError: (error, handler) async {
-          // Auto-refresh en 401
           if (error.response?.statusCode == 401) {
             final refreshed = await _refreshToken();
             if (refreshed) {
-              // Reintentar el request original
-              final token = await _storage.read(key: 'access_token');
-              error.requestOptions.headers['Authorization'] = 'Bearer $token';
-              final response = await _dio.fetch(error.requestOptions);
-              return handler.resolve(response);
+              final token = await SecureStorageService.getAccessToken();
+              if (token != null) {
+                error.requestOptions.headers['Authorization'] = 'Bearer $token';
+              }
+              try {
+                final response = await _dio.fetch(error.requestOptions);
+                return handler.resolve(response);
+              } catch (_) {
+                /* cae al handler.next */
+              }
             }
           }
           handler.next(error);
@@ -50,7 +53,6 @@ class ApiClient {
     );
   }
 
-  /// Singleton
   factory ApiClient() {
     _instance ??= ApiClient._();
     return _instance!;
@@ -58,33 +60,28 @@ class ApiClient {
 
   Dio get dio => _dio;
 
-  /// Intenta refrescar el token JWT.
   Future<bool> _refreshToken() async {
     try {
-      final refreshToken = await _storage.read(key: 'refresh_token');
+      final refreshToken = await SecureStorageService.getRefreshToken();
       if (refreshToken == null) return false;
 
-      final response = await Dio().post(
-        '${AppConfig.apiBaseUrl}/auth/token/refresh/',
+      final response = await Dio().post<Map<String, dynamic>>(
+        '${AppConfig.apiBaseUrl}auth/token/refresh/',
         data: {'refresh': refreshToken},
       );
 
-      await _storage.write(
-        key: 'access_token',
-        value: response.data['access'],
-      );
+      final access = response.data?['access'] as String?;
+      if (access == null) return false;
 
-      if (response.data['refresh'] != null) {
-        await _storage.write(
-          key: 'refresh_token',
-          value: response.data['refresh'],
-        );
-      }
+      await SecureStorageService.saveTokens(
+        accessToken: access,
+        refreshToken:
+            response.data?['refresh'] as String? ?? refreshToken,
+      );
 
       return true;
     } catch (_) {
-      // Limpiar tokens si el refresh falla
-      await _storage.deleteAll();
+      await SecureStorageService.clearAll();
       return false;
     }
   }
