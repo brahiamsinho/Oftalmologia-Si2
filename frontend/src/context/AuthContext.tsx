@@ -20,8 +20,9 @@ import type { Usuario } from '@/lib/types';
 interface AuthContextValue {
   user: Usuario | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (loginVal: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -44,11 +45,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const { user: loggedUser } = await authService.login({ email, password });
-    setUser(loggedUser);
+  const login = useCallback(async (loginVal: string, password: string) => {
+    const { usuario } = await authService.login({ login: loginVal, password });
+    setUser(usuario);
     router.push('/dashboard');
   }, [router]);
+
+  const refreshUser = useCallback(async () => {
+    const usuario = await authService.me();
+    setUser(usuario);
+  }, []);
 
   const logout = useCallback(async () => {
     await authService.logout();
@@ -57,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

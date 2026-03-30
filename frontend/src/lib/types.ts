@@ -7,14 +7,14 @@
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 export interface LoginCredentials {
-  email: string;
+  login: string;    // acepta username O email (el backend los diferencia con @)
   password: string;
 }
 
 export interface LoginResponse {
   access: string;
   refresh: string;
-  user: Usuario;
+  usuario: Usuario;   // el backend devuelve 'usuario', no 'user'
 }
 
 // ── Usuario ───────────────────────────────────────────────────────────────────
@@ -67,7 +67,7 @@ export interface Permiso {
 
 // ── Paciente ──────────────────────────────────────────────────────────────────
 export type EstadoPaciente = 'ACTIVO' | 'EN_SEGUIMIENTO' | 'POSTOPERATORIO' | 'INACTIVO';
-export type Sexo = 'M' | 'F' | 'OTRO';
+export type Sexo = 'M' | 'F';
 export type TipoDocumento = 'DNI' | 'PASAPORTE' | 'NIE' | 'OTRO';
 
 export interface Paciente {
@@ -77,15 +77,19 @@ export interface Paciente {
   numero_documento: string;
   nombres: string;
   apellidos: string;
-  fecha_nacimiento: string;       // ISO date
-  sexo: Sexo;
+  nombre_completo: string;
+  fecha_nacimiento: string | null;
+  sexo: Sexo | null;
   email: string | null;
   telefono: string | null;
-  telefono_emergencia: string | null;
+  contacto_emergencia_nombre: string | null;
+  contacto_emergencia_telefono: string | null;
   direccion: string | null;
   estado_paciente: EstadoPaciente;
   observaciones_generales: string | null;
   fecha_registro: string;
+  usuario: number | null;
+  usuario_username: string | null;
 }
 
 export interface PacienteCreate {
@@ -93,11 +97,12 @@ export interface PacienteCreate {
   numero_documento: string;
   nombres: string;
   apellidos: string;
-  fecha_nacimiento: string;
-  sexo: Sexo;
+  fecha_nacimiento?: string;
+  sexo?: Sexo;
   email?: string;
   telefono?: string;
-  telefono_emergencia?: string;
+  contacto_emergencia_nombre?: string;
+  contacto_emergencia_telefono?: string;
   direccion?: string;
   estado_paciente?: EstadoPaciente;
   observaciones_generales?: string;
