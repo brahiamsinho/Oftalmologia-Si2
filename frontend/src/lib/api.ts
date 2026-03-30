@@ -23,18 +23,30 @@ export const api = axios.create({
 });
 
 // ── Helpers de token (localStorage en cliente) ────────────────────────────────
+// Helpers: persiste en localStorage Y en una cookie HttpOnly-compatible para el middleware
 export const TokenStorage = {
-  getAccess:      () => (typeof window !== 'undefined' ? localStorage.getItem('access_token')  : null),
-  getRefresh:     () => (typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null),
-  setAccess:      (t: string) => localStorage.setItem('access_token',  t),
-  setRefresh:     (t: string) => localStorage.setItem('refresh_token', t),
-  setTokens:      (access: string, refresh: string) => {
+  getAccess:  () => (typeof window !== 'undefined' ? localStorage.getItem('access_token')  : null),
+  getRefresh: () => (typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null),
+
+  setAccess: (t: string) => {
+    localStorage.setItem('access_token', t);
+    document.cookie = `access_token=${t}; path=/; SameSite=Lax`;
+  },
+  setRefresh: (t: string) => {
+    localStorage.setItem('refresh_token', t);
+    document.cookie = `refresh_token=${t}; path=/; SameSite=Lax`;
+  },
+  setTokens: (access: string, refresh: string) => {
     localStorage.setItem('access_token',  access);
     localStorage.setItem('refresh_token', refresh);
+    document.cookie = `access_token=${access};  path=/; SameSite=Lax`;
+    document.cookie = `refresh_token=${refresh}; path=/; SameSite=Lax`;
   },
-  clear:          () => {
+  clear: () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    document.cookie = 'access_token=;  path=/; max-age=0';
+    document.cookie = 'refresh_token=; path=/; max-age=0';
   },
 };
 
@@ -101,5 +113,28 @@ api.interceptors.response.use(
     }
   },
 );
+
+// ── Helper: trae TODAS las páginas de un endpoint paginado ───────────────────
+interface DRFPage { results: unknown[]; next: string | null }
+
+export async function fetchAll<T>(url: string): Promise<T[]> {
+  const results: T[] = [];
+  let nextUrl: string | null = url;
+
+  while (nextUrl) {
+    const raw: unknown = (await api.get(nextUrl)).data;
+
+    if (Array.isArray(raw)) {
+      results.push(...(raw as T[]));
+      break;
+    }
+    const page = raw as DRFPage;
+    results.push(...(page.results as T[]));
+    // DRF devuelve la URL absoluta en `next` (ej. http://localhost:8000/api/permisos/?page=2)
+    nextUrl = page.next;
+  }
+
+  return results;
+}
 
 export default api;

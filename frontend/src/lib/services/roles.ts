@@ -8,14 +8,12 @@
  *   GET             /api/permisos/
  */
 
-import api from '@/lib/api';
-import type { PaginatedResponse, Permiso, Rol } from '@/lib/types';
+import api, { fetchAll } from '@/lib/api';
+import type { Permiso, Rol } from '@/lib/types';
 
 export const rolesService = {
   async list(): Promise<Rol[]> {
-    const { data } = await api.get<Rol[] | PaginatedResponse<Rol>>('/roles/');
-    // El backend puede devolver lista directa o paginada
-    return Array.isArray(data) ? data : data.results;
+    return fetchAll<Rol>('/roles/');
   },
 
   async get(id: number): Promise<Rol> {
@@ -38,7 +36,14 @@ export const rolesService = {
   },
 
   async listarPermisos(): Promise<Permiso[]> {
-    const { data } = await api.get<Permiso[] | PaginatedResponse<Permiso>>('/permisos/');
-    return Array.isArray(data) ? data : data.results;
+    return fetchAll<Permiso>('/permisos/');
+  },
+
+  async addPermiso(rolId: number, permisoId: number): Promise<void> {
+    await api.post(`/roles/${rolId}/permisos/`, { id_permiso: permisoId });
+  },
+
+  async removePermiso(rolId: number, permisoId: number): Promise<void> {
+    await api.delete(`/roles/${rolId}/permisos/${permisoId}/`);
   },
 };

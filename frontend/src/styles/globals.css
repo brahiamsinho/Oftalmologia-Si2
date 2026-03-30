@@ -40,3 +40,21 @@ body {
 .animate-fade-in {
   animation: fadeIn 200ms ease-out both;
 }
+
+/* ---- Login: iris / pupila minimal (dilatación suave) ---- */
+@keyframes minimal-iris-pupil-dilate {
+  0%, 100% { transform: translate(-50%, -50%) scale(0.78); }
+  50%      { transform: translate(-50%, -50%) scale(1.06); }
+}
+
+.minimal-iris-pupil {
+  animation: minimal-iris-pupil-dilate 3.4s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .minimal-iris-pupil {
+    animation: none;
+    transform: translate(-50%, -50%) scale(0.92);
+  }
+}
