@@ -5,7 +5,7 @@
  * Provee:
  *   - user: usuario autenticado (o null)
  *   - isLoading: mientras verifica la sesión inicial
- *   - login(email, password) → redirige al dashboard
+ *   - login(email, password) → solo correo; redirige al dashboard
  *   - logout() → limpia tokens y redirige al login
  */
 
@@ -20,7 +20,7 @@ import type { Usuario } from '@/lib/types';
 interface AuthContextValue {
   user: Usuario | null;
   isLoading: boolean;
-  login: (loginVal: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -45,8 +45,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const login = useCallback(async (loginVal: string, password: string) => {
-    const { usuario } = await authService.login({ login: loginVal, password });
+  const login = useCallback(async (email: string, password: string) => {
+    const { usuario } = await authService.login({ email: email.trim(), password });
     setUser(usuario);
     router.push('/dashboard');
   }, [router]);

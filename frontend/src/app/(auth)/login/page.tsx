@@ -8,7 +8,7 @@ import SnellenEvaluation from '@/components/SnellenEvaluation';
 import MinimalIris from '@/components/MinimalIris';
 
 const DEMOS = [
-  { role: 'Administrador', login: 'admin', pass: 'admin123' },
+  { role: 'Administrador', email: 'admin@oftalmologia.local', pass: 'admin123' },
 ];
 
 const BULLETS = [
@@ -31,7 +31,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await login(loginVal, password);
+      await login(loginVal.trim(), password);
     } catch {
       setError('Usuario o contraseña incorrectos.');
     } finally {
@@ -87,15 +87,15 @@ export default function LoginPage() {
 
             <form className="space-y-4" onSubmit={handleSubmit}>
 
-              {/* Usuario */}
+              {/* Correo (único identificador de login) */}
               <div>
                 <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-                  Correo Electrónico
+                  Correo electrónico
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
-                    type="text"
+                    type="email"
                     value={loginVal}
                     onChange={e => setLoginVal(e.target.value)}
                     placeholder="correo@clinica.com"
@@ -154,9 +154,9 @@ export default function LoginPage() {
                 <p className="text-[11.5px] text-blue-500 font-medium mb-1.5">Credenciales de demo</p>
                 {DEMOS.map(d => (
                   <button key={d.role} type="button"
-                    onClick={() => { setLoginVal(d.login); setPassword(d.pass); }}
+                    onClick={() => { setLoginVal(d.email); setPassword(d.pass); }}
                     className="w-full text-left text-[12px] text-blue-700 hover:text-blue-900 transition-colors">
-                    <span className="font-semibold">{d.role}:</span> {d.login} / {d.pass}
+                    <span className="font-semibold">{d.role}:</span> {d.email} / {d.pass}
                   </button>
                 ))}
               </div>

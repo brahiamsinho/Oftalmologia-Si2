@@ -2,13 +2,18 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Instalar dependencias
-COPY package.json package-lock.json* ./
-RUN npm install
+RUN apk add --no-cache libc6-compat
 
-# Copiar código fuente
+# Dependencias (capa cacheable; en dev con volumenes el entrypoint vuelve a sincronizar si hace falta)
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 COPY . .
 
 EXPOSE 3000
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["npm", "run", "dev"]

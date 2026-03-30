@@ -6,8 +6,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Fuentes: Inter se carga en app/layout.tsx (evita @import tras @tailwind, inválido en CSS y puede romper PostCSS). */
 
 /* ---- Base ---- */
 *, *::before, *::after {

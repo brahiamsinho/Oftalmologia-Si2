@@ -6,7 +6,7 @@ Permisos → apps/permisos/urls.py
 
 Auth:
   POST  /api/v1/auth/register/
-  POST  /api/v1/auth/login/
+  POST  /api/auth/login/   body: email + password
   POST  /api/v1/auth/logout/
   GET   /api/v1/auth/me/
   PATCH /api/v1/auth/me/
