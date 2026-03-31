@@ -1,22 +1,27 @@
 # NEXT STEPS
 
-Lista priorizada de los siguientes pasos a realizar en el proyecto Oftalmología Si2.
+Lista priorizada para Oftalmología Si2 (actualizada tras integración mobile paciente).
 
 ## Corto Plazo
-- [ ] Backend: Crear "CustomUser" para alojar roles (Admin, Doc, Patient) y token JWT auth.
-- [ ] Mobile: Extender scaffolding/bases de proyecto Flutter (Theming principal, UX base, ruteo) alineados al Canvas en blanco. Establecer configuraciones seguras y limpias para red (Dio HTTP).
-- [ ] Frontend: Preparar UI de autenticación Web (Login form mínimo, Auth Provider genérico).
+- [x] Backend: CustomUser + JWT (ya existía; login refinado a email + `check_password`).
+- [x] Mobile: Login real + home paciente con `GET /citas/` + tema/rutas base.
+- [x] Frontend: Login con `email` alineado a API.
+- [ ] Mobile: Completar pestañas **Citas** y **Perfil** (navegación ya existe).
+- [ ] Mobile: **Registro** contra `POST /api/auth/register/`.
+- [ ] Mobile: Agendar / detalle de cita (según diseño y permisos API).
 
 ## Mediano Plazo
-- [ ] Core Domains: Implementar modelos Django para Pacientes y citas oftalmológicas básicas. Exponer ModelViewSets vía DRF.
-- [ ] Web Admin: Consumir endpoints de Pacientes y mostrarlos en tablas responsivas Next.js.
-- [ ] Mobile App: Pantalla Listado de Próximas Citas y Home de Médico / Paciente integrados con la API Real.
+- [x] Modelos y API Pacientes/Citas (backend Sprint 1).
+- [ ] Web Admin: tablas y flujos sobre pacientes, citas, disponibilidades.
+- [ ] Mobile: vista **médico** / staff (si aplica mismo app o build flavor).
+- [ ] Recuperación de contraseña en app (endpoints ya en backend).
 
 ## Largo Plazo
-- [ ] Flujo completo Web: Historias clínicas detalladas, imágenes, estudios.
-- [ ] Flujo App: Notificaciones (FCM o similar) de recordatorio de turnos.
-- [ ] Despliegue en Servidores Nube (VM/VPS con Nginx invertido y volúmenes Docker remotos).
+- [ ] Web: historias clínicas completas, adjuntos/imágenes.
+- [ ] Mobile: notificaciones (FCM) para turnos.
+- [ ] Despliegue: Nginx, HTTPS, `DEBUG=False`, hosts y CORS explícitos.
 
-## Pendientes Técnicos Singulares
-- Aclarar convenciones de código entre TypeScript, Dart y Python en un único doc estilo.
-- Manejo integral de Storage de imágenes oftalmológicas (Almacenamiento local o AWS S3/Cloud Storage) conviviendo entre Web y App Móvil subiendo fotos/archivos.
+## Pendientes Técnicos
+- [ ] Doc único de convenciones TS / Dart / Python.
+- [ ] Storage compartido para imágenes clínicas (S3 / similar).
+- [ ] Tests automatizados en flujos auth + citas (backend + widget mobile crítico).

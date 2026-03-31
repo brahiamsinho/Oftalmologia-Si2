@@ -1,79 +1,58 @@
 # CURRENT STATE
 
 ## Estado Actual del Proyecto
-Etapa **SPRINT 1 BACKEND COMPLETO**. Toda la lógica del Backend ha sido implementada: modelos, serializers, views, URLs y admin de todas las tablas del Sprint 1.
+**Sprint 1 backend completo** + **Mobile paciente integrado** (login + home con citas reales). Frontend Next.js con auth por correo alineado al mismo contrato de API.
 
 ## Qué Ya Está Hecho
-- Arquitectura Modular instalada: `/backend`, `/frontend`, `/mobile`.
-- Infraestructura Docker y PostgreSQL conectada de forma estable.
-- **Doble ciclo de migraciones evitado**: El `entrypoint.sh` solo espera a Postgres y levanta el sistema, dejando `makemigrations`, `migrate` y `seed` bajo el control del desarrollador.
-- **Seeders Implementados**: Módulo `/backend/seeders/` con `seed_admin.py`, `seed_roles.py`, `seed_permisos.py` y `seed_tipos_cita.py`. Idempotentes vía `python manage.py seed`.
-- **Mailhog** agregado al `docker-compose.yml` para captura de emails en desarrollo (`:8025`).
-- **CustomUser (`apps.users.Usuario`)** con 5 tipos: ADMIN, ADMINISTRATIVO, MEDICO, ESPECIALISTA, PACIENTE.
-- **`AUTH_USER_MODEL = 'users.Usuario'`** activado en settings.
-- **JWT Blacklist** habilitado (logout real con token invalidado).
 
-## Apps Implementadas (Sprint 1 Completo)
-| App | Modelos |
-|-----|---------|
-| `apps.core` | utils, permissions, health-check |
-| `apps.users` | Usuario, Rol, Permiso, UsuarioRol, RolPermiso, TokenRecuperacion |
-| `apps.bitacora` | Bitacora (app separada) |
-| `apps.pacientes` | Paciente |
-| `apps.especialistas` | Especialista |
-| `apps.historial_clinico` | HistoriaClinica |
-| `apps.antecedentes` | AntecedenteClinico |
-| `apps.diagnosticos` | DiagnosticoClinico |
-| `apps.tratamientos` | TratamientoClinico |
-| `apps.evoluciones` | EvolucionClinica |
-| `apps.recetas` | Receta, RecetaDetalle |
-| `apps.citas` | TipoCita, DisponibilidadEspecialista, Cita |
+### Backend (Django / DRF)
+- Arquitectura modular, Docker, PostgreSQL, Mailhog.
+- CustomUser (`apps.users.Usuario`), JWT + blacklist, prefijo API **`/api/`** (no `/api/v1/`).
+- Apps Sprint 1: usuarios, pacientes, especialistas, historias clínicas modulares, citas, bitácora, etc.
+- **`POST /api/auth/login/`**: body **`{ "email", "password" }`** — solo correo; validación con `check_password` (no `authenticate()`).
+- **`CitaViewSet.get_queryset()`**: PACIENTE solo ve sus citas; MEDICO/ESPECIALISTA las suyas; ADMIN/ADMINISTRATIVO todas.
+- **`ALLOWED_HOSTS`**: con `DJANGO_DEBUG=True` se añade `*` para desarrollo (móvil por IP LAN sin listar cada host).
+- **`SIMPLE_JWT['SIGNING_KEY']`**: si `DJANGO_SECRET_KEY` tiene menos de 32 bytes en UTF-8, se deriva SHA-256 hex (evita `InsecureKeyLengthWarning`).
+- **Seeders**: `seed`, `seed --only demo_paciente` — paciente demo + 2 médicos + 2 citas (ver `seed_demo_paciente.py`).
 
-## Endpoints Implementados (Prefijo base: `/api/`)
+### Mobile (Flutter)
+- Login modular: `login_header`, `login_form`, `login_actions`; tema alineado a diseño clínica.
+- **`API_BASE_URL`** en `mobile/.env`: debe terminar conceptualmente en `/api`; `AppConfig.apiBaseUrl` **normaliza con barra final** (`.../api/`) para que Dio no genere URLs tipo `/apiauth/...`.
+- Rutas relativas sin `/` inicial: `auth/login/`, `citas/`, etc.
+- Android: `usesCleartextTraffic` para HTTP en dev.
+- Timeout HTTP 30 s (margen arranque Docker/Postgres).
+- **`intl` + `initializeDateFormatting('es')`** en `main.dart`.
+- Home **paciente** (`PatientHomeScreen`): cabecera, próxima cita, accesos rápidos, lista Próximas/Historial, estados carga/vacío/error; `GET citas/` vía `CitasRepository` + Riverpod.
+- `HomeScreen` enruta a paciente si `tipoUsuario == 'PACIENTE'`; resto mantiene panel staff placeholder.
 
-**Autenticación y Usuarios**
-- `POST /auth/register/` — Registro (auto-crea Paciente/Especialista)
-- `POST /auth/login/` — Login (username o email)
-- `POST /auth/logout/` — Logout con blacklist de token
-- `GET/PATCH /auth/me/` — Perfil propio
-- `POST /auth/change-password/` — Cambiar contraseña
-- `POST /auth/reset-password/` — Solicitar reset (envía email a Mailhog)
-- `POST /auth/reset-password/confirm/` — Confirmar reset
-- `CRUD /users/`
-- `CRUD /roles/`
-- `CRUD /permisos/`
-- `GET /bitacora/` — Historial de auditoría delegada
+### Frontend (Next.js)
+- Login usa **`email` + `password`** en `POST /api/auth/login/` (tipo `LoginCredentials` actualizado).
+- Demo admin en UI: `admin@oftalmologia.local` / `admin123`.
 
-**Personal Médico y Pacientes**
-- `CRUD /pacientes/`
-- `CRUD /especialistas/`
-- `GET /especialistas/{id}/disponibilidades/`
+## Credenciales de Desarrollo (referencia)
+| Uso | Email | Password |
+|-----|--------|----------|
+| Admin (seed) | `admin@oftalmologia.local` | `admin123` |
+| Paciente demo | `brandon@gmail.com` | `Felipe321` |
 
-**Historias Clínicas (Modular - Rutas Anidadas)**
-- `CRUD /historias-clinicas/`
-- `CRUD /historias-clinicas/{id_historia_clinica}/antecedentes/`
-- `CRUD /historias-clinicas/{id_historia_clinica}/diagnosticos/`
-- `CRUD /historias-clinicas/{id_historia_clinica}/tratamientos/`
-- `CRUD /historias-clinicas/{id_historia_clinica}/evoluciones/`
-- `CRUD /historias-clinicas/{id_historia_clinica}/recetas/`
-- `CRUD /historias-clinicas/{id_historia_clinica}/recetas/{id_receta}/detalles/`
+Ejecutar: `docker compose exec backend python manage.py seed --only demo_paciente` (requiere `tipos_cita` ya sembrados).
 
-**Agendamiento y Citas**
-- `CRUD /tipos-cita/`
-- `CRUD /disponibilidades/`
-- `CRUD /citas/`
-- Acciones: `/citas/{id}/confirmar/`, `/citas/{id}/cancelar/`, `/citas/{id}/reprogramar/`
+## Endpoints Clave (recordatorio)
+- Login: `POST /api/auth/login/` → `{ email, password }`
+- Citas (filtradas por rol): `GET /api/citas/?ordering=fecha_hora_inicio`
+- Health: `GET /api/health/`
 
-**Sistema**
-- `GET /health/` — Health check
-
-## Qué Falta (Pendientes Inmediatos)
-- Frontend: consumir la API
-- Mobile: integrar Flutter con la API
+## Qué Falta (prioridad sugerida)
+- Pantallas mobile Citas / Perfil (placeholders).
+- Agendar cita, detalle cita, recuperación contraseña en app.
+- Frontend web: más módulos sobre API (pacientes, citas, etc.).
+- Registro mobile conectado a `POST /auth/register/`.
+- Producción: `DEBUG=False`, `ALLOWED_HOSTS` explícitos, HTTPS, clave JWT larga en `.env`.
 
 ## Riesgos Conocidos
-- El campo `numero_documento` de Paciente es UNIQUE — en registro automático se genera `PENDIENTE-{user_id}` si no se provee. El paciente debe actualizarlo.
+- `numero_documento` UNIQUE en Paciente — registro auto puede dejar `PENDIENTE-{id}` hasta actualización.
+- Móvil en **dispositivo físico**: `API_BASE_URL` = IP LAN del PC (`ipconfig`), misma Wi‑Fi; no usar `10.0.2.2` fuera del emulador Android.
+- Tras cambiar `DJANGO_SECRET_KEY` corta por derivación JWT, tokens previos invalidan hasta nuevo login.
 
 ---
-*(Actualizado: 2026-03-28)*
-**Agente actualizador:** Antigravity
+*(Actualizado: 2026-03-30)*

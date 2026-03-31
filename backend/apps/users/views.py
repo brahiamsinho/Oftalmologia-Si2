@@ -6,20 +6,20 @@ Roles → apps/roles/views.py
 Permisos → apps/permisos/views.py
 
 Auth endpoints:
-  POST  /api/v1/auth/register/
-  POST  /api/v1/auth/login/
-  POST  /api/v1/auth/logout/
-  GET   /api/v1/auth/me/
-  PATCH /api/v1/auth/me/
-  POST  /api/v1/auth/change-password/
-  POST  /api/v1/auth/reset-password/
-  POST  /api/v1/auth/reset-password/confirm/
+  POST  /api/auth/register/
+  POST  /api/auth/login/
+  POST  /api/auth/logout/
+  GET   /api/auth/me/
+  PATCH /api/auth/me/
+  POST  /api/auth/change-password/
+  POST  /api/auth/reset-password/
+  POST  /api/auth/reset-password/confirm/
 
 Users CRUD:
-  /api/v1/users/
-  /api/v1/users/{id}/activar/
-  /api/v1/users/{id}/bloquear/
-  GET/POST /api/v1/users/{id}/roles/
+  /api/users/
+  /api/users/{id}/activar/
+  /api/users/{id}/bloquear/
+  GET/POST /api/users/{id}/roles/
 """
 import logging
 
@@ -68,7 +68,7 @@ def _jwt_response(usuario):
 
 class RegisterView(APIView):
     """
-    POST /api/v1/auth/register/
+    POST /api/auth/register/
     Registro público. Crea Paciente o Especialista automáticamente según tipo_usuario.
     Retorna JWT para login inmediato post-registro.
     """
@@ -151,7 +151,7 @@ class LoginView(APIView):
 
 class LogoutView(APIView):
     """
-    POST /api/v1/auth/logout/
+    POST /api/auth/logout/
     Body: { "refresh": "<refresh_token>" }
     Añade el refresh token a la JWT Blacklist.
     """
@@ -177,8 +177,8 @@ class LogoutView(APIView):
 
 class MeView(generics.RetrieveUpdateAPIView):
     """
-    GET   /api/v1/auth/me/  — Ver perfil propio
-    PATCH /api/v1/auth/me/  — Editar perfil propio
+    GET   /api/auth/me/  — Ver perfil propio
+    PATCH /api/auth/me/  — Editar perfil propio
     """
     permission_classes = [IsAuthenticated]
     serializer_class = PerfilSerializer
@@ -198,7 +198,7 @@ class MeView(generics.RetrieveUpdateAPIView):
 
 
 class ChangePasswordView(APIView):
-    """POST /api/v1/auth/change-password/"""
+    """POST /api/auth/change-password/"""
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -221,7 +221,7 @@ class ChangePasswordView(APIView):
 
 class ResetPasswordView(APIView):
     """
-    POST /api/v1/auth/reset-password/
+    POST /api/auth/reset-password/
     Envía email con token de reset. Siempre responde 200 (no revela si el email existe).
     """
     permission_classes = [AllowAny]
@@ -247,7 +247,7 @@ class ResetPasswordView(APIView):
 
 
 class ResetPasswordConfirmView(APIView):
-    """POST /api/v1/auth/reset-password/confirm/"""
+    """POST /api/auth/reset-password/confirm/"""
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -279,11 +279,11 @@ class ResetPasswordConfirmView(APIView):
 class UsuarioViewSet(viewsets.ModelViewSet):
     """
     CRUD completo de usuarios.
-    GET/POST    /api/v1/users/
-    GET/PUT/PATCH/DELETE /api/v1/users/{id}/
-    POST        /api/v1/users/{id}/activar/
-    POST        /api/v1/users/{id}/bloquear/
-    GET/POST    /api/v1/users/{id}/roles/   (consulta/asigna roles via apps.roles)
+    GET/POST    /api/users/
+    GET/PUT/PATCH/DELETE /api/users/{id}/
+    POST        /api/users/{id}/activar/
+    POST        /api/users/{id}/bloquear/
+    GET/POST    /api/users/{id}/roles/   (consulta/asigna roles via apps.roles)
     """
     queryset = Usuario.objects.all().order_by('apellidos', 'nombres')
     permission_classes = [IsAuthenticated, IsAdministrativoOrAdmin]
@@ -320,7 +320,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def activar(self, request, pk=None):
-        """POST /api/v1/users/{id}/activar/"""
+        """POST /api/users/{id}/activar/"""
         usuario = self.get_object()
         usuario.estado = 'ACTIVO'
         usuario.is_active = True
@@ -329,7 +329,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def bloquear(self, request, pk=None):
-        """POST /api/v1/users/{id}/bloquear/"""
+        """POST /api/users/{id}/bloquear/"""
         usuario = self.get_object()
         usuario.estado = 'BLOQUEADO'
         usuario.is_active = False
@@ -339,8 +339,8 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get', 'post'], url_path='roles')
     def roles(self, request, pk=None):
         """
-        GET  /api/v1/users/{id}/roles/ — Roles asignados al usuario
-        POST /api/v1/users/{id}/roles/ — Asignar rol al usuario
+        GET  /api/users/{id}/roles/ — Roles asignados al usuario
+        POST /api/users/{id}/roles/ — Asignar rol al usuario
         Body: { "id_rol": <id> }
         """
         from apps.roles.models import UsuarioRol

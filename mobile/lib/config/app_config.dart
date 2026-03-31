@@ -6,12 +6,15 @@ class AppConfig {
 
   /// URL base del API **con barra final** (`.../api/`).
   /// Sin ella, Dio concatena mal y termina en rutas tipo `/apiauth/login/`.
+  /// Definir `API_BASE_URL` en `mobile/.env` (ver `mobile/.env.example`).
   static String get apiBaseUrl {
     final raw = dotenv.env['API_BASE_URL']?.trim();
-    final base = (raw == null || raw.isEmpty)
-        ? 'http://10.0.2.2:8000/api'
-        : raw;
-    final noTrail = base.replaceAll(RegExp(r'/+$'), '');
+    if (raw == null || raw.isEmpty) {
+      throw StateError(
+        'API_BASE_URL no está definida en mobile/.env. Copiá mobile/.env.example a mobile/.env.',
+      );
+    }
+    final noTrail = raw.replaceAll(RegExp(r'/+$'), '');
     return '$noTrail/';
   }
 
@@ -22,6 +25,6 @@ class AppConfig {
   /// Timeout para request HTTP (milisegundos). Subido para dar margen al arranque de Docker/Postgres.
   static const int httpTimeout = 30000;
 
-  /// Versión de la API.
+  /// Etiqueta de versión de API (informativa; las rutas reales vienen de Dio + base URL).
   static const String apiVersion = 'v1';
 }

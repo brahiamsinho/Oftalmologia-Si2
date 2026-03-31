@@ -1,31 +1,44 @@
 /** @type {import('next').NextConfig} */
+
+const rawApi = (process.env.NEXT_PUBLIC_API_URL || '').trim().replace(/\/+$/, '');
+
+function buildImageRemotePatterns() {
+  if (!rawApi) return [];
+  try {
+    const u = new URL(rawApi);
+    const pattern = {
+      protocol: u.protocol.replace(':', ''),
+      hostname: u.hostname,
+    };
+    if (u.port) {
+      pattern.port = u.port;
+    }
+    return [pattern];
+  } catch {
+    return [];
+  }
+}
+
 const nextConfig = {
-  // Habilitar standalone output para Docker
   output: 'standalone',
 
-  // Variables de entorno públicas
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
+    NEXT_PUBLIC_API_URL: rawApi,
     NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || 'Oftalmología Si2',
   },
 
-  // Configurar dominio de imágenes permitidas
   images: {
-    remotePatterns: [
-      {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '8000',
-      },
-    ],
+    remotePatterns: buildImageRemotePatterns(),
   },
 
-  // Rewrites para proxy API en desarrollo (evita CORS)
   async rewrites() {
+    if (!rawApi) {
+      return [];
+    }
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/:path*`,
+        destination: `${rawApi}/:path*`,
       },
     ];
   },

@@ -29,6 +29,7 @@ Cambios pequeños (bug fix simple) = delegar a sub-agente sin SDD.
 
 ### 1.4 Seguridad desde la base
 - Variables sensibles SOLO vía `.env`.
+- URLs públicas y hosts: raíz `.env` + `mobile/.env` (`API_BASE_URL`); ver `.env.example` y `mobile/.env.example` (sin URLs fijas en código de app).
 - Tokens JWT en `flutter_secure_storage` (mobile) — jamás en SharedPreferences.
 - Sin hardcodeo de URLs/secretos en código.
 
@@ -65,7 +66,7 @@ Oftalmologia-Si2/
 ```
 Web:  Browser → Next.js → Django API → PostgreSQL
 Mobile: Flutter (Dio) → Django API → PostgreSQL
-        (10.0.2.2:8000 en Android Emulator, o IP LAN en físico)
+        (`API_BASE_URL` en `mobile/.env`; emulador Android suele usar 10.0.2.2, físico/VM usa IP o dominio real)
 ```
 
 ### 3.3 Regla de oro
@@ -149,7 +150,7 @@ flutter run
 | Modelos Django | PascalCase singular | `Patient`, `Appointment` |
 | Serializers | `{Model}Serializer` | `PatientSerializer` |
 | Views/ViewSets | `{Model}ViewSet` | `PatientViewSet` |
-| URLs API | snake_case plural | `/api/v1/patients/` |
+| URLs API | snake_case plural | `/api/patients/` |
 | Rutas Flutter | kebab-case | `/patient-detail` |
 | Componentes React | PascalCase | `PatientList.tsx` |
 | Feature folders | kebab-case | `patient-management/` |

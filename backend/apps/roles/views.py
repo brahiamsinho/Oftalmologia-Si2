@@ -2,11 +2,11 @@
 apps/roles/views.py
 
 Endpoints:
-  GET/POST       /api/v1/roles/
-  GET/PUT/PATCH  /api/v1/roles/{id}/
-  DELETE         /api/v1/roles/{id}/
-  GET/POST       /api/v1/roles/{id}/permisos/     — Permisos asignados a un rol
-  DELETE         /api/v1/roles/{id}/permisos/{pid}/ — Quitar permiso de rol
+  GET/POST       /api/roles/
+  GET/PUT/PATCH  /api/roles/{id}/
+  DELETE         /api/roles/{id}/
+  GET/POST       /api/roles/{id}/permisos/     — Permisos asignados a un rol
+  DELETE         /api/roles/{id}/permisos/{pid}/ — Quitar permiso de rol
 """
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -23,8 +23,8 @@ from .serializers import RolPermisoSerializer, RolSerializer, UsuarioRolSerializ
 class RolViewSet(viewsets.ModelViewSet):
     """
     CRUD completo de roles del sistema. Solo accesible por ADMIN.
-    GET/POST /api/v1/roles/
-    GET/PUT/PATCH/DELETE /api/v1/roles/{id}/
+    GET/POST /api/roles/
+    GET/PUT/PATCH/DELETE /api/roles/{id}/
     """
     queryset = Rol.objects.prefetch_related('rol_permisos__id_permiso').all()
     serializer_class = RolSerializer
@@ -37,8 +37,8 @@ class RolViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get', 'post'], url_path='permisos')
     def permisos(self, request, pk=None):
         """
-        GET /api/v1/roles/{id}/permisos/   — Ver permisos del rol
-        POST /api/v1/roles/{id}/permisos/  — Asignar permiso al rol
+        GET /api/roles/{id}/permisos/   — Ver permisos del rol
+        POST /api/roles/{id}/permisos/  — Asignar permiso al rol
         Body POST: { "id_permiso": <id> }
         """
         rol = self.get_object()
@@ -56,7 +56,7 @@ class RolViewSet(viewsets.ModelViewSet):
         url_path=r'permisos/(?P<permiso_pk>[0-9]+)',
     )
     def quitar_permiso(self, request, pk=None, permiso_pk=None):
-        """DELETE /api/v1/roles/{id}/permisos/{permiso_pk}/ — Quitar permiso del rol"""
+        """DELETE /api/roles/{id}/permisos/{permiso_pk}/ — Quitar permiso del rol"""
         rol = self.get_object()
         deleted, _ = RolPermiso.objects.filter(
             id_rol=rol, id_permiso_id=permiso_pk
@@ -74,9 +74,9 @@ class UsuarioRolViewSet(
 ):
     """
     Gestión de roles asignados a usuarios.
-    GET    /api/v1/usuario-roles/              — Listar asignaciones
-    POST   /api/v1/usuario-roles/              — Asignar rol a usuario
-    DELETE /api/v1/usuario-roles/{id}/         — Quitar asignación
+    GET    /api/usuario-roles/              — Listar asignaciones
+    POST   /api/usuario-roles/              — Asignar rol a usuario
+    DELETE /api/usuario-roles/{id}/         — Quitar asignación
     """
     queryset = UsuarioRol.objects.select_related('id_usuario', 'id_rol').all()
     serializer_class = UsuarioRolSerializer
