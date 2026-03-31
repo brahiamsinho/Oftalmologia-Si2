@@ -29,6 +29,11 @@ cd Oftalmologia-Si2
 cp .env.example .env
 # Edita .env con tus valores reales (especialmente contraseñas y secret key)
 
+# Variables obligatorias en .env (plantilla en .env.example):
+#   DJANGO_ALLOWED_HOSTS, FRONTEND_URL, NEXT_PUBLIC_API_URL
+# Con DJANGO_DEBUG=False también hace falta CORS_ALLOWED_ORIGINS.
+# Puertos del host (VM / nube): HOST_PORT_BACKEND, HOST_PORT_FRONTEND, etc.
+
 # 3. Construir y levantar los contenedores
 docker-compose up --build
 
@@ -42,9 +47,11 @@ docker-compose exec backend python manage.py seed
 
 ## Acceso
 
-- **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:8000/api/
-- **Django Admin:** http://localhost:8000/admin/
+Con los valores por defecto de `.env.example` (puertos 3000 y 8000):
+
+- **Frontend:** `http://localhost:3000` (o `http://TU_IP:HOST_PORT_FRONTEND`)
+- **Backend API:** `http://localhost:8000/api/` (o el host/puerto que definiste)
+- **Django Admin:** `http://localhost:8000/admin/`
 
 ## Estructura del Proyecto
 

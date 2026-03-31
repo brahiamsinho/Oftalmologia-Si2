@@ -5,19 +5,19 @@ Roles → apps/roles/urls.py
 Permisos → apps/permisos/urls.py
 
 Auth:
-  POST  /api/v1/auth/register/
+  POST  /api/auth/register/
   POST  /api/auth/login/   body: email + password
-  POST  /api/v1/auth/logout/
-  GET   /api/v1/auth/me/
-  PATCH /api/v1/auth/me/
-  POST  /api/v1/auth/change-password/
-  POST  /api/v1/auth/reset-password/
-  POST  /api/v1/auth/reset-password/confirm/
-  POST  /api/v1/auth/token/refresh/
-  POST  /api/v1/auth/token/verify/
+  POST  /api/auth/logout/
+  GET   /api/auth/me/
+  PATCH /api/auth/me/
+  POST  /api/auth/change-password/
+  POST  /api/auth/reset-password/
+  POST  /api/auth/reset-password/confirm/
+  POST  /api/auth/token/refresh/
+  POST  /api/auth/token/verify/
 
 Gestión:
-  /api/v1/users/
+  /api/users/
 """
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter

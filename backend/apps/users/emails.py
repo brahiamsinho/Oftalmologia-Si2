@@ -1,8 +1,7 @@
 """
 apps/users/emails.py
 Correos transaccionales del sistema.
-En desarrollo → Mailhog (http://localhost:8025).
-En producción → SMTP real configurado en .env.
+Mailhog / SMTP según EMAIL_* en .env; UI de Mailhog en el puerto HOST_PORT_MAILHOG_UI del compose.
 """
 import logging
 
@@ -32,7 +31,7 @@ def enviar_bienvenida(usuario):
 
 def enviar_recuperacion_password(usuario, token_str):
     """Email con enlace de recuperación de contraseña (expira en 2h)."""
-    frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+    frontend_url = settings.FRONTEND_URL
     reset_url = f'{frontend_url}/auth/reset-password?token={token_str}'
 
     subject = 'Recuperación de contraseña — Clínica Oftalmológica Si2'

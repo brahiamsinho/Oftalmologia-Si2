@@ -33,12 +33,8 @@ def _jwt_signing_key() -> str:
     if len(raw.encode('utf-8')) >= 32:
         return raw
     return hashlib.sha256(raw.encode('utf-8')).hexdigest()
-# En DEBUG se añade '*' para que el móvil pueda usar la IP LAN (ej. 192.168.x.x) sin listar cada host.
-_csv_hosts = config(
-    'DJANGO_ALLOWED_HOSTS',
-    default='localhost,127.0.0.1,0.0.0.0',
-    cast=Csv(),
-)
+# Obligatorio vía .env (ver .env.example). En DEBUG se añade '*' para IP LAN / móvil sin listar cada host.
+_csv_hosts = [h.strip() for h in config('DJANGO_ALLOWED_HOSTS', cast=Csv()) if h.strip()]
 ALLOWED_HOSTS = list(_csv_hosts)
 if DEBUG and '*' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('*')
@@ -129,7 +125,7 @@ DATABASES = {
         'NAME': config('POSTGRES_DB', default='oftalmologia_db'),
         'USER': config('POSTGRES_USER', default='oftalmologia_user'),
         'PASSWORD': config('POSTGRES_PASSWORD', default='password'),
-        'HOST': config('POSTGRES_HOST', default='localhost'),
+        'HOST': config('POSTGRES_HOST', default='db'),
         'PORT': config('POSTGRES_PORT', default='5432'),
         'OPTIONS': {
             'connect_timeout': 10,
@@ -238,9 +234,9 @@ SIMPLE_JWT = {
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
-    CORS_ALLOWED_ORIGINS = config(
-        'CORS_ALLOWED_ORIGINS', default='http://localhost:3000', cast=Csv()
-    )
+    CORS_ALLOWED_ORIGINS = [
+        o.strip() for o in config('CORS_ALLOWED_ORIGINS', cast=Csv()) if o.strip()
+    ]
     CORS_ALLOW_CREDENTIALS = True
 
 # =============================================================================
@@ -273,7 +269,7 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@oftalmologia.local')
-FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
+FRONTEND_URL = config('FRONTEND_URL')
 
 # =============================================================================
 # LOGGING

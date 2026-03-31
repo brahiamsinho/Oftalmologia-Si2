@@ -60,12 +60,11 @@ class AuthRepository {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.receiveTimeout:
       case DioExceptionType.sendTimeout:
-        return 'Tiempo de espera agotado. Comprobá que el backend esté corriendo (docker-compose), '
-            'que API_BASE_URL en mobile/.env sea correcta para tu dispositivo/emulador, y el firewall de Windows.';
+        return 'Tiempo de espera agotado. Comprobá que el backend esté corriendo, que API_BASE_URL '
+            'en mobile/.env apunte al host y puerto correctos, y que el firewall permita el puerto del API.';
       case DioExceptionType.connectionError:
-        return 'Sin conexión al servidor. Revisá API_BASE_URL en mobile/.env '
-            '(emulador Android: http://10.0.2.2:8000/api; iOS simulator: http://127.0.0.1:8000/api; '
-            'teléfono físico: http://IP_DE_TU_PC:8000/api). Verificá que Docker/backend esté en el puerto 8000.';
+        return 'Sin conexión al servidor. Revisá API_BASE_URL en mobile/.env (debe coincidir con la URL '
+            'pública o de red de tu backend, con sufijo /api). Verificá Docker y el puerto expuesto.';
       default:
         break;
     }
