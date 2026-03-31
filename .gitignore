@@ -63,9 +63,12 @@ mobile/.metadata
 # =========================
 # Environment & Secrets
 # =========================
+.env
+mobile/.env
 .env.local
 .env.*.local
 !.env.example
+!mobile/.env.example
 
 # =========================
 # AI / Agent & Docs
