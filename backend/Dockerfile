@@ -47,5 +47,6 @@ RUN mkdir -p staticfiles media logs static
 
 EXPOSE 8000
 
-ENTRYPOINT ["./entrypoint.sh"]
+# Usar `sh` explícito: con bind mount `./backend:/app` el +x del build se pierde si el host no marca ejecutable.
+ENTRYPOINT ["/bin/sh", "./entrypoint.sh"]
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
