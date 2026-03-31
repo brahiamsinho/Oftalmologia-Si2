@@ -11,9 +11,18 @@
 
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-// ── Base URL ─────────────────────────────────────────────────────────────────
-// En .env: NEXT_PUBLIC_API_URL=http://localhost:8000/api
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api';
+// ── Base URL (obligatoria: NEXT_PUBLIC_API_URL en .env de la raíz del monorepo) ─
+function resolveApiBaseUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!raw) {
+    throw new Error(
+      'NEXT_PUBLIC_API_URL no está definida. Copiá .env.example a .env en la raíz del repo y definí la URL del backend.',
+    );
+  }
+  return raw.replace(/\/+$/, '');
+}
+
+const BASE_URL = resolveApiBaseUrl();
 
 // ── Instancia principal ───────────────────────────────────────────────────────
 export const api = axios.create({
@@ -130,7 +139,7 @@ export async function fetchAll<T>(url: string): Promise<T[]> {
     }
     const page = raw as DRFPage;
     results.push(...(page.results as T[]));
-    // DRF devuelve la URL absoluta en `next` (ej. http://localhost:8000/api/permisos/?page=2)
+    // DRF puede devolver `next` como URL absoluta hacia la misma API
     nextUrl = page.next;
   }
 

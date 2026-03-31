@@ -79,7 +79,7 @@ class TestUserEndpoints:
     
     def test_acceso_restringido_sin_token(self, api_client):
         """Verifica que un usuario no autenticado no pueda listar usuarios (CU4/CU1)"""
-        # Suponiendo que tu endpoint es /api/v1/users/
+        # Suponiendo que tu endpoint es /api/users/
         response = api_client.get('/api/users/')
         # Debe rebotar por no enviar JWT en el header
         assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND]

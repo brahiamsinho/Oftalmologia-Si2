@@ -2,9 +2,9 @@
 apps/permisos/views.py
 
 Endpoints:
-  GET/POST       /api/v1/permisos/
-  GET/PUT/PATCH  /api/v1/permisos/{id}/
-  DELETE         /api/v1/permisos/{id}/
+  GET/POST       /api/permisos/
+  GET/PUT/PATCH  /api/permisos/{id}/
+  DELETE         /api/permisos/{id}/
 """
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets

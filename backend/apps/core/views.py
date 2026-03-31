@@ -12,7 +12,7 @@ from rest_framework.response import Response
 @permission_classes([AllowAny])
 def health_check(request):
     """
-    GET /api/v1/health/
+    GET /api/health/
     Confirma que el API y la base de datos están operativos.
     """
     try:
