@@ -1,9 +1,23 @@
 # Oftalmología Si2 — Documentación
 
+## Estado del proyecto y handoff
+
+Para el **estado vigente**, **último handoff** y **próximos pasos**, leer en orden:
+
+1. `docs/ai/CURRENT_STATE.md`
+2. `docs/ai/HANDOFF_LATEST.md`
+3. `docs/ai/NEXT_STEPS.md`
+4. `docs/ai/DECISIONS_LOG.md` (decisiones recientes al inicio del archivo)
+
+También: `docs/ai/MOBILE_ARCHITECTURE.md`, `docs/ai/ARCHITECTURE.md`.
+
+**Mobile:** `API_BASE_URL` en `mobile/.env` — emulador Android `http://10.0.2.2:8000/api`, físico `http://<IP_LAN_PC>:8000/api` (misma red). Tras cambiar `.env`, reiniciar la app (no solo hot reload).
+
 ## Estructura de Documentación
 
 ```
 docs/
+├── ai/                 # Estado, handoff, visión, arquitectura (lectura obligatoria para agentes)
 ├── architecture/       # Diagramas y decisiones de arquitectura
 ├── api/               # Documentación de endpoints
 ├── guides/            # Guías de desarrollo

@@ -12,7 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "${HOST_PORT_POSTGRES:-5432}:5432"
     networks:
       - oftalmologia_net
     healthcheck:
@@ -34,7 +34,7 @@ services:
       - backend_static:/app/staticfiles
       - backend_media:/app/media
     ports:
-      - "8000:8000"
+      - "${HOST_PORT_BACKEND:-8000}:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -57,20 +57,20 @@ services:
       - frontend_node_modules:/app/node_modules
       - frontend_next_cache:/app/.next
     ports:
-      - "3000:3000"
+      - "${HOST_PORT_FRONTEND:-3000}:3000"
     depends_on:
       - backend
     networks:
       - oftalmologia_net
-    command: npm run dev
+    command: ["sh", "-c", "exec npm run dev -- --hostname ${NEXT_DEV_HOSTNAME:-0.0.0.0}"]
 
   # ---- Mailhog (Captura de emails en desarrollo) ----
   mailhog:
     image: mailhog/mailhog:latest
     restart: unless-stopped
     ports:
-      - "1025:1025"   # SMTP — Django envía correos aquí
-      - "8025:8025"   # Web UI — ver emails en http://localhost:8025
+      - "${HOST_PORT_MAILHOG_SMTP:-1025}:1025"   # SMTP — Django envía correos aquí
+      - "${HOST_PORT_MAILHOG_UI:-8025}:8025"     # Web UI Mailhog (puerto = HOST_PORT_MAILHOG_UI)
     networks:
       - oftalmologia_net
 

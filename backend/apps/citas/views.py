@@ -2,15 +2,15 @@
 apps/appointments/views.py
 
 Endpoints:
-  GET/POST       /api/v1/tipos-cita/
-  GET/PUT/PATCH  /api/v1/tipos-cita/{id}/
-  GET/POST       /api/v1/disponibilidades/
-  GET/PUT/PATCH  /api/v1/disponibilidades/{id}/
-  GET/POST       /api/v1/citas/
-  GET/PUT/PATCH  /api/v1/citas/{id}/
-  POST           /api/v1/citas/{id}/confirmar/
-  POST           /api/v1/citas/{id}/cancelar/
-  POST           /api/v1/citas/{id}/reprogramar/
+  GET/POST       /api/tipos-cita/
+  GET/PUT/PATCH  /api/tipos-cita/{id}/
+  GET/POST       /api/disponibilidades/
+  GET/PUT/PATCH  /api/disponibilidades/{id}/
+  GET/POST       /api/citas/
+  GET/PUT/PATCH  /api/citas/{id}/
+  POST           /api/citas/{id}/confirmar/
+  POST           /api/citas/{id}/cancelar/
+  POST           /api/citas/{id}/reprogramar/
 """
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -33,7 +33,7 @@ from .serializers import (
 
 
 class TipoCitaViewSet(viewsets.ModelViewSet):
-    """GET/POST /api/v1/tipos-cita/ — Solo ADMIN puede crear/editar."""
+    """GET/POST /api/tipos-cita/ — Solo ADMIN puede crear/editar."""
     queryset = TipoCita.objects.all()
     serializer_class = TipoCitaSerializer
     permission_classes = [IsAuthenticated]
@@ -42,7 +42,7 @@ class TipoCitaViewSet(viewsets.ModelViewSet):
 class DisponibilidadEspecialistaViewSet(viewsets.ModelViewSet):
     """
     Gestión de horarios disponibles de cada especialista.
-    GET/POST /api/v1/disponibilidades/
+    GET/POST /api/disponibilidades/
     """
     queryset = DisponibilidadEspecialista.objects.select_related('id_especialista__usuario').all()
     serializer_class = DisponibilidadEspecialistaSerializer
@@ -102,7 +102,7 @@ class CitaViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def confirmar(self, request, pk=None):
-        """POST /api/v1/citas/{id}/confirmar/"""
+        """POST /api/citas/{id}/confirmar/"""
         cita = self.get_object()
         if cita.estado not in (EstadoCita.PROGRAMADA, EstadoCita.REPROGRAMADA):
             return Response({'error': f'No se puede confirmar una cita en estado {cita.estado}.'}, status=400)
@@ -119,7 +119,7 @@ class CitaViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def cancelar(self, request, pk=None):
-        """POST /api/v1/citas/{id}/cancelar/"""
+        """POST /api/citas/{id}/cancelar/"""
         cita = self.get_object()
         if cita.estado in (EstadoCita.ATENDIDA, EstadoCita.CANCELADA):
             return Response({'error': f'No se puede cancelar una cita en estado {cita.estado}.'}, status=400)
@@ -139,7 +139,7 @@ class CitaViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def reprogramar(self, request, pk=None):
         """
-        POST /api/v1/citas/{id}/reprogramar/
+        POST /api/citas/{id}/reprogramar/
         Body: { "fecha_hora_inicio": "...", "fecha_hora_fin": "..." }
         Crea una nueva cita referenciando la original, y cancela la antigua.
         """
