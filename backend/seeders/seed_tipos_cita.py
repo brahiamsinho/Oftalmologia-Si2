@@ -3,7 +3,7 @@ seeders/seed_tipos_cita.py
 Pobla la tabla tipos_cita con los 4 tipos definidos en TipoCitaNombre.
 Idempotente: usa get_or_create, puede ejecutarse múltiples veces sin duplicar.
 """
-from apps.citas.models import TipoCita, TipoCitaNombre
+from apps.atencionClinica.citas.models import TipoCita, TipoCitaNombre
 
 
 TIPOS_CITA = [

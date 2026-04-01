@@ -38,6 +38,34 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+**Fecha:** 2026-03-31  
+**Decisión:** Configuración de **URLs y hosts solo por variables de entorno** (raíz `.env` + `mobile/.env`); sin fallbacks hardcodeados de API en Next/Flutter; `FRONTEND_URL` y `DJANGO_ALLOWED_HOSTS` obligatorios vía `decouple` en Django.  
+**Motivo:** Un solo lugar para cambiar IP/dominio al desplegar en VM o nube.  
+**Impacto:** Hace falta `.env` completo al arrancar; `backend/conftest.py` suplanta valores mínimos para pytest.
+
+---
+
+**Fecha:** 2026-03-31  
+**Decisión:** `ENTRYPOINT` del **backend** en Docker: **`["/bin/sh", "./entrypoint.sh"]`** en lugar de ejecutar `./entrypoint.sh` directo.  
+**Motivo:** El volumen `./backend:/app` sobrescribe el árbol del contenedor; en el host el script puede no tener `+x` → `permission denied`.  
+**Impacto:** El entrypoint no depende del bit ejecutable en el repo clonado en la VM.
+
+---
+
+**Fecha:** 2026-03-31  
+**Decisión:** En **Ubuntu con Docker Engine 28+**, usar plugin **Docker Compose v2** (`docker compose`) en lugar del paquete **`docker-compose`** 1.29.x (Python).  
+**Motivo:** Bug conocido `KeyError: 'ContainerConfig'` al recrear contenedores con compose v1 y API moderna.  
+**Impacto:** Instalar `docker-compose-v2` en servidor; documentado en `docs/guides/despliegue-ubuntu-nube.md`.
+
+---
+
+**Fecha:** 2026-03-31  
+**Decisión:** **No versionar** `.env` ni `mobile/.env` en Git (entradas en `.gitignore`).  
+**Motivo:** Evitar filtrar secretos e IPs en el historial público.  
+**Impacto:** Cada entorno mantiene copia local desde `*.env.example`.
+
+---
+
 **Fecha:** 2026-03-30  
 **Decisión:** `CitaViewSet` filtra queryset por **rol** (paciente → su `Paciente`; médico → su `Especialista`; admin/administrativo → todo).  
 **Motivo:** No exponer citas de otros pacientes desde la app móvil.  

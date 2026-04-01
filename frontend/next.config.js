@@ -1,6 +1,19 @@
 /** @type {import('next').NextConfig} */
 
-const rawApi = (process.env.NEXT_PUBLIC_API_URL || '').trim().replace(/\/+$/, '');
+function normalizeNextPublicApiUrl(value) {
+  let s = (value || '').trim();
+  if (!s) return '';
+  if (s.includes(',')) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[next.config] NEXT_PUBLIC_API_URL tiene comas (varias URLs). Solo debe haber UNA. Usando la primera entrada.',
+    );
+    s = s.split(',')[0].trim();
+  }
+  return s.replace(/\/+$/, '');
+}
+
+const rawApi = normalizeNextPublicApiUrl(process.env.NEXT_PUBLIC_API_URL);
 
 function buildImageRemotePatterns() {
   if (!rawApi) return [];

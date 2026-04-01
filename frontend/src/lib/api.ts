@@ -13,11 +13,23 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 // ── Base URL (obligatoria: NEXT_PUBLIC_API_URL en .env de la raíz del monorepo) ─
 function resolveApiBaseUrl(): string {
-  const raw = process.env.NEXT_PUBLIC_API_URL?.trim();
+  let raw = process.env.NEXT_PUBLIC_API_URL?.trim();
   if (!raw) {
     throw new Error(
       'NEXT_PUBLIC_API_URL no está definida. Copiá .env.example a .env en la raíz del repo y definí la URL del backend.',
     );
+  }
+  // Coma en .env suele ser error (p.ej. dos URLs); CORS sí admite lista separada por coma, esto NO.
+  if (raw.includes(',')) {
+    const first = raw.split(',')[0].trim();
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[api] NEXT_PUBLIC_API_URL no puede listar varias URLs. Usando solo la primera:',
+        first,
+      );
+    }
+    raw = first;
   }
   return raw.replace(/\/+$/, '');
 }

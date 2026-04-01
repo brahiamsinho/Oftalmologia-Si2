@@ -12,36 +12,19 @@ api_patterns = [
     # Core — Health check
     path('', include('apps.core.urls')),
 
-    # Auth + Usuarios
-    path('', include('apps.users.urls')),
-
-    # Roles y asignaciones usuario-rol
-    path('', include('apps.roles.urls')),
-
-    # Permisos granulares
-    path('', include('apps.permisos.urls')),
-
-    # Bitácora (app separada — solo lectura via API)
+    path('', include('apps.usuarios.users.urls')),
+    path('', include('apps.usuarios.roles.urls')),
+    path('', include('apps.usuarios.permisos.urls')),
     path('', include('apps.bitacora.urls')),
-
-    # Pacientes
-    path('', include('apps.pacientes.urls')),
-
-    # Especialistas
-    path('', include('apps.especialistas.urls')),
-
-    # Historias Clínicas (Ruta principal)
-    path('', include('apps.historial_clinico.urls')),
-    
-    # Sub-registros de Historias Clínicas (Rutas anidadas)
-    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.antecedentes.urls')),
-    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.diagnosticos.urls')),
-    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.tratamientos.urls')),
-    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.evoluciones.urls')),
-    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.recetas.urls')),
-
-    # Citas, Tipos de cita, Disponibilidades
-    path('', include('apps.citas.urls')),
+    path('', include('apps.pacientes.pacientes.urls')),
+    path('', include('apps.atencionClinica.especialistas.urls')),
+    path('', include('apps.pacientes.historial_clinico.urls')),
+    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.atencionClinica.antecedentes.urls')),
+    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.atencionClinica.diagnosticos.urls')),
+    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.atencionClinica.tratamientos.urls')),
+    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.atencionClinica.evoluciones.urls')),
+    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.atencionClinica.recetas.urls')),
+    path('', include('apps.atencionClinica.citas.urls')),
 ]
 
 urlpatterns = [

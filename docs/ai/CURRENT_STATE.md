@@ -17,7 +17,7 @@
 
 ### Mobile (Flutter)
 - Login modular: `login_header`, `login_form`, `login_actions`; tema alineado a diseño clínica.
-- **`API_BASE_URL`** en `mobile/.env`: debe terminar conceptualmente en `/api`; `AppConfig.apiBaseUrl` **normaliza con barra final** (`.../api/`) para que Dio no genere URLs tipo `/apiauth/...`.
+- **`API_BASE_URL`** en `mobile/.env` (**obligatoria**): debe apuntar a la base del API (`.../api`); `AppConfig.apiBaseUrl` **normaliza barra final** (`.../api/`); si falta la variable, la app falla al usar la API (sin fallback hardcodeado).
 - Rutas relativas sin `/` inicial: `auth/login/`, `citas/`, etc.
 - Android: `usesCleartextTraffic` para HTTP en dev.
 - Timeout HTTP 30 s (margen arranque Docker/Postgres).
@@ -28,6 +28,14 @@
 ### Frontend (Next.js)
 - Login usa **`email` + `password`** en `POST /api/auth/login/` (tipo `LoginCredentials` actualizado).
 - Demo admin en UI: `admin@oftalmologia.local` / `admin123`.
+- **`NEXT_PUBLIC_API_URL`** obligatoria (sin fallback hardcodeado en runtime); `next.config.js` deriva rewrites e `images.remotePatterns` de esa URL.
+
+### Infra / configuración / despliegue
+- **URLs e IPs:** raíz `.env` — `DJANGO_ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `FRONTEND_URL`, `NEXT_PUBLIC_API_URL`, puertos `HOST_PORT_*`. **Mobile:** `mobile/.env` → `API_BASE_URL` (obligatorio; sin fallback en código). Ver comentarios en `.env.example`.
+- **Git:** `.env` y `mobile/.env` en `.gitignore`; solo versionar `.env.example` / `mobile/.env.example`.
+- **Backend Docker:** `ENTRYPOINT ["/bin/sh", "./entrypoint.sh"]` para que el bind mount `./backend:/app` no dependa del bit ejecutable de `entrypoint.sh` en el host.
+- **Ubuntu + Docker 28:** usar plugin **Compose v2** (`docker compose`); el `docker-compose` Python 1.29 puede fallar con `KeyError: 'ContainerConfig'`. Guía: `docs/guides/despliegue-ubuntu-nube.md`.
+- **Tests backend:** `backend/conftest.py` + `pytest.ini` definen variables mínimas si no hay `.env` completo.
 
 ## Credenciales de Desarrollo (referencia)
 | Uso | Email | Password |
@@ -55,4 +63,4 @@ Ejecutar: `docker compose exec backend python manage.py seed --only demo_pacient
 - Tras cambiar `DJANGO_SECRET_KEY` corta por derivación JWT, tokens previos invalidan hasta nuevo login.
 
 ---
-*(Actualizado: 2026-03-30)*
+*(Actualizado: 2026-03-31)*
