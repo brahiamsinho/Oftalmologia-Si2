@@ -18,6 +18,8 @@ Sistema integral para clínica oftalmológica — gestión de pacientes, citas, 
 - Git
 - (Opcional) Python 3.12+, Node.js 20+, Flutter SDK — solo si quieres desarrollo sin Docker
 
+**VM Ubuntu en la nube (Azure, etc.):** guía paso a paso en [`docs/guides/despliegue-ubuntu-nube.md`](docs/guides/despliegue-ubuntu-nube.md) (Docker Compose v2, sin Laravel).
+
 ## Setup Rápido
 
 ```bash
@@ -67,49 +69,51 @@ Oftalmologia-Si2/
 └── README.md
 ```
 
+**Más documentación:** índice y onboarding para nuevos devs en [`docs/README.md`](docs/README.md) (incluye enlaces a `docs/ai/*` y guías de despliegue).
+
 ## Desarrollo
 
 ```bash
 # Levantar todos los servicios
-docker-compose up
+docker compose up
 
 # Levantar solo el backend
-docker-compose up backend db
+docker compose up backend db
 
 # Ver logs
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # Parar servicios
-docker-compose down
+docker compose down
 
 # Reconstruir después de cambios en requirements/packages
-docker-compose up --build
+docker compose up --build
 ```
 
 ## Comandos Esenciales Backend (Django + Docker)
 
 ```bash
 # Crear nuevas migraciones
-docker-compose exec backend python manage.py makemigrations
+docker compose exec backend python manage.py makemigrations
 
 # Aplicar migraciones
-docker-compose exec backend python manage.py migrate
+docker compose exec backend python manage.py migrate
 
 # Ver estado de migraciones
-docker-compose exec backend python manage.py showmigrations
+docker compose exec backend python manage.py showmigrations
 
 # Poblar base de datos inicial (admin, roles, etc.)
-docker-compose exec backend python manage.py seed
-docker-compose exec backend python manage.py seed --only admin  # Solo admin
+docker compose exec backend python manage.py seed
+docker compose exec backend python manage.py seed --only admin  # Solo admin
 
 # Abrir shell de Django
-docker-compose exec backend python manage.py shell
+docker compose exec backend python manage.py shell
 
 # Correr tests
-docker-compose exec backend python manage.py test
+docker compose exec backend python manage.py test
 
 # Recolectar archivos estáticos (entorno tipo producción)
-docker-compose exec backend python manage.py collectstatic --noinput
+docker compose exec backend python manage.py collectstatic --noinput
 ```
 
 ## Comandos Esenciales Mobile (Flutter)

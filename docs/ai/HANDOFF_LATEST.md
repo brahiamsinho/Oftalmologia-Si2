@@ -1,7 +1,15 @@
 # HANDOFF LATEST
 
 ## Resumen de la Última Sesión
-**Fecha:** 2026-03-30
+**Fecha:** 2026-03-31
+
+Documentación y operaciones para **próximos desarrolladores**: `docs/README.md` ampliado (onboarding, Docker Compose v2, secretos), índice `docs/guides/README.md`, guía VM ya enlazada. Estado técnico en `CURRENT_STATE.md` incluye bloque **Infra / despliegue** (`.env`, gitignore, entrypoint backend, Azure/Ubuntu).
+
+**Contexto previo (2026-03-30):** integración **Flutter paciente** con API real (login email, home citas), Next.js alineado, seeder demo, refactor **config vía `.env`** (sin URLs fijas en app), docstrings API unificados a **`/api/`**, `Dockerfile` entrypoint con `sh`, decisión Compose v2 en Ubuntu.
+
+---
+
+## Sesión 2026-03-30 (referencia)
 
 Integración **Flutter paciente** con API real: login por **solo email**, home con citas, correcciones de red/Docker/JWT y seeder demo. Ajustes en **Next.js** para el mismo contrato de login.
 
@@ -32,8 +40,11 @@ Integración **Flutter paciente** con API real: login por **solo email**, home c
 - `src/lib/types.ts` — `LoginCredentials.email`.
 - `src/context/AuthContext.tsx` + `login/page.tsx` — envío con email; demo `admin@oftalmologia.local`.
 
-### Raíz / docs
-- `.env.example` — nota `ALLOWED_HOSTS` + DEBUG.
+### Raíz / docs (evolución hasta 2026-03-31)
+- `.env.example` — checklist IP, `HOST_PORT_*`, `FRONTEND_URL`, variables obligatorias.
+- `docs/guides/despliegue-ubuntu-nube.md` — Azure/Ubuntu, `docker compose`, migrate/seed Django.
+- `backend/Dockerfile` — `ENTRYPOINT` con `/bin/sh` + `./entrypoint.sh` (bind mount).
+- Docstrings backend alineados a rutas **`/api/...`** (no `/api/v1/`).
 
 ## Pitfalls Resueltos (para no repetir)
 1. **Dio `baseUrl` sin `/` final** + path `auth/login/` → concatenación **`apiauth`**. Solución: base `.../api/`.
@@ -42,10 +53,11 @@ Integración **Flutter paciente** con API real: login por **solo email**, home c
 4. **JWT warning 31 bytes** → `SIGNING_KEY` derivada o SECRET ≥ 32 caracteres.
 
 ## Qué Debe Hacer el Siguiente Agente
-1. Leer `docs/ai/CURRENT_STATE.md` y este archivo.
-2. Si toca mobile: confirmar `mobile/.env` (`API_BASE_URL`, emulador vs físico).
-3. Continuar features: tab Citas/Perfil mobile, registro API, o módulos web según prioridad.
-4. Antes de producción: quitar `*` de hosts, HTTPS, secretos fuertes.
+1. Leer `docs/README.md` (onboarding), `docs/ai/CURRENT_STATE.md` y este archivo.
+2. VM Ubuntu: seguir `docs/guides/despliegue-ubuntu-nube.md` (`docker compose`, no compose Python viejo con Docker 28).
+3. Si toca mobile: confirmar `mobile/.env` (`API_BASE_URL`, emulador vs físico / IP pública VM).
+4. Continuar features: tab Citas/Perfil mobile, registro API, o módulos web según `NEXT_STEPS.md`.
+5. Antes de producción: `DEBUG=False`, hosts/CORS explícitos, HTTPS, secretos fuertes; no subir `.env` al repo.
 
 ## Variables de Entorno (recordatorio)
 ```

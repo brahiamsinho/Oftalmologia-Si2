@@ -60,20 +60,20 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
-    'apps.core',            # Utilidades transversales, health check, permissions
-    'apps.users',           # Usuario (CustomUser) + Auth + TokenRecuperacion
-    'apps.roles',           # Rol, UsuarioRol, RolPermiso
-    'apps.permisos',        # Permiso (granular por módulo)
-    'apps.bitacora',        # Registro de auditoría del sistema
-    'apps.pacientes',        # Paciente
-    'apps.especialistas',     # Especialista (médicos/especialistas)
-    'apps.historial_clinico',
-    'apps.antecedentes',
-    'apps.diagnosticos',
-    'apps.tratamientos',
-    'apps.evoluciones',
-    'apps.recetas',
-    'apps.citas',    # Citas, tipos y disponibilidades
+    'apps.core',
+    'apps.usuarios.users',
+    'apps.usuarios.permisos',
+    'apps.usuarios.roles',
+    'apps.bitacora',
+    'apps.pacientes.pacientes',
+    'apps.atencionClinica.especialistas',
+    'apps.pacientes.historial_clinico',
+    'apps.atencionClinica.antecedentes',
+    'apps.atencionClinica.diagnosticos',
+    'apps.atencionClinica.tratamientos',
+    'apps.atencionClinica.evoluciones',
+    'apps.atencionClinica.recetas',
+    'apps.atencionClinica.citas',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

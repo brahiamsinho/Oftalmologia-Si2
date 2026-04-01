@@ -7,7 +7,7 @@ Convención de código: '<modulo>.<accion>'
 Módulos: users, pacientes, especialistas, historias_clinicas,
          citas, bitacora, roles, permisos
 """
-from apps.permisos.models import Permiso
+from apps.usuarios.permisos.models import Permiso
 
 
 PERMISOS = [

@@ -3,7 +3,7 @@ seeders/seed_roles.py
 Pobla la tabla roles con los roles base del sistema oftalmológico.
 Idempotente: usa get_or_create, puede ejecutarse múltiples veces sin duplicar.
 """
-from apps.roles.models import Rol
+from apps.usuarios.roles.models import Rol
 
 
 ROLES_BASE = [

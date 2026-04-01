@@ -16,10 +16,10 @@ from datetime import datetime, timedelta
 from django.contrib.auth import get_user_model
 from django.utils import timezone as dj_tz
 
-from apps.citas.models import Cita, EstadoCita, TipoCita, TipoCitaNombre
-from apps.especialistas.models import Especialista
-from apps.pacientes.models import Paciente
-from apps.pacientes.utils import generar_numero_historia
+from apps.atencionClinica.citas.models import Cita, EstadoCita, TipoCita, TipoCitaNombre
+from apps.atencionClinica.especialistas.models import Especialista
+from apps.pacientes.pacientes.models import Paciente
+from apps.pacientes.pacientes.utils import generar_numero_historia
 
 User = get_user_model()
 
