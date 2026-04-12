@@ -158,6 +158,17 @@ PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
 ]
 
+if DEBUG:
+    # Acelerar sustancialmente el inicio de sesión y creación de usuarios
+    # localmente al usar un algoritmo de hashing más rápido
+    PASSWORD_HASHERS = [
+        'django.contrib.auth.hashers.MD5PasswordHasher',
+        'django.contrib.auth.hashers.Argon2PasswordHasher',
+        'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+        'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+        'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+    ]
+
 # =============================================================================
 # INTERNACIONALIZACIÓN
 # =============================================================================
