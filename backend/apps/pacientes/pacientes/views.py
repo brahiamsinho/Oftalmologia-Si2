@@ -47,6 +47,7 @@ class PacienteViewSet(viewsets.ModelViewSet):
             descripcion=f'Creó paciente: {paciente.get_full_name()} [{paciente.numero_historia}]',
             tabla_afectada='pacientes', id_registro_afectado=paciente.id_paciente,
             ip_origen=get_client_ip(self.request),
+            user_agent=self.request.META.get('HTTP_USER_AGENT', ''),
         )
 
     def perform_update(self, serializer):
@@ -56,4 +57,16 @@ class PacienteViewSet(viewsets.ModelViewSet):
             descripcion=f'Editó paciente: {paciente.get_full_name()} [{paciente.numero_historia}]',
             tabla_afectada='pacientes', id_registro_afectado=paciente.id_paciente,
             ip_origen=get_client_ip(self.request),
+            user_agent=self.request.META.get('HTTP_USER_AGENT', ''),
+        )
+
+    def perform_destroy(self, instance):
+        pid, nombre, nh = instance.id_paciente, instance.get_full_name(), instance.numero_historia
+        super().perform_destroy(instance)
+        registrar_bitacora(
+            usuario=self.request.user, modulo='patients', accion=AccionBitacora.ELIMINAR,
+            descripcion=f'Eliminó paciente: {nombre} [{nh}]',
+            tabla_afectada='pacientes', id_registro_afectado=pid,
+            ip_origen=get_client_ip(self.request),
+            user_agent=self.request.META.get('HTTP_USER_AGENT', ''),
         )

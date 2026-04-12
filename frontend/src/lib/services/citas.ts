@@ -45,6 +45,7 @@ export interface CitasParams {
   estado?: string;
   id_especialista?: number | string;
   page?: number;
+  ordering?: string;
 }
 
 export const citasService = {

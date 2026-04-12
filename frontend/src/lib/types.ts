@@ -62,7 +62,8 @@ export interface Permiso {
   nombre: string;
   descripcion: string | null;
   modulo: string;
-  activo: boolean;
+  /** Solo si el backend lo expone; si falta, se considera activo. */
+  activo?: boolean;
 }
 
 // ── Paciente ──────────────────────────────────────────────────────────────────
@@ -119,13 +120,14 @@ export interface RegistroBitacora {
   id_bitacora: number;
   id_usuario: number | null;
   usuario_email?: string;
+  usuario_nombre?: string;
   modulo: string;
-  tabla_afectada: string;
+  tabla_afectada: string | null;
   id_registro_afectado: number | null;
   accion: AccionBitacora;
   descripcion: string;
-  ip_origen: string;
-  user_agent: string;
+  ip_origen: string | null;
+  user_agent?: string | null;
   fecha_evento: string;
 }
 

@@ -39,9 +39,7 @@ cp .env.example .env
 # 3. Construir y levantar los contenedores
 docker-compose up --build
 
-# 4. Generar y aplicar migraciones (primera vez o al modificar modelos)
-docker-compose exec backend python manage.py makemigrations
-docker-compose exec backend python manage.py migrate
+# 4. Migraciones: al iniciar, el servicio `backend` ejecuta `python manage.py migrate --noinput` (ver `backend/entrypoint.sh`). Si agregaste modelos en tu copia del repo, generá migraciones en el host y volvé a levantar: `docker compose exec backend python manage.py makemigrations`.
 
 # 5. Poblar base de datos (crea superusuario 'admin', roles, permisos y tipos de cita)
 docker-compose exec backend python manage.py seed
@@ -87,7 +85,7 @@ docker compose logs -f backend
 docker compose down
 
 # Reconstruir después de cambios en requirements/packages
-docker compose up --build
+docker compose up -d --build
 ```
 
 ## Comandos Esenciales Backend (Django + Docker)

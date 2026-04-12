@@ -138,12 +138,28 @@ api.interceptors.response.use(
 // ── Helper: trae TODAS las páginas de un endpoint paginado ───────────────────
 interface DRFPage { results: unknown[]; next: string | null }
 
+/** Evita fallar en el navegador si DRF devuelve `next` con host 0.0.0.0 o `backend` (Docker). */
+function resolvePaginationUrl(next: string | null): string | null {
+  if (!next) return null;
+  if (!/^https?:\/\//i.test(next)) return next;
+  try {
+    const u = new URL(next);
+    if (u.hostname === '0.0.0.0' || u.hostname === 'backend') {
+      const base = new URL(BASE_URL);
+      return `${base.origin}${u.pathname}${u.search}`;
+    }
+  } catch {
+    /* ignore */
+  }
+  return next;
+}
+
 export async function fetchAll<T>(url: string): Promise<T[]> {
   const results: T[] = [];
   let nextUrl: string | null = url;
 
   while (nextUrl) {
-    const raw: unknown = (await api.get(nextUrl)).data;
+    const raw: unknown = (await api.get(resolvePaginationUrl(nextUrl) ?? nextUrl)).data;
 
     if (Array.isArray(raw)) {
       results.push(...(raw as T[]));
@@ -151,8 +167,7 @@ export async function fetchAll<T>(url: string): Promise<T[]> {
     }
     const page = raw as DRFPage;
     results.push(...(page.results as T[]));
-    // DRF puede devolver `next` como URL absoluta hacia la misma API
-    nextUrl = page.next;
+    nextUrl = resolvePaginationUrl(page.next);
   }
 
   return results;

@@ -12,3 +12,4 @@ export { permisosService }  from './permisos';
 export { historialService } from './historial';
 export { especialistasService } from './especialistas';
 export { citasService } from './citas';
+export { listConsultas, type ConsultaListaItem } from './consultas';
