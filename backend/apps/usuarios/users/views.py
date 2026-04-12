@@ -171,6 +171,7 @@ class LogoutView(APIView):
             usuario=request.user, modulo='auth', accion=AccionBitacora.LOGOUT,
             descripcion=f'Logout: {request.user.username}',
             ip_origen=get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
         )
         return Response({'mensaje': 'Sesión cerrada correctamente.'})
 

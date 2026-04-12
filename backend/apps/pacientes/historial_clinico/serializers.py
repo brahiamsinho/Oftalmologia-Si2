@@ -15,6 +15,14 @@ class HistoriaClinicaSerializer(serializers.ModelSerializer):
     def get_paciente_nombre(self, obj):
         return obj.id_paciente.get_full_name()
 
+    def validate_id_paciente(self, value):
+        """Un paciente solo puede tener una historia (OneToOne en el modelo)."""
+        if self.instance is None and HistoriaClinica.objects.filter(id_paciente=value).exists():
+            raise serializers.ValidationError(
+                'Este paciente ya tiene una historia clínica. Editá la existente o elegí otro paciente.'
+            )
+        return value
+
 class HistoriaClinicaDetalleSerializer(HistoriaClinicaSerializer):
     """Versión con todos los sub-registros incluidos importados en lazy load para evitar imports circulares."""
     antecedentes = serializers.SerializerMethodField()

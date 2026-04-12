@@ -98,7 +98,29 @@ class CitaViewSet(viewsets.ModelViewSet):
             descripcion=f'Cita programada #{cita.id_cita} — {cita.id_paciente} con {cita.id_especialista}',
             tabla_afectada='citas', id_registro_afectado=cita.id_cita,
             ip_origen=get_client_ip(self.request),
+            user_agent=self.request.META.get('HTTP_USER_AGENT', ''),
         )
+
+    def perform_update(self, serializer):
+        cita = serializer.save()
+        registrar_bitacora(
+            usuario=self.request.user, modulo='appointments', accion=AccionBitacora.EDITAR,
+            descripcion=f'Editó cita #{cita.id_cita}',
+            tabla_afectada='citas', id_registro_afectado=cita.id_cita,
+            ip_origen=get_client_ip(self.request),
+            user_agent=self.request.META.get('HTTP_USER_AGENT', ''),
+        )
+
+    def perform_destroy(self, instance):
+        cid = instance.id_cita
+        registrar_bitacora(
+            usuario=self.request.user, modulo='appointments', accion=AccionBitacora.ELIMINAR,
+            descripcion=f'Eliminó cita #{cid}',
+            tabla_afectada='citas', id_registro_afectado=cid,
+            ip_origen=get_client_ip(self.request),
+            user_agent=self.request.META.get('HTTP_USER_AGENT', ''),
+        )
+        super().perform_destroy(instance)
 
     @action(detail=True, methods=['post'])
     def confirmar(self, request, pk=None):
@@ -114,6 +136,7 @@ class CitaViewSet(viewsets.ModelViewSet):
             descripcion=f'Cita #{cita.id_cita} confirmada',
             tabla_afectada='citas', id_registro_afectado=cita.id_cita,
             ip_origen=get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
         )
         return Response(CitaSerializer(cita).data)
 
@@ -133,6 +156,7 @@ class CitaViewSet(viewsets.ModelViewSet):
             descripcion=f'Cita #{cita.id_cita} cancelada. Motivo: {motivo}',
             tabla_afectada='citas', id_registro_afectado=cita.id_cita,
             ip_origen=get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
         )
         return Response(CitaSerializer(cita).data)
 
@@ -166,5 +190,6 @@ class CitaViewSet(viewsets.ModelViewSet):
             descripcion=f'Cita #{cita_original.id_cita} reprogramada → nueva #{nueva_cita.id_cita}',
             tabla_afectada='citas', id_registro_afectado=nueva_cita.id_cita,
             ip_origen=get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', ''),
         )
         return Response(CitaSerializer(nueva_cita).data, status=status.HTTP_201_CREATED)

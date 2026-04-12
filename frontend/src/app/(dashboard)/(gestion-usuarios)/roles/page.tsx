@@ -59,7 +59,8 @@ function RolModal({ rol, allPermisos, onClose, onSaved }: ModalProps) {
   const togglePerm = (id: number) =>
     setSelectedIds(prev => {
       const s = new Set(prev);
-      s.has(id) ? s.delete(id) : s.add(id);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
       return s;
     });
 
@@ -313,14 +314,17 @@ export default function RolesPage() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [r, p] = await Promise.all([
-        rolesService.list(),
-        rolesService.listarPermisos(),
-      ]);
+      const r = await rolesService.list();
       setRoles(r);
-      setAllPermisos(p.filter(p => p.activo));
     } catch {
       setRoles([]);
+    }
+    try {
+      const p = await rolesService.listarPermisos();
+      // API no envía `activo` en permisos (modelo sin ese campo): tratar ausente como activo.
+      setAllPermisos(p.filter((x) => x.activo !== false));
+    } catch {
+      setAllPermisos([]);
     } finally {
       setLoading(false);
     }

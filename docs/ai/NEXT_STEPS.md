@@ -23,6 +23,7 @@ Lista priorizada para Oftalmología Si2 (actualizada tras integración mobile pa
 
 ## Pendientes Técnicos
 - [x] Guía despliegue VM Ubuntu / Azure + onboarding en `docs/README.md` (`docs/guides/despliegue-ubuntu-nube.md`).
+- [ ] Export CSV (o similar) en pantalla Bitácora — botón preparado como placeholder.
 - [ ] Doc único de convenciones TS / Dart / Python.
 - [ ] Storage compartido para imágenes clínicas (S3 / similar).
 - [ ] Tests automatizados en flujos auth + citas (backend + widget mobile crítico).

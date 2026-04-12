@@ -174,7 +174,8 @@ if DEBUG:
 # INTERNACIONALIZACIÓN
 # =============================================================================
 LANGUAGE_CODE = 'es'
-TIME_ZONE = 'America/Santo_Domingo'
+# Bolivia (Santa Cruz de la Sierra — mismo huso que La Paz: UTC−4 sin DST)
+TIME_ZONE = 'America/La_Paz'
 USE_I18N = True
 USE_TZ = True
 

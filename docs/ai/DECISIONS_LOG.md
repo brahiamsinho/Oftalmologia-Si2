@@ -10,6 +10,27 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+**Fecha:** 2026-04-12  
+**Decisión:** **Next.js:** rutas en Axios **sin** prefijo `/api/` duplicado; `NEXT_PUBLIC_API_URL` ya termina en `/api`. Consultas REST en **`/consultas/lista/`** y estudios en **`/consultas/estudios/`** (router Django).  
+**Motivo:** Los 404 a `/api/api/pacientes/` y formularios rotos; alinear con `config/urls.py`.  
+**Impacto:** Nuevas páginas deben seguir el patrón `api.get('recurso/')` no `api.get('/api/recurso/')`.
+
+---
+
+**Fecha:** 2026-04-12  
+**Decisión:** **`PermisoViewSet`** como **solo lectura** (`List`/`Retrieve`); permisos granulares se mantienen por **seed/migraciones**; listado permitido a **ADMIN** y **ADMINISTRATIVO** (`IsAdministrativoOrAdmin`).  
+**Motivo:** Catálogo estable tipo Django permissions; la UI de “Permisos” es referencia, la asignación ocurre en **Roles**.  
+**Impacto:** No hay POST/PATCH/DELETE en `/api/permisos/` desde la API.
+
+---
+
+**Fecha:** 2026-04-12  
+**Decisión:** **`TIME_ZONE = America/La_Paz`** en Django; bitácora enriquecida en **consultas**, **estudios**, **citas** (update/delete), **roles** y **pacientes** (delete), con **IP** y **user_agent** donde faltaba.  
+**Motivo:** Auditoría clínica y hora local Bolivia en logs y presentación.  
+**Impacto:** Nuevos ViewSets deberían llamar `registrar_bitacora` en mutaciones sensibles.
+
+---
+
 **Fecha:** 2026-03-30  
 **Decisión:** Login API solo con **`email`** + **`password`**; verificación con **`Usuario.check_password`**, no `authenticate()`.  
 **Motivo:** Comportamiento predecible con CustomUser; el móvil y web envían un único identificador (correo).  

@@ -8,6 +8,7 @@ from .models import Bitacora
 class BitacoraSerializer(serializers.ModelSerializer):
     usuario_nombre = serializers.SerializerMethodField()
     usuario_username = serializers.SerializerMethodField()
+    usuario_email = serializers.SerializerMethodField()
 
     class Meta:
         model = Bitacora
@@ -16,6 +17,7 @@ class BitacoraSerializer(serializers.ModelSerializer):
             'id_usuario',
             'usuario_nombre',
             'usuario_username',
+            'usuario_email',
             'modulo',
             'tabla_afectada',
             'id_registro_afectado',
@@ -32,3 +34,6 @@ class BitacoraSerializer(serializers.ModelSerializer):
 
     def get_usuario_username(self, obj):
         return obj.id_usuario.username if obj.id_usuario else None
+
+    def get_usuario_email(self, obj):
+        return obj.id_usuario.email if obj.id_usuario else None

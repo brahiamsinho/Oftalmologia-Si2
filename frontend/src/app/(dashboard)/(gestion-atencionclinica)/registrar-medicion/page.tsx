@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, type ElementType } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, ArrowLeft, User, Eye, Activity, FileText, Upload, ChevronDown } from "lucide-react";
+import { Loader2, ArrowLeft, User, Eye, Activity, FileText, Upload } from "lucide-react";
 import api from "@/lib/api";
 import MinimalIris from "@/components/MinimalIris";
 
@@ -21,19 +21,14 @@ const selectCls = (err?: string) =>
    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition
    ${err ? 'border-red-300' : 'border-gray-200'}`;
 
-function Field({ label, required, error, children, icon: Icon }: { label: string; required?: boolean; error?: string; children: React.ReactNode; icon?: any }) {
+function Field({ label, required, error, children, icon: Icon }: { label: string; required?: boolean; error?: string; children: React.ReactNode; icon?: ElementType }) {
   return (
     <div>
       <label className="flex items-center gap-1.5 text-[12.5px] font-medium text-gray-700 mb-1.5">
         {Icon && <Icon className="w-3.5 h-3.5 text-gray-400" />}
         {label}{required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
-      <div className="relative group">
-        {children}
-        {Icon && React.isValidElement(children) && children.props.as === 'select' && (
-          <ChevronDown className="absolute right-3.5 top-3 w-4 h-4 text-gray-400 pointer-events-none group-hover:text-blue-500 transition-colors" />
-        )}
-      </div>
+      <div className="relative group">{children}</div>
       {error && <p className="text-[11px] text-red-500 mt-1.5 font-medium ml-1 flex items-center gap-1">⚠ {error}</p>}
     </div>
   );
@@ -43,7 +38,7 @@ export default function RegistrarMedicionPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
-  const [pacientes, setPacientes] = useState<any[]>([]);
+  const [pacientes, setPacientes] = useState<{ id_paciente: number; nombres: string; apellidos: string }[]>([]);
 
   // Form State
   const [pacienteId, setPacienteId] = useState("");
@@ -53,7 +48,7 @@ export default function RegistrarMedicionPage() {
   const [observaciones, setObservaciones] = useState("");
   const [archivo, setArchivo] = useState<File | null>(null);
 
-  const [errors, setErrors] = useState<any>({});
+  const [errors, setErrors] = useState<{ pacienteId?: string; tipoEstudio?: string; general?: string }>({});
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
@@ -62,15 +57,23 @@ export default function RegistrarMedicionPage() {
 
   const fetchPacientes = async () => {
     try {
-      const res = await api.get("/api/pacientes/");
-      setPacientes(res.data);
+      const res = await api.get("/pacientes/");
+      const raw = res.data?.results ?? res.data;
+      const list = Array.isArray(raw) ? raw : [];
+      setPacientes(
+        list.map((p: Record<string, unknown>) => ({
+          id_paciente: Number(p.id_paciente),
+          nombres: String(p.nombres ?? ''),
+          apellidos: String(p.apellidos ?? ''),
+        })),
+      );
     } catch (err) {
       console.error("Error cargando pacientes", err);
     }
   };
 
   const validate = () => {
-    const newErrs: any = {};
+    const newErrs: { pacienteId?: string; tipoEstudio?: string } = {};
     if (!pacienteId) newErrs.pacienteId = "El paciente es obligatorio.";
     if (!tipoEstudio) newErrs.tipoEstudio = "El tipo de estudio es obligatorio.";
     setErrors(newErrs);
@@ -94,15 +97,15 @@ export default function RegistrarMedicionPage() {
         formData.append("archivo_resultado", archivo);
       }
 
-      await api.post("/api/consultas/estudios/", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+      await api.post("/consultas/estudios/", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       setSuccess(true);
       setTimeout(() => {
         router.push("/dashboard");
       }, 1500);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setErrors({ general: "Ocurrió un error al registrar la medición. Revisa los datos e intenta nuevamente." });
     } finally {

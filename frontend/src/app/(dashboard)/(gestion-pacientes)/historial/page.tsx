@@ -6,9 +6,28 @@ import {
   Loader2, X, AlertCircle, Hash,
   ChevronRight, Plus, Eye, Edit2, Shield, Calendar, User, AlignLeft
 } from 'lucide-react';
-import { historialService, pacientesService } from '@/lib/services';
+import axios from 'axios';
+import { fetchAll } from '@/lib/api';
+import { historialService } from '@/lib/services';
 import type { HistoriaClinica, HistoriaClinicaCreate, HistoriaClinicaDetalle } from '@/lib/services/historial';
 import type { Paciente } from '@/lib/types';
+
+function formatHistoriaApiError(data: unknown): string {
+  if (!data || typeof data !== 'object') return 'No se pudo guardar la historia clínica.';
+  const o = data as Record<string, unknown>;
+  if (typeof o.detail === 'string') return o.detail;
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(o)) {
+    if (k === 'non_field_errors' && Array.isArray(v)) {
+      parts.push(v.map(String).join(' '));
+    } else if (Array.isArray(v)) {
+      parts.push(`${k}: ${v.map(String).join(', ')}`);
+    } else if (typeof v === 'string') {
+      parts.push(`${k}: ${v}`);
+    }
+  }
+  return parts.length ? parts.join(' ') : 'Revisá los datos e intentá de nuevo.';
+}
 
 const ESTADO_STYLE: Record<string, string> = {
   ACTIVA:    'bg-green-50 text-green-700 border-green-100',
@@ -134,10 +153,13 @@ function DetalleModal({
 
 function CreateUpdateModal({
   historia,
+  pacienteIdsConHistoria,
   onClose,
-  onSuccess
+  onSuccess,
 }: {
   historia?: HistoriaClinica;
+  /** Pacientes que ya tienen historia (modelo OneToOne: solo una HC por paciente). */
+  pacienteIdsConHistoria: Set<number>;
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -145,20 +167,30 @@ function CreateUpdateModal({
   const [form, setForm] = useState<HistoriaClinicaCreate>({
     id_paciente: historia?.id_paciente || 0,
     estado: historia?.estado || 'ACTIVA',
-    motivo_apertura: historia?.motivo_apertura || '',
-    observaciones: historia?.observaciones || ''
+    motivo_apertura: historia?.motivo_apertura ?? '',
+    observaciones: historia?.observaciones ?? '',
   });
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!historia) {
-      pacientesService.list().then(res => setPacientes(res.results)).catch(console.error);
+      fetchAll<Paciente>('/pacientes/')
+        .then(setPacientes)
+        .catch(console.error);
     }
   }, [historia]);
 
+  const pacienteYaTieneHistoria = (id: number) =>
+    pacienteIdsConHistoria.has(id) && (!historia || id !== historia.id_paciente);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.id_paciente) return alert('Seleccione un paciente');
+    setFormError(null);
+    if (!historia && (!form.id_paciente || pacienteYaTieneHistoria(form.id_paciente))) {
+      setFormError('Elegí un paciente que aún no tenga historia clínica.');
+      return;
+    }
     setSaving(true);
     try {
       if (historia) {
@@ -167,82 +199,142 @@ function CreateUpdateModal({
         await historialService.create(form);
       }
       onSuccess();
-    } catch (err: any) {
-      alert('Error guardando historia clínica: ' + err.message);
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.data) {
+        setFormError(formatHistoriaApiError(err.response.data));
+      } else {
+        setFormError('Error de red o del servidor.');
+      }
     } finally {
       setSaving(false);
     }
   };
 
+  const fieldCls =
+    'w-full text-[13px] rounded-xl border border-gray-200 bg-gray-50 text-gray-900 px-3.5 py-2.5 ' +
+    'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ' +
+    '[&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_rgb(249,250,251)] [&:-webkit-autofill]:[-webkit-text-fill-color:#111827]';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col">
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-          <h3 className="font-bold text-gray-900">{historia ? 'Editar Historia' : 'Nueva Historia'}</h3>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:bg-gray-100 rounded-md">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain
+        bg-black/40 backdrop-blur-sm px-3 py-8 sm:items-center sm:py-10 sm:px-4"
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col border border-gray-100
+          max-h-[min(92dvh,720px)] my-auto"
+      >
+        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center flex-shrink-0">
+          <h3 className="text-[15px] font-bold text-gray-900">
+            {historia ? 'Editar historia clínica' : 'Nueva historia clínica'}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {!historia && (
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+            {formError && (
+              <div className="flex gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-[13px] text-red-700">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{formError}</span>
+              </div>
+            )}
+
+            {!historia && (
+              <div>
+                <label className="block text-[12.5px] font-medium text-gray-700 mb-1.5">Paciente</label>
+                <select
+                  required
+                  value={form.id_paciente || ''}
+                  onChange={(e) =>
+                    setForm({ ...form, id_paciente: Number(e.target.value) || 0 })
+                  }
+                  className={`${fieldCls} appearance-none pr-9`}
+                >
+                  <option value="">Seleccionar paciente…</option>
+                  {pacientes.map((p) => {
+                    const blocked = pacienteYaTieneHistoria(p.id_paciente);
+                    return (
+                      <option key={p.id_paciente} value={p.id_paciente} disabled={blocked}>
+                        {p.nombres} {p.apellidos}
+                        {blocked ? ' — ya tiene historia' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+                <p className="mt-2 text-[11.5px] text-gray-400 leading-relaxed">
+                  En el sistema cada paciente tiene una sola historia clínica. Si ya figura en la tabla,
+                  usá <strong>Editar</strong> en esa fila.
+                </p>
+                {pacientes.length > 0 &&
+                  pacientes.every((p) => pacienteYaTieneHistoria(p.id_paciente)) && (
+                    <p className="mt-2 text-[12px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                      Todos los pacientes ya tienen historia. Podés crear un paciente nuevo en{' '}
+                      <strong>Pacientes</strong> o editar un expediente existente desde la tabla.
+                    </p>
+                  )}
+              </div>
+            )}
+
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Paciente</label>
+              <label className="block text-[12.5px] font-medium text-gray-700 mb-1.5">
+                Motivo de apertura
+              </label>
+              <textarea
+                className={`${fieldCls} resize-y min-h-[80px] max-h-36`}
+                rows={3}
+                value={form.motivo_apertura ?? ''}
+                onChange={(e) => setForm({ ...form, motivo_apertura: e.target.value })}
+                placeholder="Motivo principal de la apertura del expediente…"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[12.5px] font-medium text-gray-700 mb-1.5">Estado</label>
               <select
-                required
-                value={form.id_paciente}
-                onChange={e => setForm({ ...form, id_paciente: Number(e.target.value) })}
-                className="w-full text-sm rounded-lg border border-gray-200 p-2.5 focus:ring-2 focus:ring-blue-500"
+                value={form.estado ?? 'ACTIVA'}
+                onChange={(e) => setForm({ ...form, estado: e.target.value })}
+                className={fieldCls}
               >
-                <option value={0}>Seleccionar paciente...</option>
-                {pacientes.map(p => (
-                  <option key={p.id_paciente} value={p.id_paciente}>{p.nombres} {p.apellidos}</option>
-                ))}
+                <option value="ACTIVA">Activa</option>
+                <option value="CERRADA">Cerrada</option>
+                <option value="ARCHIVADA">Archivada</option>
               </select>
             </div>
-          )}
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Motivo de Apertura</label>
-            <textarea
-              className="w-full text-sm rounded-lg border border-gray-200 p-2.5 focus:ring-2 focus:ring-blue-500"
-              rows={3}
-              value={form.motivo_apertura}
-              onChange={e => setForm({ ...form, motivo_apertura: e.target.value })}
-            />
+            <div>
+              <label className="block text-[12.5px] font-medium text-gray-700 mb-1.5">Observaciones</label>
+              <textarea
+                className={`${fieldCls} resize-y min-h-[72px] max-h-32`}
+                rows={3}
+                value={form.observaciones ?? ''}
+                onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
+                placeholder="Notas adicionales (opcional)…"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Estado</label>
-            <select
-              value={form.estado}
-              onChange={e => setForm({ ...form, estado: e.target.value })}
-              className="w-full text-sm rounded-lg border border-gray-200 p-2.5 focus:ring-2 focus:ring-blue-500"
+          <div className="flex gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex-shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 h-10 rounded-xl border border-gray-200 text-[13px] font-medium text-gray-600 hover:bg-white transition-colors"
             >
-              <option value="ACTIVA">ACTIVA</option>
-              <option value="CERRADA">CERRADA</option>
-              <option value="ARCHIVADA">ARCHIVADA</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Observaciones</label>
-            <textarea
-              className="w-full text-sm rounded-lg border border-gray-200 p-2.5 focus:ring-2 focus:ring-blue-500"
-              rows={3}
-              value={form.observaciones}
-              onChange={e => setForm({ ...form, observaciones: e.target.value })}
-            />
-          </div>
-
-          <div className="pt-4 border-t border-gray-100 flex gap-2">
-            <button type="button" onClick={onClose}
-              className="flex-1 bg-gray-50 text-gray-600 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-100">
               Cancelar
             </button>
-            <button type="submit" disabled={saving}
-              className="flex-1 bg-blue-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
-              {saving ? 'Guardando...' : 'Guardar'}
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 h-10 rounded-xl bg-blue-600 text-white text-[13px] font-semibold hover:bg-blue-700 disabled:opacity-55 transition-colors flex items-center justify-center gap-2"
+            >
+              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+              {saving ? 'Guardando…' : 'Guardar'}
             </button>
           </div>
         </form>
@@ -399,10 +491,18 @@ export default function HistorialClinicoPage() {
       {viewModal && <DetalleModal historia={viewModal} onClose={() => setViewModal(null)} />}
       
       {(createModal || editModal) && (
-        <CreateUpdateModal 
-          historia={editModal || undefined} 
-          onClose={() => { setCreateModal(false); setEditModal(null); }} 
-          onSuccess={() => { setCreateModal(false); setEditModal(null); fetchData(); }} 
+        <CreateUpdateModal
+          historia={editModal || undefined}
+          pacienteIdsConHistoria={new Set(historias.map((h) => h.id_paciente))}
+          onClose={() => {
+            setCreateModal(false);
+            setEditModal(null);
+          }}
+          onSuccess={() => {
+            setCreateModal(false);
+            setEditModal(null);
+            fetchData();
+          }}
         />
       )}
     </div>

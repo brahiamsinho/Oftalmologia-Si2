@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Search, Plus, Phone, Mail, Calendar, Eye,
   SlidersHorizontal, Loader2, Pencil, Trash2,
@@ -34,13 +35,18 @@ function calcEdad(fecha: string | null): string {
 }
 
 // ── Componentes de formulario (nivel módulo para evitar pérdida de foco) ──────
+/** Fondo uniforme (evita el azul del autocompletado del navegador en algunos campos). */
+const inputBase =
+  'w-full h-10 px-3.5 rounded-xl border text-[13px] bg-gray-50 text-gray-900 placeholder:text-gray-400 ' +
+  '[&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_rgb(249,250,251)] [&:-webkit-autofill]:[-webkit-text-fill-color:#111827]';
+
 const inputCls = (err?: string) =>
-  `w-full h-10 px-3.5 rounded-xl border text-[13px] bg-gray-50
+  `${inputBase}
    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition
    ${err ? 'border-red-300' : 'border-gray-200'}`;
 
 const selectCls = (err?: string) =>
-  `w-full h-10 px-3.5 pr-9 rounded-xl border text-[13px] bg-gray-50 appearance-none
+  `w-full h-10 px-3.5 pr-9 rounded-xl border text-[13px] bg-gray-50 text-gray-900 appearance-none
    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition
    ${err ? 'border-red-300' : 'border-gray-200'}`;
 
@@ -115,9 +121,14 @@ function PacienteModal({ paciente, onClose, onSaved }: ModalProps) {
 
   const [errors,  setErrors]  = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const bodyScrollRef = useRef<HTMLDivElement>(null);
 
   const set = (k: keyof PacienteCreate, v: string) =>
     setForm(f => ({ ...f, [k]: v }));
+
+  const scrollBodyToTop = () => {
+    bodyScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -126,12 +137,15 @@ function PacienteModal({ paciente, onClose, onSaved }: ModalProps) {
     if (!form.nombres.trim())  e.nombres  = 'Requerido';
     if (!form.apellidos.trim()) e.apellidos = 'Requerido';
     setErrors(e);
-    return Object.keys(e).length === 0;
+    const ok = Object.keys(e).length === 0;
+    if (!ok) scrollBodyToTop();
+    return ok;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    setErrors({});
     setLoading(true);
 
     const payload: PacienteCreate = {
@@ -158,48 +172,105 @@ function PacienteModal({ paciente, onClose, onSaved }: ModalProps) {
       }
       onSaved();
     } catch (err: unknown) {
-      const e = err as { response?: { data?: Record<string, string[]> } };
-      if (e?.response?.data) {
+      const e = err as { response?: { data?: unknown } };
+      const raw = e?.response?.data;
+      if (raw && typeof raw === "object" && !Array.isArray(raw)) {
         const mapped: Record<string, string> = {};
-        for (const [k, v] of Object.entries(e.response.data)) {
-          mapped[k] = Array.isArray(v) ? v[0] : String(v);
+        for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+          if (k === "detail" && typeof v === "string") {
+            setErrors({ _general: v });
+            scrollBodyToTop();
+            return;
+          }
+          if (k === "non_field_errors" && Array.isArray(v) && v.length) {
+            mapped._general = String(v[0]);
+            continue;
+          }
+          if (Array.isArray(v) && v.length) mapped[k] = String(v[0]);
+          else if (typeof v === "string") mapped[k] = v;
         }
-        setErrors(mapped);
+        if (Object.keys(mapped).length) {
+          setErrors(mapped);
+          scrollBodyToTop();
+        } else
+          setErrors({
+            _general:
+              "No se pudo guardar el paciente. Revisá los datos o la conexión con el servidor.",
+          });
+      } else {
+        setErrors({
+          _general: "Error de red o del servidor. Intentá de nuevo.",
+        });
       }
+      scrollBodyToTop();
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+  const overlay = (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="paciente-modal-title"
+      className="fixed inset-0 z-[200] overflow-y-auto overscroll-contain bg-black/40 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      {/*
+        Importante: no usar items-center con modales altos: el viewport muestra el “medio” del formulario
+        (solo observaciones) y la cabecera/botones quedan fuera de pantalla.
+        self-start + max-h + scroll interno mantiene título, campos y acciones accesibles.
+      */}
+      <div className="flex min-h-[100dvh] w-full justify-center px-3 py-4 pb-28 sm:px-4 sm:py-6 sm:pb-24">
+        <div
+          className="flex min-h-0 w-full max-w-2xl flex-col self-start overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl
+            max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)]"
+          onClick={(e) => e.stopPropagation()}
+        >
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+        <div className="flex flex-shrink-0 items-center justify-between px-5 py-3.5 sm:px-6 sm:py-4 border-b border-gray-100 bg-white">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="w-7 h-7 flex-shrink-0 rounded-lg bg-blue-50 flex items-center justify-center">
               <User className="w-3.5 h-3.5 text-blue-600" />
             </div>
-            <h3 className="text-[15px] font-bold text-gray-900">
-              {isEdit ? `Editar paciente — ${paciente!.nombres} ${paciente!.apellidos}` : 'Nuevo paciente'}
+            <h3 id="paciente-modal-title" className="truncate text-[15px] font-bold text-gray-900">
+              {isEdit ? `Editar paciente — ${paciente!.nombres} ${paciente!.apellidos}` : 'Registrar paciente'}
             </h3>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-shrink-0 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+          >
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
 
-        {/* Body */}
-        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden flex-1">
-          <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+        {/* Body: scroll interno; footer siempre visible debajo */}
+        <form
+          onSubmit={handleSubmit}
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+          noValidate
+        >
+          <div
+            ref={bodyScrollRef}
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6 sm:py-5 space-y-5"
+          >
+            {errors._general && (
+              <div className="bg-red-50 text-red-700 text-[13px] px-4 py-3 rounded-xl border border-red-100">
+                {errors._general}
+              </div>
+            )}
 
             {/* Sección: Identificación */}
             <div>
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                 Identificación
               </p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Tipo de documento" required error={errors.tipo_documento}>
                   <SelectWrap>
                     <select value={form.tipo_documento}
@@ -226,7 +297,7 @@ function PacienteModal({ paciente, onClose, onSaved }: ModalProps) {
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                 Datos personales
               </p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Nombres" required error={errors.nombres}>
                   <input value={form.nombres}
                     onChange={e => set('nombres', e.target.value)}
@@ -275,25 +346,38 @@ function PacienteModal({ paciente, onClose, onSaved }: ModalProps) {
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                 Contacto
               </p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Correo electrónico" error={errors.email}>
-                  <input type="email" value={form.email ?? ''}
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    value={form.email ?? ''}
                     onChange={e => set('email', e.target.value)}
                     placeholder="correo@ejemplo.com"
-                    className={inputCls(errors.email)} />
+                    className={inputCls(errors.email)}
+                  />
                 </Field>
                 <Field label="Teléfono" error={errors.telefono}>
-                  <input type="tel" value={form.telefono ?? ''}
+                  <input
+                    type="tel"
+                    autoComplete="tel"
+                    value={form.telefono ?? ''}
                     onChange={e => set('telefono', e.target.value)}
                     placeholder="+34 600 000 000"
-                    className={inputCls(errors.telefono)} />
+                    className={inputCls(errors.telefono)}
+                  />
                 </Field>
-                <Field label="Dirección">
-                  <input value={form.direccion ?? ''}
-                    onChange={e => set('direccion', e.target.value)}
-                    placeholder="Calle, ciudad..."
-                    className={inputCls()} />
-                </Field>
+                <div className="sm:col-span-2">
+                  <Field label="Dirección">
+                    <input
+                      value={form.direccion ?? ''}
+                      onChange={e => set('direccion', e.target.value)}
+                      placeholder="Calle, ciudad..."
+                      autoComplete="street-address"
+                      className={inputCls()}
+                    />
+                  </Field>
+                </div>
               </div>
             </div>
 
@@ -302,7 +386,7 @@ function PacienteModal({ paciente, onClose, onSaved }: ModalProps) {
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                 Contacto de emergencia
               </p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Nombre del contacto">
                   <input value={form.contacto_emergencia_nombre ?? ''}
                     onChange={e => set('contacto_emergencia_nombre', e.target.value)}
@@ -323,33 +407,46 @@ function PacienteModal({ paciente, onClose, onSaved }: ModalProps) {
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                 Observaciones
               </p>
-              <textarea value={form.observaciones_generales ?? ''}
+              <textarea
+                value={form.observaciones_generales ?? ''}
                 onChange={e => set('observaciones_generales', e.target.value)}
                 placeholder="Alergias, condiciones especiales, notas relevantes..."
-                rows={3}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-[13px] bg-gray-50 resize-none
-                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition" />
+                rows={4}
+                className={`${inputBase} min-h-[88px] max-h-40 resize-y rounded-xl border border-gray-200 py-2.5
+                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition`}
+              />
             </div>
           </div>
 
           {/* Footer */}
-          <div className="flex gap-2.5 px-6 py-4 border-t border-gray-100 flex-shrink-0">
-            <button type="button" onClick={onClose}
-              className="flex-1 h-10 rounded-xl border border-gray-200 text-[13px] font-medium
-                text-gray-600 hover:bg-gray-50 transition-colors">
+          <div className="flex flex-shrink-0 gap-2.5 border-t border-gray-100 bg-gray-50/80 px-5 py-3.5 sm:px-6 sm:py-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 h-11 rounded-xl border border-gray-200 text-[13px] font-medium
+                text-gray-600 hover:bg-white transition-colors"
+            >
               Cancelar
             </button>
-            <button type="submit" disabled={loading}
-              className="flex-1 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60
-                text-white text-[13px] font-semibold transition-colors flex items-center justify-center gap-1.5">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 h-11 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60
+                text-white text-[13px] font-semibold transition-colors flex items-center justify-center gap-1.5
+                focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            >
               {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {isEdit ? 'Guardar cambios' : 'Registrar paciente'}
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(overlay, document.body);
 }
 
 // ── Página principal ───────────────────────────────────────────────────────────

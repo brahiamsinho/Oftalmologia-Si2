@@ -5,11 +5,6 @@ import { useRouter } from "next/navigation";
 import { Loader2, ArrowLeft, User, Calendar, Stethoscope, FileText, FileWarning, ClipboardPlus, ChevronDown } from "lucide-react";
 import api from "@/lib/api";
 
-const inputCls = (err?: string) =>
-  `w-full h-10 px-3.5 rounded-xl border text-[13px] bg-gray-50
-   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition
-   ${err ? 'border-red-300' : 'border-gray-200'}`;
-
 const textareaCls = (err?: string) =>
   `w-full px-3.5 py-3 rounded-xl border text-[13px] bg-gray-50 resize-none
    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition
@@ -20,7 +15,7 @@ const selectCls = (err?: string) =>
    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition
    ${err ? 'border-red-300' : 'border-gray-200'}`;
 
-function Field({ label, required, error, children, icon: Icon }: { label: string; required?: boolean; error?: string; children: React.ReactNode; icon?: any }) {
+function Field({ label, required, error, children, icon: Icon }: { label: string; required?: boolean; error?: string; children: React.ReactNode; icon?: React.ElementType }) {
   return (
     <div>
       <label className="flex items-center gap-1.5 text-[12.5px] font-medium text-gray-700 mb-1.5">
@@ -42,13 +37,22 @@ function SelectWrap({ children }: { children: React.ReactNode }) {
   );
 }
 
+function citaPacienteId(c: Record<string, unknown>): string {
+  const raw = c.id_paciente;
+  if (typeof raw === "number") return String(raw);
+  if (raw && typeof raw === "object" && "id_paciente" in (raw as object)) {
+    return String((raw as { id_paciente: number }).id_paciente);
+  }
+  return "";
+}
+
 export default function RegistrarConsultaPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pacientes, setPacientes] = useState<any[]>([]);
-  const [citas, setCitas] = useState<any[]>([]);
+  const [pacientes, setPacientes] = useState<Record<string, unknown>[]>([]);
+  const [citas, setCitas] = useState<Record<string, unknown>[]>([]);
 
   const [formData, setFormData] = useState({
     paciente: "",
@@ -63,11 +67,13 @@ export default function RegistrarConsultaPage() {
     const fetchData = async () => {
       try {
         const [pacientesRes, citasRes] = await Promise.all([
-          api.get("/api/pacientes/"),
-          api.get("/api/citas/"),
+          api.get("/pacientes/"),
+          api.get("/citas/"),
         ]);
-        setPacientes(pacientesRes.data?.results || pacientesRes.data || []);
-        setCitas(citasRes.data?.results || citasRes.data || []);
+        const pRaw = pacientesRes.data?.results ?? pacientesRes.data;
+        const cRaw = citasRes.data?.results ?? citasRes.data;
+        setPacientes(Array.isArray(pRaw) ? pRaw : []);
+        setCitas(Array.isArray(cRaw) ? cRaw : []);
       } catch (err) {
         console.error("Error fetching data:", err);
       } finally {
@@ -76,6 +82,12 @@ export default function RegistrarConsultaPage() {
     };
     fetchData();
   }, []);
+
+  const citasFiltradas = citas.filter((c) => {
+    if ((c.estado as string) === "CANCELADA") return false;
+    if (!formData.paciente) return true;
+    return citaPacienteId(c as Record<string, unknown>) === formData.paciente;
+  });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -86,20 +98,61 @@ export default function RegistrarConsultaPage() {
     });
   };
 
+  const handlePacienteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const v = e.target.value;
+    setFormData((prev) => {
+      let cita = prev.cita;
+      if (cita && v) {
+        const row = citas.find((x) => String(x.id_cita ?? x.id) === cita);
+        const pid = row ? citaPacienteId(row as Record<string, unknown>) : "";
+        if (pid && pid !== v) cita = "";
+      }
+      return { ...prev, paciente: v, cita };
+    });
+  };
+
+  const handleCitaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const v = e.target.value;
+    if (!v) {
+      setFormData((prev) => ({ ...prev, cita: "" }));
+      return;
+    }
+    const row = citas.find((x) => String(x.id_cita ?? x.id) === v);
+    const pid = row ? citaPacienteId(row as Record<string, unknown>) : "";
+    setFormData((prev) => ({ ...prev, cita: v, paciente: pid || prev.paciente }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      const dataToSubmit = { ...formData };
-      if (!dataToSubmit.cita) {
-        delete (dataToSubmit as any).cita;
+      const notas = [formData.diagnostico_inicial, formData.observaciones]
+        .map((s) => s?.trim())
+        .filter(Boolean)
+        .join("\n\n");
+      const payload: Record<string, unknown> = {
+        paciente: Number(formData.paciente),
+        motivo: formData.motivo_consulta,
+        sintomas: formData.sintomas || "",
+        notas_clinicas: notas || "",
+      };
+      if (formData.cita) {
+        payload.cita = Number(formData.cita);
       }
-      await api.post("/api/consultas/", dataToSubmit);
-      router.push("/dashboard");
-    } catch (err: any) {
+      await api.post("/consultas/lista/", payload);
+      router.push("/consultas");
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.response?.data?.detail || "Error al registrar la consulta");
+      const ax = err as { response?: { data?: Record<string, unknown> | string } };
+      const d = ax.response?.data;
+      const msg =
+        typeof d === "string"
+          ? d
+          : d && typeof d === "object" && "detail" in d
+            ? String(d.detail)
+            : "Error al registrar la consulta";
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -154,16 +207,19 @@ export default function RegistrarConsultaPage() {
                         name="paciente"
                         required
                         value={formData.paciente}
-                        onChange={handleChange}
+                        onChange={handlePacienteChange}
                         className={selectCls()}
                       >
                         <option value="">Seleccione un paciente</option>
                         {pacientes.map((p) => {
-                          const nombreCompleto = p.nombres 
-                            ? `${p.nombres} ${p.apellidos || ''}` 
-                            : (p.first_name ? `${p.first_name} ${p.last_name || ''}` : p.nombre || `Paciente #${p.id || p.id_paciente}`);
+                          const id = (p.id_paciente ?? p.id) as number;
+                          const nombreCompleto = p.nombres
+                            ? `${String(p.nombres)} ${String(p.apellidos ?? '')}`
+                            : (p.first_name
+                                ? `${String(p.first_name)} ${String(p.last_name ?? '')}`
+                                : String(p.nombre ?? `Paciente #${id}`));
                           return (
-                            <option key={p.id || p.id_paciente} value={p.id || p.id_paciente}>
+                            <option key={id} value={id}>
                               {nombreCompleto}
                             </option>
                           );
@@ -177,15 +233,28 @@ export default function RegistrarConsultaPage() {
                       <select
                         name="cita"
                         value={formData.cita}
-                        onChange={handleChange}
+                        onChange={handleCitaChange}
                         className={selectCls()}
                       >
                         <option value="">Ninguna</option>
-                        {citas.map((c) => (
-                          <option key={c.id || c.id_cita} value={c.id || c.id_cita}>
-                            Cita #{c.id || c.id_cita} - {c.fecha || c.fecha_cita}
-                          </option>
-                        ))}
+                        {citasFiltradas.map((c) => {
+                          const id = c.id_cita ?? c.id;
+                          const when = c.fecha_hora_inicio
+                            ? new Date(c.fecha_hora_inicio as string).toLocaleString("es-BO", {
+                                timeZone: "America/La_Paz",
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              })
+                            : "";
+                          const pn = c.paciente_nombre ? ` — ${String(c.paciente_nombre)}` : "";
+                          return (
+                            <option key={id} value={id}>
+                              Cita #{id}
+                              {pn}
+                              {when ? ` (${when})` : ""}
+                            </option>
+                          );
+                        })}
                       </select>
                     </SelectWrap>
                   </Field>
@@ -248,18 +317,18 @@ export default function RegistrarConsultaPage() {
             </div>
 
             {/* Footer */}
-            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50 mt-2">
+            <div className="flex flex-col-reverse sm:flex-row gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50 mt-2 sm:justify-end">
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="px-5 h-10 rounded-xl border border-gray-200 text-[13px] font-medium text-gray-600 hover:bg-white transition-colors ml-auto shadow-sm"
+                className="px-5 h-10 rounded-xl border border-gray-200 text-[13px] font-medium text-gray-600 hover:bg-white transition-colors shadow-sm w-full sm:w-auto"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-5 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-[13px] font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
+                className="px-5 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-[13px] font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm w-full sm:w-auto"
               >
                 {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 {loading ? "Guardando..." : "Registrar Consulta"}

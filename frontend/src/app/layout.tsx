@@ -5,6 +5,7 @@ import { AuthProvider } from '@/context/AuthContext';
 export const metadata: Metadata = {
   title: 'OftalmoCRM — Sistema de Gestión Clínica',
   description: 'Sistema integral para clínica oftalmológica.',
+  icons: { icon: '/favicon.svg' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -7,23 +7,26 @@ import {
   Activity, LayoutDashboard, Users, ShieldCheck, ScrollText,
   ClipboardList, LogOut, ChevronLeft, ChevronRight,
   ChevronDown, ChevronUp, KeyRound,
-  Stethoscope, Eye, Calendar
+  Stethoscope, Eye, Calendar, List
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSidebar } from '@/context/SidebarContext';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 // ── NavItem simple ─────────────────────────────────────────────────────────────
 function NavItem({
-  href, label, icon: Icon, active, collapsed, depth = 0,
+  href, label, icon: Icon, active, collapsed, depth = 0, onNavigate,
 }: {
   href: string; label: string; icon: React.ElementType;
   active: boolean; collapsed: boolean; depth?: number;
+  onNavigate?: () => void;
 }) {
   return (
     <li>
       <Link
         href={href}
         title={collapsed ? label : undefined}
+        onClick={onNavigate}
         className={`group flex items-center gap-2.5 rounded-lg text-[13px] font-medium transition-all duration-150
           ${collapsed
             ? 'px-[13px] py-[9px] justify-center'
@@ -104,16 +107,20 @@ function NavGroup({
 export default function Sidebar() {
   const pathname = usePathname();
   const { logout } = useAuth();
-  const { isCollapsed, toggle } = useSidebar();
+  const { isCollapsed, isMobileDrawerOpen, toggle, closeMobileDrawer } = useSidebar();
+  const isDesktop = useMediaQuery('(min-width: 768px)', false);
 
   const is = (href: string) => pathname === href || pathname.startsWith(href + '/');
-  const W  = isCollapsed ? 64 : 220;
+  const widthPx = isDesktop ? (isCollapsed ? 64 : 220) : 220;
+  const offCanvas = !isDesktop && !isMobileDrawerOpen;
 
   return (
     <aside
-      style={{ width: W }}
-      className="fixed left-0 top-0 h-screen bg-white border-r border-gray-200
-                 flex flex-col z-40 select-none transition-[width] duration-300 overflow-hidden"
+      style={{ width: widthPx }}
+      className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200
+                 flex flex-col z-[45] select-none overflow-hidden
+                 transition-[transform,width] duration-300 ease-out
+                 ${offCanvas ? '-translate-x-full' : 'translate-x-0'}`}
     >
       {/* ── Logo + toggle ── */}
       <div className={`flex items-center h-[60px] border-b border-gray-100 flex-shrink-0 px-3
@@ -146,7 +153,7 @@ export default function Sidebar() {
         {/* General */}
         <ul className="space-y-0.5">
           <NavItem href="/dashboard" label="Dashboard" icon={LayoutDashboard}
-            active={is('/dashboard')} collapsed={isCollapsed} />
+            active={is('/dashboard')} collapsed={isCollapsed} onNavigate={closeMobileDrawer} />
         </ul>
 
         {/* Pacientes */}
@@ -156,8 +163,8 @@ export default function Sidebar() {
             active={is('/pacientes') || is('/historial')}
             collapsed={isCollapsed} defaultOpen
           >
-            <NavItem href="/pacientes" label="Pacientes"         icon={Users}         active={is('/pacientes')} collapsed={false} depth={1} />
-            <NavItem href="/historial" label="Historial Clínico" icon={ClipboardList} active={is('/historial')} collapsed={false} depth={1} />
+            <NavItem href="/pacientes" label="Pacientes"         icon={Users}         active={is('/pacientes')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/historial" label="Historial Clínico" icon={ClipboardList} active={is('/historial')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
           </NavGroup>
         </ul>
 
@@ -165,12 +172,13 @@ export default function Sidebar() {
         <ul className="space-y-0.5 mt-1">
           <NavGroup
             label="Atención Clínica" icon={Stethoscope}
-            active={is('/registrar-consulta') || is('/registrar-medicion') || is('/citas-agenda')}
-            collapsed={isCollapsed} defaultOpen={is('/registrar-consulta') || is('/registrar-medicion') || is('/citas-agenda')}
+            active={is('/registrar-consulta') || is('/registrar-medicion') || is('/citas-agenda') || is('/consultas')}
+            collapsed={isCollapsed} defaultOpen={is('/registrar-consulta') || is('/registrar-medicion') || is('/citas-agenda') || is('/consultas')}
           >
-            <NavItem href="/registrar-consulta" label="Registrar Consulta" icon={Stethoscope} active={is('/registrar-consulta')} collapsed={false} depth={1} />
-            <NavItem href="/registrar-medicion" label="Registrar Medición" icon={Eye}         active={is('/registrar-medicion')} collapsed={false} depth={1} />
-            <NavItem href="/citas-agenda"       label="Citas y Agenda"     icon={Calendar}    active={is('/citas-agenda')}       collapsed={false} depth={1} />
+            <NavItem href="/registrar-consulta" label="Registrar Consulta" icon={Stethoscope} active={is('/registrar-consulta')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/consultas"          label="Consultas"            icon={List} active={is('/consultas')}          collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/registrar-medicion" label="Registrar Medición" icon={Eye}         active={is('/registrar-medicion')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/citas-agenda"       label="Citas y Agenda"     icon={Calendar}    active={is('/citas-agenda')}       collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
           </NavGroup>
         </ul>
 
@@ -183,12 +191,12 @@ export default function Sidebar() {
             active={is('/usuarios') || is('/roles') || is('/permisos')}
             collapsed={isCollapsed} defaultOpen={is('/usuarios') || is('/roles') || is('/permisos')}
           >
-            <NavItem href="/usuarios" label="Usuarios"  icon={Users}       active={is('/usuarios')} collapsed={false} depth={1} />
-            <NavItem href="/roles"    label="Roles"      icon={ShieldCheck} active={is('/roles')}    collapsed={false} depth={1} />
-            <NavItem href="/permisos" label="Permisos"   icon={KeyRound}    active={is('/permisos')} collapsed={false} depth={1} />
+            <NavItem href="/usuarios" label="Usuarios"  icon={Users}       active={is('/usuarios')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/roles"    label="Roles"      icon={ShieldCheck} active={is('/roles')}    collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/permisos" label="Permisos"   icon={KeyRound}    active={is('/permisos')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
           </NavGroup>
           <NavItem href="/bitacora" label="Bitácora" icon={ScrollText}
-            active={is('/bitacora')} collapsed={isCollapsed} />
+            active={is('/bitacora')} collapsed={isCollapsed} onNavigate={closeMobileDrawer} />
         </ul>
       </nav>
 

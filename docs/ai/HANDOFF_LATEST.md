@@ -1,67 +1,35 @@
 # HANDOFF LATEST
 
-## Resumen de la Última Sesión
-**Fecha:** 2026-03-31
+## Resumen
+**Fecha:** 2026-04-12 (actualización posterior)
 
-Documentación y operaciones para **próximos desarrolladores**: `docs/README.md` ampliado (onboarding, Docker Compose v2, secretos), índice `docs/guides/README.md`, guía VM ya enlazada. Estado técnico en `CURRENT_STATE.md` incluye bloque **Infra / despliegue** (`.env`, gitignore, entrypoint backend, Azure/Ubuntu).
+**Docker backend:** `entrypoint.sh` ejecuta **`migrate --noinput`** antes de `collectstatic`, para que una Postgres nueva no quede sin tablas (sesiones, JWT blacklist, usuarios). El **seed** sigue manual.
 
-**Contexto previo (2026-03-30):** integración **Flutter paciente** con API real (login email, home citas), Next.js alineado, seeder demo, refactor **config vía `.env`** (sin URLs fijas en app), docstrings API unificados a **`/api/`**, `Dockerfile` entrypoint con `sh`, decisión Compose v2 en Ubuntu.
+**Roles / permisos en UI:** el modelo `Permiso` no tiene campo `activo`; el listado del modal filtraba `x.activo` (siempre `undefined` → vacío). Corregido a **`activo !== false`** y tipo opcional.
+
+**Consultas:** nueva pantalla **`/consultas`** (sidebar Atención clínica); tras **Registrar consulta** redirige allí. **Lógica cita–paciente:** al elegir cita se completa paciente; citas filtradas por paciente y sin canceladas; **backend** valida que cita y paciente coincidan y marca la cita **ATENDIDA** al crear la consulta (estados programada/confirmada/reprogramada).
+
+**Pacientes:** modal muestra error genérico si la API devuelve `detail` / `non_field_errors` o 500 sin mapa de campos.
+
+**Axios `fetchAll`:** reescribe `next` con host `0.0.0.0` o `backend` al origen de `NEXT_PUBLIC_API_URL`.
 
 ---
 
-## Sesión 2026-03-30 (referencia)
+Corrección integral del **frontend Next.js** respecto al prefijo API: el `baseURL` de Axios ya incluye `/api`, por lo que las páginas no deben llamar `/api/pacientes/` (eso generaba **`/api/api/...`** y 404). **Registrar consulta** y **medición** ahora usan **`POST /consultas/lista/`** y **`POST /consultas/estudios/`** con payload alineado al modelo Django.
 
-Integración **Flutter paciente** con API real: login por **solo email**, home con citas, correcciones de red/Docker/JWT y seeder demo. Ajustes en **Next.js** para el mismo contrato de login.
+**Backend:** `TIME_ZONE = America/La_Paz`; catálogo de permisos **solo lectura** en API para ADMIN/ADMINISTRATIVO; más eventos de **bitácora** (consultas, estudios, citas update/delete, roles, delete paciente); serializer de bitácora expone **`usuario_email`**.
 
-## Objetivo Trabajado
-- Pantalla de login mobile modular (Figma) y flujo JWT estable.
-- Home paciente: próxima cita, lista, tabs, pull-to-refresh, estados vacío/carga/error.
-- Eliminar fallos de integración: `DisallowedHost`, URL mal concatenada (`/apiauth/`), timeouts en arranque.
-- Datos demo reproducibles (`seed_demo_paciente`).
+**UX:** sidebar **drawer en móvil**; bitácora con contadores reales (`count`) y hora Bolivia; dashboard sin dato hardcodeado “24”; pantalla **Permisos** solo lectura; **Roles** carga permisos y roles en bloques independientes (un fallo no vacía el otro).
 
-## Cambios Relevantes (por área)
+Detalle: `docs/ai/sessions/2026-04-12-frontend-api-bitacora-permisos.md`
 
-### Backend
-- `apps/users/serializers.py` — `LoginSerializer`: campos `email` + `password`; `check_password`; sin username en login.
-- `apps/citas/views.py` — `get_queryset()` por rol (paciente / médico / admin).
-- `config/settings.py` — `ALLOWED_HOSTS` + `*` en DEBUG; `SIMPLE_JWT['SIGNING_KEY']` derivada si SECRET_KEY corta.
-- `seeders/seed_demo_paciente.py` + registro en `manage.py seed --only demo_paciente`.
+## Qué debe hacer el siguiente agente
+1. Leer `docs/ai/CURRENT_STATE.md` y la sesión citada arriba.
+2. Verificar `.env`: `NEXT_PUBLIC_API_URL=http://localhost:8000/api` (o equivalente; una sola URL).
+3. Tras pull: probar flujo paciente → consulta → bitácora y creación de rol con permisos.
+4. Si hace falta **export CSV** en bitácora, implementar endpoint o generación en cliente (botón deshabilitado con título “Próximamente”).
 
-### Mobile
-- `lib/config/app_config.dart` — `apiBaseUrl` con **barra final**; timeout 30 s.
-- `lib/core/network/api_client.dart` — refresh URL sin doble slash.
-- `lib/features/auth/*` — repositorio envía `email`; pantallas/widgets login.
-- `lib/features/home/*` — dominio `CitaResumen`, `CitasRepository`, providers, `PatientHomeScreen` + widgets.
-- `lib/features/home/presentation/screens/home_screen.dart` — bifurca PACIENTE vs staff.
-- `lib/main.dart` — `initializeDateFormatting('es')`.
-- `android/.../AndroidManifest.xml` — `usesCleartextTraffic` (dev).
-
-### Frontend
-- `src/lib/types.ts` — `LoginCredentials.email`.
-- `src/context/AuthContext.tsx` + `login/page.tsx` — envío con email; demo `admin@oftalmologia.local`.
-
-### Raíz / docs (evolución hasta 2026-03-31)
-- `.env.example` — checklist IP, `HOST_PORT_*`, `FRONTEND_URL`, variables obligatorias.
-- `docs/guides/despliegue-ubuntu-nube.md` — Azure/Ubuntu, `docker compose`, migrate/seed Django.
-- `backend/Dockerfile` — `ENTRYPOINT` con `/bin/sh` + `./entrypoint.sh` (bind mount).
-- Docstrings backend alineados a rutas **`/api/...`** (no `/api/v1/`).
-
-## Pitfalls Resueltos (para no repetir)
-1. **Dio `baseUrl` sin `/` final** + path `auth/login/` → concatenación **`apiauth`**. Solución: base `.../api/`.
-2. **Host HTTP del móvil** (`192.168.x.x`) no permitido → `DisallowedHost`. Solución: `*` en DEBUG o listar IPs en `DJANGO_ALLOWED_HOSTS`.
-3. **String Dart** `'$_saludo(), ...'` imprime Closure → usar **`'${_saludo()}, ...'`**.
-4. **JWT warning 31 bytes** → `SIGNING_KEY` derivada o SECRET ≥ 32 caracteres.
-
-## Qué Debe Hacer el Siguiente Agente
-1. Leer `docs/README.md` (onboarding), `docs/ai/CURRENT_STATE.md` y este archivo.
-2. VM Ubuntu: seguir `docs/guides/despliegue-ubuntu-nube.md` (`docker compose`, no compose Python viejo con Docker 28).
-3. Si toca mobile: confirmar `mobile/.env` (`API_BASE_URL`, emulador vs físico / IP pública VM).
-4. Continuar features: tab Citas/Perfil mobile, registro API, o módulos web según `NEXT_STEPS.md`.
-5. Antes de producción: `DEBUG=False`, hosts/CORS explícitos, HTTPS, secretos fuertes; no subir `.env` al repo.
-
-## Variables de Entorno (recordatorio)
+## Variables (recordatorio)
 ```
-DJANGO_DEBUG=True          # desarrollo: ALLOWED_HOSTS incluye *
-DJANGO_SECRET_KEY=...    # ideal ≥ 32 caracteres para JWT sin derivación
-API_BASE_URL=http://.../api/   # mobile; barra final la añade AppConfig si falta
+NEXT_PUBLIC_API_URL=.../api     # sin segunda barra /api en paths del cliente
 ```
