@@ -2,159 +2,250 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  ClipboardList, Search, User, Calendar, FileText,
-  Loader2, X, Phone, Mail, MapPin, AlertCircle, Hash,
-  ChevronRight, Shield,
+  ClipboardList, Search, FileText,
+  Loader2, X, AlertCircle, Hash,
+  ChevronRight, Plus, Eye, Edit2, Shield, Calendar, User, AlignLeft
 } from 'lucide-react';
-import { pacientesService } from '@/lib/services';
+import { historialService, pacientesService } from '@/lib/services';
+import type { HistoriaClinica, HistoriaClinicaCreate, HistoriaClinicaDetalle } from '@/lib/services/historial';
 import type { Paciente } from '@/lib/types';
 
-// ── Estilos ───────────────────────────────────────────────────────────────────
 const ESTADO_STYLE: Record<string, string> = {
-  ACTIVO:         'bg-green-50 text-green-700 border-green-100',
-  EN_SEGUIMIENTO: 'bg-blue-50 text-blue-700 border-blue-100',
-  POSTOPERATORIO: 'bg-orange-50 text-orange-700 border-orange-100',
-  INACTIVO:       'bg-gray-100 text-gray-500 border-gray-200',
-};
-const ESTADO_LABEL: Record<string, string> = {
-  ACTIVO:         'Activo',
-  EN_SEGUIMIENTO: 'En Seguimiento',
-  POSTOPERATORIO: 'Postoperatorio',
-  INACTIVO:       'Inactivo',
+  ACTIVA:    'bg-green-50 text-green-700 border-green-100',
+  CERRADA:   'bg-gray-100 text-gray-500 border-gray-200',
+  ARCHIVADA: 'bg-orange-50 text-orange-700 border-orange-100',
 };
 
-function calcEdad(fechaNac: string | null): string {
-  if (!fechaNac) return '—';
-  const hoy = new Date();
-  const nac = new Date(fechaNac);
-  let edad = hoy.getFullYear() - nac.getFullYear();
-  const m = hoy.getMonth() - nac.getMonth();
-  if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
-  return `${edad} años`;
-}
+function DetalleModal({ 
+  historia, 
+  onClose 
+}: { 
+  historia: HistoriaClinica; 
+  onClose: () => void; 
+}) {
+  const [detalle, setDetalle] = useState<HistoriaClinicaDetalle | null>(null);
+  const [loading, setLoading] = useState(true);
 
-// ── Modal detalle de paciente ─────────────────────────────────────────────────
-function DetalleModal({ paciente, onClose }: { paciente: Paciente; onClose: () => void }) {
-  const initials = `${paciente.nombres[0] ?? ''}${paciente.apellidos[0] ?? ''}`.toUpperCase();
+  useEffect(() => {
+    historialService.get(historia.id_historia_clinica)
+      .then(setDetalle)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [historia.id_historia_clinica]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
 
         {/* Header */}
         <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-              <span className="text-[16px] font-bold text-blue-600">{initials}</span>
+              <ClipboardList className="w-6 h-6 text-blue-600" />
             </div>
             <div>
               <h3 className="text-[16px] font-bold text-gray-900">
-                {paciente.nombres} {paciente.apellidos}
+                Historial: {historia.paciente_nombre}
               </h3>
               <div className="flex items-center gap-2 mt-1">
                 <span className="font-mono text-[12px] bg-gray-100 px-2 py-0.5 rounded text-gray-600">
-                  {paciente.numero_historia}
+                  HC-{historia.id_paciente}
                 </span>
                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border
-                  ${ESTADO_STYLE[paciente.estado_paciente] ?? 'bg-gray-100 text-gray-500'}`}>
-                  {ESTADO_LABEL[paciente.estado_paciente] ?? paciente.estado_paciente}
+                  ${ESTADO_STYLE[historia.estado] ?? 'bg-gray-100 text-gray-500'}`}>
+                  {historia.estado}
                 </span>
               </div>
             </div>
           </div>
           <button onClick={onClose}
             className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0">
-            <X className="w-4 h-4 text-gray-500" />
+            <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
         {/* Body */}
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+          {loading ? (
+            <div className="flex justify-center p-10"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+          ) : !detalle ? (
+            <div className="text-red-500 text-sm">Error cargando detalles.</div>
+          ) : (
+            <>
+              {/* Información */}
+              <Section title="Apertura y Motivo">
+                <Row icon={Calendar} label="Fecha de Apertura">
+                  {new Date(detalle.fecha_apertura).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+                </Row>
+                <Row icon={FileText} label="Motivo de Apertura">
+                  {detalle.motivo_apertura || 'No especificado'}
+                </Row>
+                <Row icon={AlignLeft} label="Observaciones">
+                  {detalle.observaciones || 'Ninguna'}
+                </Row>
+              </Section>
+              
+              <Section title="Antecedentes">
+                {detalle.antecedentes.length > 0 ? (
+                  <div className="px-4 py-3 text-sm text-gray-700">
+                    Hay {detalle.antecedentes.length} antecedente(s) registrado(s).
+                  </div>
+                ) : (
+                  <div className="px-4 py-3 text-sm text-gray-400">Sin antecedentes registrados</div>
+                )}
+              </Section>
 
-          {/* Identificación */}
-          <Section title="Identificación">
-            <Row icon={Hash} label="Tipo / N° Documento">
-              {paciente.tipo_documento} — {paciente.numero_documento}
-            </Row>
-            <Row icon={Calendar} label="Fecha de nacimiento">
-              {paciente.fecha_nacimiento
-                ? new Date(paciente.fecha_nacimiento).toLocaleDateString('es-ES', {
-                    day: '2-digit', month: 'long', year: 'numeric',
-                  })
-                : '—'}
-              {paciente.fecha_nacimiento && (
-                <span className="ml-2 text-gray-400">({calcEdad(paciente.fecha_nacimiento)})</span>
-              )}
-            </Row>
-            <Row icon={User} label="Sexo">
-              {paciente.sexo === 'M' ? 'Masculino' : paciente.sexo === 'F' ? 'Femenino' : '—'}
-            </Row>
-            <Row icon={Calendar} label="Fecha de registro">
-              {new Date(paciente.fecha_registro).toLocaleDateString('es-ES', {
-                day: '2-digit', month: 'long', year: 'numeric',
-              })}
-            </Row>
-          </Section>
+              <Section title="Diagnósticos">
+                {detalle.diagnosticos.length > 0 ? (
+                  <div className="px-4 py-3 text-sm text-gray-700">
+                    Hay {detalle.diagnosticos.length} diagnóstico(s) registrado(s).
+                  </div>
+                ) : (
+                  <div className="px-4 py-3 text-sm text-gray-400">Sin diagnósticos</div>
+                )}
+              </Section>
 
-          {/* Contacto */}
-          <Section title="Contacto">
-            <Row icon={Mail} label="Correo electrónico">
-              {paciente.email ?? <span className="text-gray-400">—</span>}
-            </Row>
-            <Row icon={Phone} label="Teléfono">
-              {paciente.telefono ?? <span className="text-gray-400">—</span>}
-            </Row>
-            <Row icon={MapPin} label="Dirección">
-              {paciente.direccion ?? <span className="text-gray-400">—</span>}
-            </Row>
-          </Section>
+              <Section title="Evoluciones">
+                {detalle.evoluciones.length > 0 ? (
+                  <div className="px-4 py-3 text-sm text-gray-700">
+                    Hay {detalle.evoluciones.length} evolución(es) registrada(s).
+                  </div>
+                ) : (
+                  <div className="px-4 py-3 text-sm text-gray-400">Sin evoluciones</div>
+                )}
+              </Section>
 
-          {/* Contacto de emergencia */}
-          {(paciente.contacto_emergencia_nombre || paciente.contacto_emergencia_telefono) && (
-            <Section title="Contacto de emergencia">
-              <Row icon={Shield} label="Nombre">
-                {paciente.contacto_emergencia_nombre ?? '—'}
-              </Row>
-              <Row icon={Phone} label="Teléfono">
-                {paciente.contacto_emergencia_telefono ?? '—'}
-              </Row>
-            </Section>
+              <Section title="Recetas">
+                {detalle.recetas.length > 0 ? (
+                  <div className="px-4 py-3 text-sm text-gray-700">
+                    Hay {detalle.recetas.length} receta(s) emitidas.
+                  </div>
+                ) : (
+                  <div className="px-4 py-3 text-sm text-gray-400">Sin recetas</div>
+                )}
+              </Section>
+            </>
           )}
-
-          {/* Observaciones */}
-          {paciente.observaciones_generales && (
-            <Section title="Observaciones generales">
-              <div className="flex items-start gap-2.5 text-[13px] text-gray-700">
-                <AlertCircle className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" strokeWidth={1.8} />
-                <p className="leading-relaxed">{paciente.observaciones_generales}</p>
-              </div>
-            </Section>
-          )}
-
-          {/* Historial clínico — próximamente */}
-          <Section title="Historial clínico">
-            <div className="flex items-center gap-3 py-3">
-              <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-                <ClipboardList className="w-4 h-4 text-blue-500" strokeWidth={1.8} />
-              </div>
-              <div>
-                <p className="text-[13px] font-medium text-gray-700">Módulo en desarrollo</p>
-                <p className="text-[12px] text-gray-400 mt-0.5">
-                  Diagnósticos, recetas y evoluciones estarán disponibles próximamente.
-                </p>
-              </div>
-            </div>
-          </Section>
         </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0">
-          <button onClick={onClose}
-            className="w-full h-10 rounded-xl border border-gray-200 text-[13px] font-medium
-              text-gray-600 hover:bg-gray-50 transition-colors">
-            Cerrar
+function CreateUpdateModal({
+  historia,
+  onClose,
+  onSuccess
+}: {
+  historia?: HistoriaClinica;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [pacientes, setPacientes] = useState<Paciente[]>([]);
+  const [form, setForm] = useState<HistoriaClinicaCreate>({
+    id_paciente: historia?.id_paciente || 0,
+    estado: historia?.estado || 'ACTIVA',
+    motivo_apertura: historia?.motivo_apertura || '',
+    observaciones: historia?.observaciones || ''
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!historia) {
+      pacientesService.list().then(res => setPacientes(res.results)).catch(console.error);
+    }
+  }, [historia]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.id_paciente) return alert('Seleccione un paciente');
+    setSaving(true);
+    try {
+      if (historia) {
+        await historialService.update(historia.id_historia_clinica, form);
+      } else {
+        await historialService.create(form);
+      }
+      onSuccess();
+    } catch (err: any) {
+      alert('Error guardando historia clínica: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col">
+        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+          <h3 className="font-bold text-gray-900">{historia ? 'Editar Historia' : 'Nueva Historia'}</h3>
+          <button onClick={onClose} className="p-1 text-gray-400 hover:bg-gray-100 rounded-md">
+            <X className="w-5 h-5" />
           </button>
         </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {!historia && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Paciente</label>
+              <select
+                required
+                value={form.id_paciente}
+                onChange={e => setForm({ ...form, id_paciente: Number(e.target.value) })}
+                className="w-full text-sm rounded-lg border border-gray-200 p-2.5 focus:ring-2 focus:ring-blue-500"
+              >
+                <option value={0}>Seleccionar paciente...</option>
+                {pacientes.map(p => (
+                  <option key={p.id_paciente} value={p.id_paciente}>{p.nombres} {p.apellidos}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Motivo de Apertura</label>
+            <textarea
+              className="w-full text-sm rounded-lg border border-gray-200 p-2.5 focus:ring-2 focus:ring-blue-500"
+              rows={3}
+              value={form.motivo_apertura}
+              onChange={e => setForm({ ...form, motivo_apertura: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Estado</label>
+            <select
+              value={form.estado}
+              onChange={e => setForm({ ...form, estado: e.target.value })}
+              className="w-full text-sm rounded-lg border border-gray-200 p-2.5 focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ACTIVA">ACTIVA</option>
+              <option value="CERRADA">CERRADA</option>
+              <option value="ARCHIVADA">ARCHIVADA</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1">Observaciones</label>
+            <textarea
+              className="w-full text-sm rounded-lg border border-gray-200 p-2.5 focus:ring-2 focus:ring-blue-500"
+              rows={3}
+              value={form.observaciones}
+              onChange={e => setForm({ ...form, observaciones: e.target.value })}
+            />
+          </div>
+
+          <div className="pt-4 border-t border-gray-100 flex gap-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 bg-gray-50 text-gray-600 rounded-lg py-2.5 text-sm font-medium hover:bg-gray-100">
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 bg-blue-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+              {saving ? 'Guardando...' : 'Guardar'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -187,20 +278,23 @@ function Row({
 
 // ── Página principal ───────────────────────────────────────────────────────────
 export default function HistorialClinicoPage() {
-  const [pacientes, setPacientes] = useState<Paciente[]>([]);
-  const [total,     setTotal]     = useState(0);
-  const [loading,   setLoading]   = useState(true);
-  const [search,    setSearch]    = useState('');
-  const [selected,  setSelected]  = useState<Paciente | null>(null);
+  const [historias, setHistorias] = useState<HistoriaClinica[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  
+  const [viewModal, setViewModal] = useState<HistoriaClinica | null>(null);
+  const [editModal, setEditModal] = useState<HistoriaClinica | null>(null);
+  const [createModal, setCreateModal] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await pacientesService.list({ search: search || undefined });
-      setPacientes(res.results);
+      const res = await historialService.list({ search: search || undefined });
+      setHistorias(res.results);
       setTotal(res.count);
     } catch {
-      setPacientes([]);
+      setHistorias([]);
     } finally {
       setLoading(false);
     }
@@ -215,47 +309,22 @@ export default function HistorialClinicoPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-[22px] font-bold text-gray-900">Historial Clínico</h2>
-          <p className="text-[12.5px] text-gray-400 mt-0.5">Registros clínicos por paciente</p>
+          <p className="text-[12.5px] text-gray-400 mt-0.5">Gestión integral de expedientes</p>
         </div>
-      </div>
-
-      {/* Banner */}
-      <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3.5">
-        <FileText className="w-[18px] h-[18px] text-blue-500 flex-shrink-0 mt-0.5" strokeWidth={1.8} />
-        <div>
-          <p className="text-[13px] font-semibold text-blue-800">Módulo en desarrollo</p>
-          <p className="text-[12px] text-blue-600 mt-0.5">
-            El historial completo (diagnósticos, evoluciones, recetas) estará disponible próximamente.
-            Hacé clic en un paciente para ver su información.
-          </p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: 'Total historias',  value: loading ? '—' : total,
-            color: 'text-gray-900' },
-          { label: 'En seguimiento',   value: loading ? '—' : pacientes.filter(p => p.estado_paciente === 'EN_SEGUIMIENTO').length,
-            color: 'text-blue-600' },
-          { label: 'Postoperatorios',  value: loading ? '—' : pacientes.filter(p => p.estado_paciente === 'POSTOPERATORIO').length,
-            color: 'text-orange-600' },
-          { label: 'Inactivos',        value: loading ? '—' : pacientes.filter(p => p.estado_paciente === 'INACTIVO').length,
-            color: 'text-gray-400' },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3.5">
-            <p className="text-[11.5px] text-gray-400 mb-1">{s.label}</p>
-            <p className={`text-[28px] font-bold leading-none ${s.color}`}>{s.value}</p>
-          </div>
-        ))}
+        <button 
+          onClick={() => setCreateModal(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-xl flex items-center gap-2 transition"
+        >
+          <Plus className="w-4 h-4" /> Nuevo Historial
+        </button>
       </div>
 
       {/* Buscador */}
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar por nombre, historia o documento..."
-          className="w-full h-9 pl-9 pr-3.5 rounded-xl border border-gray-200 bg-white text-[13px]
+          placeholder="Buscar por nombre o paciente..."
+          className="w-full h-10 pl-9 pr-3.5 rounded-xl border border-gray-200 bg-white text-[13px]
             focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition" />
       </div>
 
@@ -263,19 +332,11 @@ export default function HistorialClinicoPage() {
       {loading ? (
         <div className="flex items-center justify-center py-24 gap-2 text-gray-400">
           <Loader2 className="w-5 h-5 animate-spin" />
-          <span className="text-sm">Cargando historiales...</span>
         </div>
-      ) : pacientes.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col
-          items-center justify-center py-20 gap-2">
+      ) : historias.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 flex flex-col items-center justify-center py-20 gap-2">
           <ClipboardList className="w-8 h-8 text-gray-200" />
           <p className="text-sm text-gray-400">No se encontraron historiales</p>
-          {search && (
-            <button onClick={() => setSearch('')}
-              className="text-[12.5px] text-blue-500 hover:underline mt-1">
-              Limpiar búsqueda
-            </button>
-          )}
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -283,86 +344,66 @@ export default function HistorialClinicoPage() {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
                 <th className="px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Paciente</th>
-                <th className="px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest hidden md:table-cell">N° Historia</th>
-                <th className="px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest hidden lg:table-cell">Documento</th>
-                <th className="px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest hidden sm:table-cell">Edad</th>
+                <th className="px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest hidden md:table-cell">Apertura</th>
+                <th className="px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Motivo</th>
                 <th className="px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Estado</th>
-                <th className="px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest hidden lg:table-cell">Registro</th>
-                <th className="px-3 py-3 w-8" />
+                <th className="px-5 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {pacientes.map(p => (
-                <tr key={p.id_paciente}
-                  onClick={() => setSelected(p)}
-                  className="hover:bg-gray-50/60 transition-colors cursor-pointer">
+              {historias.map(h => (
+                <tr key={h.id_historia_clinica} className="hover:bg-gray-50/60 transition-colors">
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <span className="text-[11px] font-bold text-blue-600">
-                          {p.nombres[0]}{p.apellidos[0]}
-                        </span>
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600 font-bold text-[11px]">
+                        HC
                       </div>
                       <div>
-                        <p className="text-[13px] font-semibold text-gray-900">
-                          {p.nombres} {p.apellidos}
-                        </p>
-                        {p.email && (
-                          <p className="text-[11.5px] text-gray-400 truncate max-w-[180px]">{p.email}</p>
-                        )}
+                        <p className="text-[13px] font-semibold text-gray-900">{h.paciente_nombre}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 hidden md:table-cell">
-                    <span className="text-[12.5px] font-mono font-semibold text-gray-700
-                      bg-gray-100 px-2 py-0.5 rounded">
-                      {p.numero_historia}
-                    </span>
+                  <td className="px-5 py-3.5 hidden md:table-cell text-[13px] text-gray-600">
+                    {new Date(h.fecha_apertura).toLocaleDateString('es-ES')}
                   </td>
-                  <td className="px-5 py-3.5 hidden lg:table-cell">
-                    <p className="text-[12.5px] text-gray-600">{p.tipo_documento}</p>
-                    <p className="text-[12px] text-gray-400">{p.numero_documento}</p>
-                  </td>
-                  <td className="px-5 py-3.5 hidden sm:table-cell">
-                    <div className="flex items-center gap-1.5 text-[12.5px] text-gray-600">
-                      <Calendar className="w-3.5 h-3.5 text-gray-400" strokeWidth={1.8} />
-                      {calcEdad(p.fecha_nacimiento)}
-                    </div>
+                  <td className="px-5 py-3.5 text-[13px] text-gray-600 truncate max-w-[200px]">
+                    {h.motivo_apertura || '—'}
                   </td>
                   <td className="px-5 py-3.5">
                     <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold border
-                      ${ESTADO_STYLE[p.estado_paciente] ?? 'bg-gray-100 text-gray-500'}`}>
-                      {ESTADO_LABEL[p.estado_paciente] ?? p.estado_paciente}
+                      ${ESTADO_STYLE[h.estado] ?? 'bg-gray-100 text-gray-500'}`}>
+                      {h.estado}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 hidden lg:table-cell text-[12px] text-gray-400">
-                    {new Date(p.fecha_registro).toLocaleDateString('es-ES', {
-                      day: '2-digit', month: 'short', year: 'numeric',
-                    })}
-                  </td>
-                  <td className="px-3 py-3.5">
-                    <div className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors text-gray-400
-                      hover:text-blue-600 inline-flex">
-                      <ChevronRight className="w-4 h-4" strokeWidth={2} />
+                  <td className="px-5 py-3.5 text-right">
+                    <div className="flex justify-end gap-2 text-gray-400">
+                      <button onClick={() => setViewModal(h)} className="p-1.5 hover:bg-gray-100 hover:text-blue-600 rounded">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => setEditModal(h)} className="p-1.5 hover:bg-gray-100 hover:text-orange-500 rounded">
+                        <Edit2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-
           <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/40">
-            <p className="text-[12px] text-gray-400">
-              {pacientes.length} de {total} {total === 1 ? 'resultado' : 'resultados'}
-              {search && ` para "${search}"`}
-            </p>
+            <p className="text-[12px] text-gray-400">Total: {total}</p>
           </div>
         </div>
       )}
 
-      {/* Modal detalle */}
-      {selected && (
-        <DetalleModal paciente={selected} onClose={() => setSelected(null)} />
+      {/* Modals */}
+      {viewModal && <DetalleModal historia={viewModal} onClose={() => setViewModal(null)} />}
+      
+      {(createModal || editModal) && (
+        <CreateUpdateModal 
+          historia={editModal || undefined} 
+          onClose={() => { setCreateModal(false); setEditModal(null); }} 
+          onSuccess={() => { setCreateModal(false); setEditModal(null); fetchData(); }} 
+        />
       )}
     </div>
   );
