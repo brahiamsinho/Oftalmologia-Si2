@@ -25,6 +25,7 @@ api_patterns = [
     path('historias-clinicas/<int:id_historia_clinica>/', include('apps.atencionClinica.evoluciones.urls')),
     path('historias-clinicas/<int:id_historia_clinica>/', include('apps.atencionClinica.recetas.urls')),
     path('', include('apps.atencionClinica.citas.urls')),
+    path('consultas/', include('apps.atencionClinica.consultas.urls')),
 ]
 
 urlpatterns = [
