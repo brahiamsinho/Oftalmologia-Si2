@@ -7,6 +7,7 @@ import {
   Activity, LayoutDashboard, Users, ShieldCheck, ScrollText,
   ClipboardList, LogOut, ChevronLeft, ChevronRight,
   ChevronDown, ChevronUp, KeyRound,
+  Stethoscope, Eye, Calendar
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useSidebar } from '@/context/SidebarContext';
@@ -157,6 +158,19 @@ export default function Sidebar() {
           >
             <NavItem href="/pacientes" label="Pacientes"         icon={Users}         active={is('/pacientes')} collapsed={false} depth={1} />
             <NavItem href="/historial" label="Historial Clínico" icon={ClipboardList} active={is('/historial')} collapsed={false} depth={1} />
+          </NavGroup>
+        </ul>
+
+        {/* Atención Clínica */}
+        <ul className="space-y-0.5 mt-1">
+          <NavGroup
+            label="Atención Clínica" icon={Stethoscope}
+            active={is('/registrar-consulta') || is('/registrar-medicion') || is('/citas-agenda')}
+            collapsed={isCollapsed} defaultOpen={is('/registrar-consulta') || is('/registrar-medicion') || is('/citas-agenda')}
+          >
+            <NavItem href="/registrar-consulta" label="Registrar Consulta" icon={Stethoscope} active={is('/registrar-consulta')} collapsed={false} depth={1} />
+            <NavItem href="/registrar-medicion" label="Registrar Medición" icon={Eye}         active={is('/registrar-medicion')} collapsed={false} depth={1} />
+            <NavItem href="/citas-agenda"       label="Citas y Agenda"     icon={Calendar}    active={is('/citas-agenda')}       collapsed={false} depth={1} />
           </NavGroup>
         </ul>
 
