@@ -130,9 +130,9 @@ export default function RegistrarMedicionPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)] overflow-hidden relative">
-        <div className="absolute top-0 right-0 p-8 opacity-5">
-          <MinimalIris className="w-64 h-64 text-blue-900" />
+      <div className="relative rounded-3xl border border-gray-100 bg-white shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)]">
+        <div className="pointer-events-none absolute right-0 top-0 overflow-hidden rounded-3xl p-8 opacity-5">
+          <MinimalIris className="h-64 w-64 text-blue-900" />
         </div>
 
         {success && (
@@ -149,7 +149,7 @@ export default function RegistrarMedicionPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="p-8 sm:p-10 relative z-10 space-y-8">
+        <form onSubmit={handleSubmit} className="relative z-10 space-y-8 p-8 pb-6 sm:p-10 sm:pb-8">
           {errors.general && (
             <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium border border-red-100 flex items-center gap-3">
               <div className="p-1.5 bg-red-100 rounded-lg">
@@ -253,7 +253,9 @@ export default function RegistrarMedicionPage() {
             </div>
           </div>
 
-          <div className="pt-6 mt-8 border-t border-gray-100 flex items-center justify-end gap-3">
+          <div
+            className="sticky bottom-0 z-20 -mx-8 mt-8 flex items-center justify-end gap-3 border-t border-gray-100 bg-white/95 px-8 py-4 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.08)] backdrop-blur-sm sm:-mx-10 sm:px-10"
+          >
             <button
               type="button"
               onClick={() => router.back()}

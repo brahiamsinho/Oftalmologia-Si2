@@ -18,6 +18,7 @@ const BREADCRUMB: Record<string, string> = {
   '/historial':      'Historial Clínico',
   '/registrar-consulta': 'Registrar Consulta',
   '/consultas':      'Consultas',
+  '/mediciones':     'Mediciones',
   '/registrar-medicion': 'Registrar Medición',
   '/citas-agenda':   'Citas y Agenda',
   '/usuarios':       'Usuarios',
