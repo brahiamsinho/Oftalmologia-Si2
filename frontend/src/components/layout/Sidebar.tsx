@@ -172,11 +172,12 @@ export default function Sidebar() {
         <ul className="space-y-0.5 mt-1">
           <NavGroup
             label="Atención Clínica" icon={Stethoscope}
-            active={is('/registrar-consulta') || is('/registrar-medicion') || is('/citas-agenda') || is('/consultas')}
-            collapsed={isCollapsed} defaultOpen={is('/registrar-consulta') || is('/registrar-medicion') || is('/citas-agenda') || is('/consultas')}
+            active={is('/registrar-consulta') || is('/registrar-medicion') || is('/mediciones') || is('/citas-agenda') || is('/consultas')}
+            collapsed={isCollapsed} defaultOpen={is('/registrar-consulta') || is('/registrar-medicion') || is('/mediciones') || is('/citas-agenda') || is('/consultas')}
           >
             <NavItem href="/registrar-consulta" label="Registrar Consulta" icon={Stethoscope} active={is('/registrar-consulta')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
             <NavItem href="/consultas"          label="Consultas"            icon={List} active={is('/consultas')}          collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/mediciones"         label="Mediciones"           icon={Activity} active={is('/mediciones')}         collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
             <NavItem href="/registrar-medicion" label="Registrar Medición" icon={Eye}         active={is('/registrar-medicion')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
             <NavItem href="/citas-agenda"       label="Citas y Agenda"     icon={Calendar}    active={is('/citas-agenda')}       collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
           </NavGroup>
