@@ -6,7 +6,8 @@ Lista priorizada para Oftalmología Si2 (actualizada tras integración mobile pa
 - [x] Backend: CustomUser + JWT (ya existía; login refinado a email + `check_password`).
 - [x] Mobile: Login real + home paciente con `GET /citas/` + tema/rutas base.
 - [x] Frontend: Login con `email` alineado a API.
-- [ ] Mobile: Completar pestañas **Citas** y **Perfil** (navegación ya existe).
+- [x] Mobile: Pestaña **Citas** con listado real Próximas/Historial; **Historial clínico** (consultas + estudios) desde accesos rápidos.
+- [ ] Mobile: **Perfil** enriquecido (edición de datos, foto, etc.) si se define alcance.
 - [ ] Mobile: **Registro** contra `POST /api/auth/register/`.
 - [ ] Mobile: Agendar / detalle de cita (según diseño y permisos API).
 

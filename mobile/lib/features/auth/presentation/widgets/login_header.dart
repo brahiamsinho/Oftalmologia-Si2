@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../config/app_config.dart';
 import '../../../../config/theme.dart';
 
 /// Cabecera del login: logo, nombre de clínica, título y subtítulo.
@@ -38,12 +39,12 @@ class LoginHeader extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         Text(
-          'CLÍNICA OFTALMOLÓGICA',
+          AppConfig.appName.toUpperCase(),
           textAlign: TextAlign.center,
           style: theme.textTheme.labelLarge?.copyWith(
             color: AppTheme.secondaryColor,
             fontWeight: FontWeight.w700,
-            letterSpacing: 1.6,
+            letterSpacing: 1.2,
             fontSize: 11,
           ),
         ),
@@ -59,7 +60,7 @@ class LoginHeader extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Accede a tu portal de paciente de forma segura',
+          AppConfig.loginSubtitle,
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: AppTheme.textMuted,

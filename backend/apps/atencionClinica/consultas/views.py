@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from apps.atencionClinica.citas.models import EstadoCita
 from apps.bitacora.models import AccionBitacora
 from apps.core.utils import get_client_ip, registrar_bitacora
+from apps.pacientes.pacientes.models import Paciente
 
 from .models import Consulta, Estudio
 from .serializers import ConsultaSerializer, EstudioSerializer
@@ -17,11 +18,28 @@ class ConsultaViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        paciente_id = self.request.query_params.get('paciente_id')
-        if paciente_id:
-            queryset = queryset.filter(paciente_id=paciente_id)
-        return queryset
+        queryset = (
+            super()
+            .get_queryset()
+            .select_related('paciente', 'cita', 'especialista')
+        )
+        user = self.request.user
+        if not user.is_authenticated:
+            return Consulta.objects.none()
+        tipo = getattr(user, 'tipo_usuario', '') or ''
+        if tipo == 'PACIENTE':
+            paciente = Paciente.objects.filter(usuario=user).first()
+            if not paciente:
+                return Consulta.objects.none()
+            return queryset.filter(paciente=paciente)
+        if tipo in ('MEDICO', 'ESPECIALISTA'):
+            return queryset.filter(especialista=user)
+        if tipo in ('ADMIN', 'ADMINISTRATIVO'):
+            paciente_id = self.request.query_params.get('paciente_id')
+            if paciente_id:
+                queryset = queryset.filter(paciente_id=paciente_id)
+            return queryset
+        return Consulta.objects.none()
 
     @transaction.atomic
     def perform_create(self, serializer):
@@ -80,11 +98,28 @@ class EstudioViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        paciente_id = self.request.query_params.get('paciente_id')
-        if paciente_id:
-            queryset = queryset.filter(paciente_id=paciente_id)
-        return queryset
+        queryset = (
+            super()
+            .get_queryset()
+            .select_related('paciente', 'consulta', 'consulta__especialista')
+        )
+        user = self.request.user
+        if not user.is_authenticated:
+            return Estudio.objects.none()
+        tipo = getattr(user, 'tipo_usuario', '') or ''
+        if tipo == 'PACIENTE':
+            paciente = Paciente.objects.filter(usuario=user).first()
+            if not paciente:
+                return Estudio.objects.none()
+            return queryset.filter(paciente=paciente)
+        if tipo in ('MEDICO', 'ESPECIALISTA'):
+            return queryset.filter(consulta__especialista=user).distinct()
+        if tipo in ('ADMIN', 'ADMINISTRATIVO'):
+            paciente_id = self.request.query_params.get('paciente_id')
+            if paciente_id:
+                queryset = queryset.filter(paciente_id=paciente_id)
+            return queryset
+        return Estudio.objects.none()
 
     def perform_create(self, serializer):
         estudio = serializer.save()

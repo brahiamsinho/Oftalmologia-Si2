@@ -71,3 +71,12 @@ CitaResumen? nextAppointment(List<CitaResumen> all) {
   final up = upcomingCitas(all);
   return up.isEmpty ? null : up.first;
 }
+
+/// Tarjeta principal del home: próxima cita si hay; si no, la visita más reciente del historial.
+({CitaResumen cita, bool isUpcoming})? heroCita(List<CitaResumen> all) {
+  final up = upcomingCitas(all);
+  if (up.isNotEmpty) return (cita: up.first, isUpcoming: true);
+  final hist = historyCitas(all);
+  if (hist.isEmpty) return null;
+  return (cita: hist.first, isUpcoming: false);
+}

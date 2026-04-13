@@ -37,6 +37,13 @@ class PacienteViewSet(viewsets.ModelViewSet):
     ordering_fields = ['apellidos', 'nombres', 'fecha_registro', 'numero_historia']
     ordering = ['apellidos', 'nombres']
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        raw = self.request.query_params.get('sin_cuenta', '').strip().lower()
+        if raw in ('1', 'true', 'yes', 'si'):
+            return qs.filter(usuario__isnull=True)
+        return qs
+
     def get_serializer_class(self):
         return PacienteCreateSerializer if self.action == 'create' else PacienteSerializer
 

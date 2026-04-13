@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../../../../config/theme.dart';
+import '../screens/patient_clinical_screen.dart';
+import '../utils/launch_clinic_phone.dart';
 
 class PatientQuickAccessRow extends StatelessWidget {
-  const PatientQuickAccessRow({super.key});
+  const PatientQuickAccessRow({
+    super.key,
+    required this.onMisCitas,
+  });
+
+  final VoidCallback onMisCitas;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +37,7 @@ class PatientQuickAccessRow extends StatelessWidget {
                   iconColor: AppTheme.primaryColor,
                   title: 'Mis citas',
                   subtitle: 'Ver todas',
-                  onTap: () => _snack(context, 'Listado de citas próximamente.'),
+                  onTap: onMisCitas,
                 ),
               ),
               const SizedBox(width: 10),
@@ -38,9 +45,15 @@ class PatientQuickAccessRow extends StatelessWidget {
                 child: _QuickTile(
                   icon: Icons.description_outlined,
                   iconColor: const Color(0xFF0D9488),
-                  title: 'Mis estudios',
-                  subtitle: 'Historial',
-                  onTap: () => _snack(context, 'Estudios próximamente.'),
+                  title: 'Historial',
+                  subtitle: 'Consultas · estudios',
+                  onTap: () {
+                    Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const PatientClinicalScreen(),
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: 10),
@@ -50,7 +63,7 @@ class PatientQuickAccessRow extends StatelessWidget {
                   iconColor: const Color(0xFFDC2626),
                   title: 'Contacto',
                   subtitle: 'Emergencias',
-                  onTap: () => _snack(context, 'Contacto de emergencia próximamente.'),
+                  onTap: () => launchClinicPhone(context),
                 ),
               ),
             ],
@@ -58,10 +71,6 @@ class PatientQuickAccessRow extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  void _snack(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 }
 

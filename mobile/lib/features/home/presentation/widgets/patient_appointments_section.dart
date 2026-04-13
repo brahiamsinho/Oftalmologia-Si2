@@ -6,7 +6,17 @@ import '../../../../config/theme.dart';
 import '../providers/patient_citas_provider.dart';
 
 class PatientAppointmentsSection extends ConsumerStatefulWidget {
-  const PatientAppointmentsSection({super.key});
+  const PatientAppointmentsSection({
+    super.key,
+    this.onVerTodas,
+    this.showVerTodasLink = true,
+  });
+
+  /// Si se define, reemplaza el SnackBar (p. ej. cambiar pestaña en el home).
+  final VoidCallback? onVerTodas;
+
+  /// En la pestaña dedicada "Citas" conviene ocultar el enlace redundante.
+  final bool showVerTodasLink;
 
   @override
   ConsumerState<PatientAppointmentsSection> createState() =>
@@ -53,15 +63,22 @@ class _PatientAppointmentsSectionState
                   color: const Color(0xFF0F172A),
                 ),
               ),
-              const Spacer(),
-              TextButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Vista completa próximamente.')),
-                  );
-                },
-                child: const Text('Ver todas'),
-              ),
+              if (widget.showVerTodasLink) ...[
+                const Spacer(),
+                TextButton(
+                  onPressed: widget.onVerTodas ??
+                      () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Usá la pestaña Citas para ver el listado completo.',
+                            ),
+                          ),
+                        );
+                      },
+                  child: const Text('Ver todas'),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 12),

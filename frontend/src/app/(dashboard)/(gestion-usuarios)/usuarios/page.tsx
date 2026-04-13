@@ -4,9 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Search, Plus, Shield, CheckCircle, XCircle, Lock,
          Mail, Phone, SlidersHorizontal, Loader2, Users, X, Eye, EyeOff,
          Pencil, UserCheck, UserX, Trash2 } from 'lucide-react';
-import { usuariosService } from '@/lib/services';
-import { useAuth } from '@/context/AuthContext';
-import type { Usuario, TipoUsuario, EstadoUsuario } from '@/lib/types';
+import { pacientesService, usuariosService } from '@/lib/services';
+import type { Usuario, TipoUsuario, EstadoUsuario, Paciente, TipoDocumento, UsuarioCreate } from '@/lib/types';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 const TIPO_BADGE: Record<TipoUsuario, string> = {
@@ -27,6 +26,8 @@ const ESTADO_CFG: Record<EstadoUsuario, { icon: React.ReactNode; badge: string; 
 };
 
 // ── Formulario ────────────────────────────────────────────────────────────────
+type PacienteModo = 'vincular' | 'nueva';
+
 interface FormData {
   username: string;
   email: string;
@@ -37,11 +38,20 @@ interface FormData {
   tipo_usuario: TipoUsuario;
   estado: EstadoUsuario;
   is_staff: boolean;
+  /** Solo creación + tipo PACIENTE */
+  pacienteModo: PacienteModo;
+  idPacienteExistente: string;
+  paciente_tipo_documento: TipoDocumento;
+  paciente_numero_documento: string;
 }
 
 const EMPTY_FORM: FormData = {
   username: '', email: '', password: '', nombres: '', apellidos: '',
   telefono: '', tipo_usuario: 'MEDICO', estado: 'ACTIVO', is_staff: false,
+  pacienteModo: 'nueva',
+  idPacienteExistente: '',
+  paciente_tipo_documento: 'DNI',
+  paciente_numero_documento: '',
 };
 
 // ── Field + inputCls fuera del modal para evitar remount en cada keystroke ─────
@@ -68,14 +78,26 @@ function UsuarioModal({ usuario, onClose, onSaved }: ModalProps) {
   const isEdit = !!usuario;
   const [form,     setForm]     = useState<FormData>(
     isEdit
-      ? { ...EMPTY_FORM, ...usuario, password: '', telefono: usuario.telefono ?? '' }
+      ? {
+          ...EMPTY_FORM,
+          ...usuario,
+          password: '',
+          telefono: usuario.telefono ?? '',
+          pacienteModo: 'nueva',
+          idPacienteExistente: '',
+          paciente_tipo_documento: 'DNI',
+          paciente_numero_documento: '',
+        }
       : EMPTY_FORM,
   );
   const [showPass, setShowPass] = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [errors,   setErrors]   = useState<Record<string, string>>({});
+  const [pacienteBusqueda, setPacienteBusqueda] = useState('');
+  const [pacientesSinCuenta, setPacientesSinCuenta] = useState<Paciente[]>([]);
+  const [loadingPacientes, setLoadingPacientes] = useState(false);
 
-  const set = (k: keyof FormData, v: string | boolean) =>
+  const set = (k: keyof FormData, v: string | boolean | PacienteModo | TipoDocumento) =>
     setForm(p => ({ ...p, [k]: v }));
 
   const validate = (): boolean => {
@@ -86,6 +108,11 @@ function UsuarioModal({ usuario, onClose, onSaved }: ModalProps) {
     if (form.password && form.password.length < 8) e.password = 'Mínimo 8 caracteres';
     if (!form.nombres.trim())  e.nombres  = 'El nombre es requerido';
     if (!form.apellidos.trim())e.apellidos= 'El apellido es requerido';
+    if (!isEdit && form.tipo_usuario === 'PACIENTE' && form.pacienteModo === 'vincular') {
+      if (!form.idPacienteExistente) {
+        e.idPacienteExistente = 'Elegí un paciente sin cuenta o cambiá a “Nueva ficha”.';
+      }
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -95,11 +122,31 @@ function UsuarioModal({ usuario, onClose, onSaved }: ModalProps) {
     if (!validate()) return;
     setLoading(true);
     try {
-      const payload = { ...form, telefono: form.telefono || undefined };
       if (isEdit) {
-        const { password, ...rest } = payload;
-        await usuariosService.update(usuario!.id, password ? payload : rest);
+        const { password, pacienteModo: _pm, idPacienteExistente: _ip, paciente_tipo_documento: _pt, paciente_numero_documento: _pn, ...editable } = form;
+        const payload = { ...editable, telefono: form.telefono || undefined };
+        await usuariosService.update(usuario!.id, password ? { ...payload, password } : payload);
       } else {
+        const payload: UsuarioCreate = {
+          username: form.username.trim(),
+          email: form.email.trim(),
+          password: form.password,
+          nombres: form.nombres.trim(),
+          apellidos: form.apellidos.trim(),
+          telefono: form.telefono.trim() || undefined,
+          tipo_usuario: form.tipo_usuario,
+          estado: form.estado,
+          is_staff: form.is_staff,
+        };
+        if (form.tipo_usuario === 'PACIENTE') {
+          if (form.pacienteModo === 'vincular') {
+            payload.id_paciente_existente = Number(form.idPacienteExistente);
+          } else {
+            payload.paciente_tipo_documento = form.paciente_tipo_documento;
+            const nd = form.paciente_numero_documento.trim();
+            if (nd) payload.paciente_numero_documento = nd;
+          }
+        }
         await usuariosService.create(payload);
       }
       onSaved();
@@ -122,6 +169,32 @@ function UsuarioModal({ usuario, onClose, onSaved }: ModalProps) {
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [onClose]);
+
+  // Pacientes sin usuario (solo vincular en alta como PACIENTE)
+  useEffect(() => {
+    if (isEdit || form.tipo_usuario !== 'PACIENTE' || form.pacienteModo !== 'vincular') {
+      setPacientesSinCuenta([]);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(() => {
+      void (async () => {
+        setLoadingPacientes(true);
+        try {
+          const list = await pacientesService.listAllSinCuenta(pacienteBusqueda);
+          if (!cancelled) setPacientesSinCuenta(list);
+        } catch {
+          if (!cancelled) setPacientesSinCuenta([]);
+        } finally {
+          if (!cancelled) setLoadingPacientes(false);
+        }
+      })();
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [isEdit, form.tipo_usuario, form.pacienteModo, pacienteBusqueda]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -191,7 +264,21 @@ function UsuarioModal({ usuario, onClose, onSaved }: ModalProps) {
           <div className="grid grid-cols-2 gap-3">
             <Field label="Tipo de usuario *" id="tipo_usuario" error={errors.tipo_usuario}>
               <select id="tipo_usuario" value={form.tipo_usuario}
-                onChange={e => set('tipo_usuario', e.target.value)}
+                onChange={e => {
+                  const v = e.target.value as TipoUsuario;
+                  setForm(p => ({
+                    ...p,
+                    tipo_usuario: v,
+                    ...(v !== 'PACIENTE'
+                      ? {
+                          pacienteModo: 'nueva' as const,
+                          idPacienteExistente: '',
+                          paciente_numero_documento: '',
+                          paciente_tipo_documento: 'DNI' as TipoDocumento,
+                        }
+                      : {}),
+                  }));
+                }}
                 className={`${inputCls(errors.tipo_usuario)} appearance-none`}>
                 {(Object.entries(TIPO_LABEL) as [TipoUsuario, string][]).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
@@ -208,6 +295,111 @@ function UsuarioModal({ usuario, onClose, onSaved }: ModalProps) {
               </select>
             </Field>
           </div>
+
+          {/* Paciente + cuenta móvil (solo alta) */}
+          {!isEdit && form.tipo_usuario === 'PACIENTE' && (
+            <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 space-y-3">
+              <div>
+                <p className="text-[12.5px] font-bold text-blue-900">Ficha clínica y app móvil</p>
+                <p className="text-[11.5px] text-blue-800/90 mt-1 leading-relaxed">
+                  Enlazá una historia ya cargada en <strong>Pacientes</strong> o creá una ficha nueva.
+                  Sin esto, el usuario no queda asociado a citas ni mediciones en la app.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 text-[12.5px] text-gray-800 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="pacienteModo"
+                    checked={form.pacienteModo === 'vincular'}
+                    onChange={() => {
+                      set('pacienteModo', 'vincular');
+                      set('idPacienteExistente', '');
+                    }}
+                    className="accent-blue-600"
+                  />
+                  Vincular paciente existente
+                </label>
+                <label className="flex items-center gap-2 text-[12.5px] text-gray-800 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="pacienteModo"
+                    checked={form.pacienteModo === 'nueva'}
+                    onChange={() => {
+                      set('pacienteModo', 'nueva');
+                      set('idPacienteExistente', '');
+                    }}
+                    className="accent-blue-600"
+                  />
+                  Nueva ficha (mismo nombre que el usuario)
+                </label>
+              </div>
+
+              {form.pacienteModo === 'vincular' ? (
+                <div className="space-y-2">
+                  <Field label="Buscar paciente sin cuenta" id="buscar-pac" error={errors.idPacienteExistente}>
+                    <input
+                      id="buscar-pac"
+                      type="text"
+                      value={pacienteBusqueda}
+                      onChange={e => setPacienteBusqueda(e.target.value)}
+                      placeholder="Apellido, documento, historia…"
+                      className={inputCls()}
+                    />
+                  </Field>
+                  <div className="relative">
+                    {loadingPacientes && (
+                      <div className="absolute right-2 top-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                      </div>
+                    )}
+                    <select
+                      id="idPacienteExistente"
+                      value={form.idPacienteExistente}
+                      onChange={e => set('idPacienteExistente', e.target.value)}
+                      className={`${inputCls(errors.idPacienteExistente)} appearance-none pr-8`}
+                    >
+                      <option value="">Seleccioná un paciente (sin cuenta web)…</option>
+                      {pacientesSinCuenta.map(p => (
+                        <option key={p.id_paciente} value={String(p.id_paciente)}>
+                          {p.apellidos}, {p.nombres} — {p.numero_documento} · HC {p.numero_historia}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {pacientesSinCuenta.length === 0 && !loadingPacientes && (
+                    <p className="text-[11px] text-blue-800/80">No hay coincidencias. Creá el paciente en Pacientes o usá “Nueva ficha”.</p>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Tipo de documento" id="pac_td" error={errors.paciente_tipo_documento}>
+                    <select
+                      id="pac_td"
+                      value={form.paciente_tipo_documento}
+                      onChange={e => set('paciente_tipo_documento', e.target.value as TipoDocumento)}
+                      className={`${inputCls()} appearance-none`}
+                    >
+                      <option value="DNI">DNI</option>
+                      <option value="PASAPORTE">Pasaporte</option>
+                      <option value="NIE">NIE</option>
+                      <option value="OTRO">Otro</option>
+                    </select>
+                  </Field>
+                  <Field label="Número de documento" id="pac_nd" error={errors.paciente_numero_documento}>
+                    <input
+                      id="pac_nd"
+                      type="text"
+                      value={form.paciente_numero_documento}
+                      onChange={e => set('paciente_numero_documento', e.target.value)}
+                      placeholder="Opcional si no hay documento aún"
+                      className={inputCls(errors.paciente_numero_documento)}
+                    />
+                  </Field>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Staff */}
           <label className="flex items-center gap-2.5 cursor-pointer select-none">
@@ -246,7 +438,6 @@ function UsuarioModal({ usuario, onClose, onSaved }: ModalProps) {
 
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function UsuariosPage() {
-  const { user: currentUser } = useAuth();
   const [usuarios,    setUsuarios]    = useState<Usuario[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [total,       setTotal]       = useState(0);

@@ -49,6 +49,12 @@ class SessionNotifier extends Notifier<AuthUser?> {
     authListenable.value = true;
   }
 
+  /// Tras [AuthRepository.register] (tokens ya persistidos).
+  void setAuthenticatedUser(AuthUser user) {
+    state = user;
+    authListenable.value = true;
+  }
+
   Future<void> signOut() async {
     await ref.read(authRepositoryProvider).logout();
     state = null;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'config/app_config.dart';
 import 'config/theme.dart';
 import 'config/routes.dart';
 
@@ -9,7 +10,7 @@ class OftalmologiaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Oftalmología Si2',
+      title: AppConfig.appName,
       debugShowCheckedModeBanner: false,
 
       // Theme

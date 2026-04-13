@@ -284,6 +284,11 @@ EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@oftalmologia.local')
 FRONTEND_URL = config('FRONTEND_URL')
 
+# Texto de marca en correos de registro (evita hardcodear en templates Python).
+SITE_DISPLAY_NAME = config('SITE_DISPLAY_NAME', default='Oftalmología Si2')
+# Pie opcional del correo de confirmación (p. ej. enlace a Mailhog en dev: http://localhost:8025).
+REGISTRATION_EMAIL_FOOTER_HINT = config('REGISTRATION_EMAIL_FOOTER_HINT', default='')
+
 # =============================================================================
 # LOGGING
 # =============================================================================

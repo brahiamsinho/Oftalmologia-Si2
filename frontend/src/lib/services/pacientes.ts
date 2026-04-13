@@ -15,9 +15,10 @@
  *   ?sexo=             — filtra por sexo
  *   ?ordering=         — campo de ordenamiento (ej. apellidos, -fecha_registro)
  *   ?page=             — paginación
+ *   ?sin_cuenta=true  — solo pacientes sin usuario vinculado (GET)
  */
 
-import api from '@/lib/api';
+import api, { fetchAll } from '@/lib/api';
 import type { Paciente, PacienteCreate, PaginatedResponse } from '@/lib/types';
 
 export interface PacientesParams {
@@ -26,13 +27,25 @@ export interface PacientesParams {
   sexo?: string;
   ordering?: string;
   page?: number;
+  /** Solo pacientes sin usuario vinculado (para enlazar cuenta móvil). */
+  sin_cuenta?: boolean;
 }
 
 export const pacientesService = {
   /** Lista paginada de pacientes */
   async list(params?: PacientesParams): Promise<PaginatedResponse<Paciente>> {
-    const { data } = await api.get<PaginatedResponse<Paciente>>('/pacientes/', { params });
+    const { sin_cuenta, ...rest } = params ?? {};
+    const axiosParams: Record<string, string | number | undefined> = { ...rest };
+    if (sin_cuenta) axiosParams.sin_cuenta = 'true';
+    const { data } = await api.get<PaginatedResponse<Paciente>>('/pacientes/', { params: axiosParams });
     return data;
+  },
+
+  /** Todas las fichas sin cuenta (paginación agregada). Opcional `search`. */
+  async listAllSinCuenta(search?: string): Promise<Paciente[]> {
+    const q = new URLSearchParams({ sin_cuenta: 'true', ordering: 'apellidos' });
+    if (search?.trim()) q.set('search', search.trim());
+    return fetchAll<Paciente>(`/pacientes/?${q.toString()}`);
   },
 
   /** Obtener un paciente por ID */
