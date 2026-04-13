@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../config/app_config.dart';
 import '../providers/session_notifier.dart';
 import '../widgets/login_actions.dart';
 import '../widgets/login_form.dart';
@@ -82,6 +84,20 @@ class _MobileLoginScreenState extends ConsumerState<MobileLoginScreen> {
     );
   }
 
+  Future<void> _openOptionalUrl(String? url, String missingMsg) async {
+    if (url == null || url.isEmpty) {
+      _snack(missingMsg);
+      return;
+    }
+    final uri = Uri.tryParse(url);
+    if (uri == null || !(uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https'))) {
+      _snack('URL no válida en .env');
+      return;
+    }
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) _snack('No se pudo abrir el enlace.');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -119,11 +135,13 @@ class _MobileLoginScreenState extends ConsumerState<MobileLoginScreen> {
                 const SizedBox(height: 28),
                 LoginActions(
                   onCreateAccount: () => context.push('/register'),
-                  onTerms: () => _snack(
-                    'Términos de servicio: enlace pendiente de configurar.',
+                  onTerms: () => _openOptionalUrl(
+                    AppConfig.legalTermsUrl,
+                    'Definí LEGAL_TERMS_URL en mobile/.env (URL https).',
                   ),
-                  onPrivacy: () => _snack(
-                    'Política de privacidad: enlace pendiente de configurar.',
+                  onPrivacy: () => _openOptionalUrl(
+                    AppConfig.legalPrivacyUrl,
+                    'Definí LEGAL_PRIVACY_URL en mobile/.env (URL https).',
                   ),
                 ),
               ],

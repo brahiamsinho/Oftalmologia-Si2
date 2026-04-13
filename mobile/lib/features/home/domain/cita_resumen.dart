@@ -11,6 +11,7 @@ class CitaResumen extends Equatable {
     required this.motivo,
     required this.estado,
     this.observaciones,
+    this.pacienteNombre,
   });
 
   final int idCita;
@@ -21,6 +22,8 @@ class CitaResumen extends Equatable {
   final String? motivo;
   final String estado;
   final String? observaciones;
+  /// Presente en respuestas de staff/admin (listado de citas).
+  final String? pacienteNombre;
 
   factory CitaResumen.fromJson(Map<String, dynamic> json) {
     return CitaResumen(
@@ -32,6 +35,7 @@ class CitaResumen extends Equatable {
       motivo: json['motivo'] as String?,
       estado: json['estado'] as String? ?? '',
       observaciones: json['observaciones'] as String?,
+      pacienteNombre: json['paciente_nombre'] as String?,
     );
   }
 
@@ -48,5 +52,6 @@ class CitaResumen extends Equatable {
         motivo,
         estado,
         observaciones,
+        pacienteNombre,
       ];
 }

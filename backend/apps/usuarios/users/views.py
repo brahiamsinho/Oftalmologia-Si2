@@ -35,8 +35,8 @@ from apps.bitacora.models import AccionBitacora
 from apps.core.permissions import IsAdministrativoOrAdmin
 from apps.core.utils import get_client_ip, registrar_bitacora
 
-from .emails import enviar_bienvenida, enviar_recuperacion_password
-from .models import Usuario
+from .emails import enviar_confirmacion_registro, enviar_recuperacion_password
+from .models import TipoUsuario, Usuario
 from .serializers import (
     CambiarPasswordSerializer,
     ConfirmarPasswordSerializer,
@@ -75,14 +75,21 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = RegistroSerializer(data=request.data)
+        # Registro público: solo pacientes (móvil y cualquier cliente del endpoint).
+        payload = (
+            request.data.copy()
+            if hasattr(request.data, 'copy')
+            else dict(request.data)
+        )
+        payload['tipo_usuario'] = TipoUsuario.PACIENTE
+        serializer = RegistroSerializer(data=payload)
         serializer.is_valid(raise_exception=True)
         usuario = serializer.save()
 
         extra = getattr(usuario, '_extra_registro', {})
         self._crear_perfil(usuario, extra)
 
-        enviar_bienvenida(usuario)
+        email_ok = enviar_confirmacion_registro(usuario)
 
         registrar_bitacora(
             usuario=usuario, modulo='auth', accion=AccionBitacora.CREAR,
@@ -91,7 +98,9 @@ class RegisterView(APIView):
             ip_origen=get_client_ip(request),
             user_agent=request.META.get('HTTP_USER_AGENT', ''),
         )
-        return Response(_jwt_response(usuario), status=status.HTTP_201_CREATED)
+        payload = _jwt_response(usuario)
+        payload['email_confirmacion_enviada'] = email_ok
+        return Response(payload, status=status.HTTP_201_CREATED)
 
     def _crear_perfil(self, usuario, extra):
         if usuario.tipo_usuario == 'PACIENTE':

@@ -4,6 +4,17 @@ import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../domain/auth_user.dart';
 
+/// Resultado de [AuthRepository.register] (JWT ya guardado).
+class RegistrationResult {
+  const RegistrationResult({
+    required this.user,
+    required this.emailConfirmationSent,
+  });
+
+  final AuthUser user;
+  final bool emailConfirmationSent;
+}
+
 class AuthRepository {
   AuthRepository({Dio? dio}) : _dio = dio ?? ApiClient().dio;
 
@@ -37,6 +48,39 @@ class AuthRepository {
         refreshToken: refresh,
       );
       return AuthUser.fromJson(Map<String, dynamic>.from(usuario));
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// POST `/auth/register/` — registro público; guarda JWT igual que [login].
+  /// El backend envía correo de confirmación vía SMTP (p. ej. Mailhog en Docker).
+  Future<RegistrationResult> register(Map<String, dynamic> body) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        'auth/register/',
+        data: body,
+      );
+      final data = response.data;
+      if (data == null) {
+        throw Exception('Respuesta vacía del servidor.');
+      }
+      final access = data['access'] as String?;
+      final refresh = data['refresh'] as String?;
+      final usuario = data['usuario'];
+      if (access == null || refresh == null || usuario is! Map) {
+        throw Exception('Formato de respuesta de registro inesperado.');
+      }
+      await SecureStorageService.saveTokens(
+        accessToken: access,
+        refreshToken: refresh,
+      );
+      final rawFlag = data['email_confirmacion_enviada'];
+      final emailOk = rawFlag is bool ? rawFlag : true;
+      return RegistrationResult(
+        user: AuthUser.fromJson(Map<String, dynamic>.from(usuario)),
+        emailConfirmationSent: emailOk,
+      );
     } on DioException catch (e) {
       throw Exception(_messageFromDio(e));
     }

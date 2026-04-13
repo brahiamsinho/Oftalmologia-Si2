@@ -1,6 +1,16 @@
 # HANDOFF LATEST
 
 ## Resumen
+**Fecha:** 2026-04-12 (mobile paciente + API consultas/estudios)
+
+**Mobile (paciente):** tarjeta del home muestra **última cita** si no hay próximas; accesos rápidos enlazan a pestaña **Citas** y a pantalla **Historial clínico** (consultas + estudios); contacto/emergencias con `CLINIC_PHONE` en `mobile/.env` (opcional). Repositorio `ClinicalRepository` → `consultas/lista/`, `consultas/estudios/`.
+
+**Backend:** `ConsultaViewSet` y `EstudioViewSet` filtran por rol (PACIENTE por ficha vinculada al usuario; médico por `especialista`; admin todo + `paciente_id`).
+
+Detalle: `docs/ai/sessions/2026-04-12-mobile-paciente-clinical-api.md`
+
+---
+
 **Fecha:** 2026-04-12 (actualización posterior)
 
 **Docker backend:** `entrypoint.sh` ejecuta **`migrate --noinput`** antes de `collectstatic`, para que una Postgres nueva no quede sin tablas (sesiones, JWT blacklist, usuarios). El **seed** sigue manual.

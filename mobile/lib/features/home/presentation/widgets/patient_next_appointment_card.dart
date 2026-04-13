@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-
 import '../../../../config/theme.dart';
 import '../../domain/cita_resumen.dart';
 import '../providers/patient_citas_provider.dart';
+import '../utils/launch_clinic_phone.dart';
 
 class PatientNextAppointmentCard extends ConsumerWidget {
   const PatientNextAppointmentCard({super.key});
@@ -22,21 +22,16 @@ class PatientNextAppointmentCard extends ConsumerWidget {
 
     return async.when(
       data: (list) {
-        final next = nextAppointment(list);
-        if (next == null) {
+        final hero = heroCita(list);
+        if (hero == null) {
           return _EmptyCard(
-            onSchedule: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Agendar consulta estará disponible pronto.'),
-                ),
-              );
-            },
+            onSchedule: () => launchClinicPhone(context),
           );
         }
         return _DataCard(
-          cita: next,
-          doctorLabel: _doctorLabel(next.especialistaNombre),
+          cita: hero.cita,
+          isUpcoming: hero.isUpcoming,
+          doctorLabel: _doctorLabel(hero.cita.especialistaNombre),
         );
       },
       loading: () => const _LoadingCard(),
@@ -50,10 +45,12 @@ class PatientNextAppointmentCard extends ConsumerWidget {
 class _DataCard extends StatelessWidget {
   const _DataCard({
     required this.cita,
+    required this.isUpcoming,
     required this.doctorLabel,
   });
 
   final CitaResumen cita;
+  final bool isUpcoming;
   final String doctorLabel;
 
   @override
@@ -88,7 +85,7 @@ class _DataCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'PRÓXIMA CITA',
+            isUpcoming ? 'PRÓXIMA CITA' : 'ÚLTIMA CITA',
             style: theme.textTheme.labelSmall?.copyWith(
               color: AppTheme.textMuted,
               fontWeight: FontWeight.w700,
@@ -155,13 +152,17 @@ class _DataCard extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFD1FAE5),
+                            color: isUpcoming
+                                ? const Color(0xFFD1FAE5)
+                                : const Color(0xFFE2E8F0),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             cita.motivoDisplay,
                             style: theme.textTheme.labelSmall?.copyWith(
-                              color: const Color(0xFF047857),
+                              color: isUpcoming
+                                  ? const Color(0xFF047857)
+                                  : const Color(0xFF475569),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -294,7 +295,7 @@ class _EmptyCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text('Agendar consulta'),
+              child: const Text('Contactar clínica / agendar'),
             ),
           ),
         ],

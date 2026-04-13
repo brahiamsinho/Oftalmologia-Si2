@@ -46,6 +46,12 @@ export interface UsuarioCreate {
   apellidos: string;
   telefono?: string;
   tipo_usuario: TipoUsuario;
+  estado?: EstadoUsuario;
+  is_staff?: boolean;
+  /** Vincular ficha existente sin usuario (solo creación + tipo PACIENTE). */
+  id_paciente_existente?: number;
+  paciente_tipo_documento?: TipoDocumento;
+  paciente_numero_documento?: string;
 }
 
 // ── Rol ───────────────────────────────────────────────────────────────────────

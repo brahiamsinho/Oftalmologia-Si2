@@ -11,22 +11,56 @@ from django.core.mail import send_mail
 logger = logging.getLogger('apps')
 
 
-def enviar_bienvenida(usuario):
-    """Email de bienvenida post-registro. Falla silenciosamente."""
-    subject = 'Bienvenido — Clínica Oftalmológica Si2'
+def enviar_confirmacion_registro(usuario) -> bool:
+    """
+    Correo de confirmación tras registro (cuenta ya activa; JWT en la respuesta API).
+
+    Returns:
+        True si Django entregó el mensaje al backend de correo (p. ej. Mailhog en dev).
+        False si hubo error (el usuario igual queda creado).
+    """
+    brand = getattr(settings, 'SITE_DISPLAY_NAME', 'Oftalmología Si2')
+    subject = f'Confirmación de registro — {brand}'
+    tipo_display = ''
+    try:
+        tipo_display = usuario.get_tipo_usuario_display()
+    except Exception:
+        tipo_display = str(getattr(usuario, 'tipo_usuario', '') or '')
+
+    hint = getattr(settings, 'REGISTRATION_EMAIL_FOOTER_HINT', '') or ''
+    hint = hint.strip()
+
     message = (
         f'Hola {usuario.nombres},\n\n'
-        f'Tu cuenta ha sido registrada exitosamente.\n\n'
+        f'Tu registro en {brand} se completó correctamente.\n\n'
         f'Usuario: {usuario.username}\n'
-        f'Correo:  {usuario.email}\n\n'
-        f'Ya puedes acceder al sistema.\n\n'
-        f'Clínica Oftalmológica Si2'
+        f'Correo:  {usuario.email}\n'
+        f'Tipo de cuenta: {tipo_display}\n\n'
+        f'Ya podés iniciar sesión en la aplicación móvil o en el panel web.\n\n'
+        f'---\n'
+        f'Este mensaje es informativo; no hace falta responder.\n'
     )
+    if hint:
+        message += f'\n{hint}\n'
+    message += f'\n{brand}'
+
     try:
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
-                  [usuario.email], fail_silently=True)
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [usuario.email],
+            fail_silently=False,
+        )
+        return True
     except Exception as exc:
-        logger.warning(f'[email:bienvenida] {usuario.email} — {exc}')
+        logger.warning('[email:confirmacion_registro] %s — %s', usuario.email, exc)
+        return False
+
+
+def enviar_bienvenida(usuario) -> bool:
+    """Alias retrocompatible con el nombre anterior."""
+    return enviar_confirmacion_registro(usuario)
 
 
 def enviar_recuperacion_password(usuario, token_str):
@@ -34,14 +68,15 @@ def enviar_recuperacion_password(usuario, token_str):
     frontend_url = settings.FRONTEND_URL
     reset_url = f'{frontend_url}/auth/reset-password?token={token_str}'
 
-    subject = 'Recuperación de contraseña — Clínica Oftalmológica Si2'
+    brand = getattr(settings, 'SITE_DISPLAY_NAME', 'Oftalmología Si2')
+    subject = f'Recuperación de contraseña — {brand}'
     message = (
         f'Hola {usuario.nombres},\n\n'
         f'Recibimos una solicitud para restablecer tu contraseña.\n\n'
-        f'Accede al siguiente enlace (válido 2 horas):\n'
+        f'Accedé al siguiente enlace (válido 2 horas):\n'
         f'{reset_url}\n\n'
-        f'Si no solicitaste este cambio, ignora este mensaje.\n\n'
-        f'Clínica Oftalmológica Si2'
+        f'Si no solicitaste este cambio, ignorá este mensaje.\n\n'
+        f'{brand}'
     )
     try:
         send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,

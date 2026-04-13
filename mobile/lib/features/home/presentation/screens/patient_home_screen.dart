@@ -9,6 +9,7 @@ import '../widgets/patient_home_header.dart';
 import '../widgets/patient_next_appointment_card.dart';
 import '../widgets/patient_quick_access_row.dart';
 import '../providers/patient_citas_provider.dart';
+import '../providers/patient_clinical_provider.dart';
 
 class PatientHomeScreen extends ConsumerStatefulWidget {
   const PatientHomeScreen({super.key});
@@ -54,13 +55,17 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
           _InicioTab(
             firstName: _firstName(user),
             initials: _initials(user),
-            onRefresh: () => ref.read(patientCitasProvider.notifier).refresh(),
+            onRefresh: () async {
+              await ref.read(patientCitasProvider.notifier).refresh();
+              ref.invalidate(patientConsultasProvider);
+              ref.invalidate(patientEstudiosProvider);
+            },
+            onVerTodasCitas: () => setState(() => _navIndex = 1),
+            onMisCitasQuickAccess: () => setState(() => _navIndex = 1),
           ),
-          _PlaceholderTab(
-            title: 'Citas',
-            subtitle: 'Aquí verás el calendario y gestión de turnos.',
-          ),
+          const _PatientCitasTab(),
           _ProfileTab(
+            user: user,
             onLogout: () async {
               await ref.read(sessionNotifierProvider.notifier).signOut();
               if (context.mounted) context.go('/login');
@@ -98,11 +103,15 @@ class _InicioTab extends ConsumerWidget {
     required this.firstName,
     required this.initials,
     required this.onRefresh,
+    required this.onVerTodasCitas,
+    required this.onMisCitasQuickAccess,
   });
 
   final String firstName;
   final String initials;
   final Future<void> Function() onRefresh;
+  final VoidCallback onVerTodasCitas;
+  final VoidCallback onMisCitasQuickAccess;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -137,74 +146,75 @@ class _InicioTab extends ConsumerWidget {
           ),
           const SliverToBoxAdapter(child: PatientNextAppointmentCard()),
           const SliverToBoxAdapter(child: SizedBox(height: 20)),
-          const SliverToBoxAdapter(child: PatientQuickAccessRow()),
-          const SliverToBoxAdapter(child: PatientAppointmentsSection()),
+          SliverToBoxAdapter(
+            child: PatientQuickAccessRow(onMisCitas: onMisCitasQuickAccess),
+          ),
+          SliverToBoxAdapter(
+            child: PatientAppointmentsSection(onVerTodas: onVerTodasCitas),
+          ),
         ],
       ),
     );
   }
 }
 
-class _PlaceholderTab extends StatelessWidget {
-  const _PlaceholderTab({
-    required this.title,
-    required this.subtitle,
-  });
-
-  final String title;
-  final String subtitle;
+class _PatientCitasTab extends ConsumerWidget {
+  const _PatientCitasTab();
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SafeArea(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.construction_rounded,
-                size: 56,
-                color: theme.colorScheme.primary.withValues(alpha: 0.5),
-              ),
-              const SizedBox(height: 16),
-              Text(title, style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 8),
-              Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF64748B),
-                ),
-              ),
-            ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    return RefreshIndicator(
+      color: const Color(0xFF2563EB),
+      onRefresh: () => ref.read(patientCitasProvider.notifier).refresh(),
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: const [
+          SliverToBoxAdapter(
+            child: PatientAppointmentsSection(showVerTodasLink: false),
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
 class _ProfileTab extends StatelessWidget {
-  const _ProfileTab({required this.onLogout});
+  const _ProfileTab({required this.user, required this.onLogout});
 
+  final AuthUser user;
   final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(24),
         children: [
           Text(
             'Perfil',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+          ListTile(
+            leading: CircleAvatar(
+              child: Text(
+                user.nombres != null && user.nombres!.isNotEmpty
+                    ? user.nombres![0].toUpperCase()
+                    : '?',
+              ),
+            ),
+            title: Text(user.displayName),
+            subtitle: Text(user.email),
+          ),
+          ListTile(
+            leading: const Icon(Icons.badge_outlined),
+            title: const Text('Tipo de usuario'),
+            subtitle: Text(user.tipoUsuario.replaceAll('_', ' ')),
+          ),
+          const SizedBox(height: 16),
           ListTile(
             leading: const Icon(Icons.logout_rounded),
             title: const Text('Cerrar sesión'),
