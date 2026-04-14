@@ -20,12 +20,10 @@ api_patterns = [
     path('', include('apps.atencionClinica.especialistas.urls')),
     path('', include('apps.pacientes.historial_clinico.urls')),
     path('historias-clinicas/<int:id_historia_clinica>/', include('apps.atencionClinica.antecedentes.urls')),
-    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.atencionClinica.diagnosticos.urls')),
-    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.atencionClinica.tratamientos.urls')),
-    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.atencionClinica.evoluciones.urls')),
-    path('historias-clinicas/<int:id_historia_clinica>/', include('apps.atencionClinica.recetas.urls')),
     path('', include('apps.atencionClinica.citas.urls')),
     path('consultas/', include('apps.atencionClinica.consultas.urls')),
+    path('medicion-visual/', include('apps.atencionClinica.medicion_visual.urls')),
+    path('notificaciones/', include('apps.notificaciones.urls')),
 ]
 
 urlpatterns = [

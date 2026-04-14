@@ -89,7 +89,6 @@ export default function RegistrarMedicionPage() {
     try {
       const formData = new FormData();
       formData.append("paciente", pacienteId);
-      formData.append("tipo_estudio", tipoEstudio);
       formData.append("ojo_derecho", ojoDerecho);
       formData.append("ojo_izquierdo", ojoIzquierdo);
       formData.append("observaciones", observaciones);
@@ -97,7 +96,16 @@ export default function RegistrarMedicionPage() {
         formData.append("archivo_resultado", archivo);
       }
 
-      await api.post("/consultas/estudios/", formData, {
+      const url =
+        tipoEstudio === "agudeza_visual"
+          ? "/medicion-visual/registros/"
+          : "/consultas/estudios/";
+
+      if (tipoEstudio !== "agudeza_visual") {
+        formData.append("tipo_estudio", tipoEstudio);
+      }
+
+      await api.post(url, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 

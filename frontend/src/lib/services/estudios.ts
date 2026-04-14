@@ -1,5 +1,6 @@
 /**
- * Estudios / mediciones oftalmológicas (Modelo Estudio en backend).
+ * Estudios oftalmológicos distintos de agudeza (modelo Estudio).
+ * Agudeza visual: ver `medicion_visual.ts` (/medicion-visual/registros/).
  * Router: /consultas/estudios/
  */
 import api, { fetchAll } from '../api';

@@ -1,1 +1,0 @@
-# apps/tratamientos

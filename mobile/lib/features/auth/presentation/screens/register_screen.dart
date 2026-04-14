@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../config/app_config.dart';
+import '../../../../core/notifications/push_notifications.dart';
 import '../../data/auth_repository.dart';
 import '../providers/session_notifier.dart';
 
@@ -102,6 +103,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final tel = _telefonoController.text.trim();
     if (tel.isNotEmpty) {
       body['telefono'] = tel;
+    }
+
+    final fcm = await PushNotifications.obtenerTokenYPlataformaParaAuth();
+    if (fcm != null) {
+      body.addAll(fcm);
     }
 
     setState(() => _isSaving = true);

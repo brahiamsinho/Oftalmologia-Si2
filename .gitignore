@@ -29,6 +29,7 @@ celerybeat-schedule
 *.sage.py
 
 # Django
+firebase-credentials.json
 *.sqlite3
 db.sqlite3
 media/
@@ -69,6 +70,12 @@ mobile/.env
 .env.*.local
 !.env.example
 !mobile/.env.example
+google-services.json
+GoogleService-Info.plist
+backend/firebase-credentials.json
+**/firebase-credentials.json
+**/google-services.json
+**/GoogleService-Info.plist
 
 # =========================
 # AI / Agent & Docs

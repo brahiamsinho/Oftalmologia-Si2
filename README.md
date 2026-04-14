@@ -94,8 +94,14 @@ docker compose up -d --build
 # Crear nuevas migraciones
 docker compose exec backend python manage.py makemigrations
 
-# Aplicar migraciones
+# Aplicar migraciones de forma segura (usa advisory lock de PostgreSQL → nunca dos procesos en paralelo)
+# El entrypoint del contenedor también lo usa, así que es seguro correrlo en cualquier momento.
 docker compose exec backend python manage.py migrate
+
+# ⚠️  NO uses `python manage.py migrate` directamente después de `docker compose up -d`.
+#     El entrypoint YA aplica las migraciones con migrate_safe al arrancar.
+#     Si lo corres manual mientras el entrypoint todavía trabaja obtendrás un error de pg_catalog.
+#     Usa siempre migrate_safe si necesitas correr migraciones a mano.
 
 # Ver estado de migraciones
 docker compose exec backend python manage.py showmigrations

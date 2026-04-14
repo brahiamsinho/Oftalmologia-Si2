@@ -30,13 +30,25 @@ class ClinicalRepository {
 
   Future<List<EstudioResumen>> listEstudiosMine() async {
     try {
-      final response = await _dio.get<dynamic>('consultas/estudios/');
-      final raw = _extractResults(response.data);
-      return raw
+      final estResponse = await _dio.get<dynamic>('consultas/estudios/');
+      final mvResponse = await _dio.get<dynamic>('medicion-visual/registros/');
+      final estRaw = _extractResults(estResponse.data);
+      final mvRaw = _extractResults(mvResponse.data);
+      final fromEst = estRaw
           .map(
             (e) => EstudioResumen.fromJson(Map<String, dynamic>.from(e as Map)),
           )
           .toList();
+      final fromMv = mvRaw.map((e) {
+        final m = Map<String, dynamic>.from(e as Map);
+        return EstudioResumen.fromJson({
+          ...m,
+          'tipo_estudio': 'agudeza_visual',
+        });
+      }).toList();
+      final all = [...fromMv, ...fromEst];
+      all.sort((a, b) => b.fecha.compareTo(a.fecha));
+      return all;
     } on DioException catch (e) {
       throw Exception(_message(e, 'estudios'));
     }

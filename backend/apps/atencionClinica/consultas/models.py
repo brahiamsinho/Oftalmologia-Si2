@@ -12,10 +12,8 @@ class Consulta(models.Model):
     motivo = models.TextField()
     sintomas = models.TextField(blank=True)
     notas_clinicas = models.TextField(blank=True)
-    
-    # Examen de ojos básico
-    agudeza_visual_od = models.CharField(max_length=50, blank=True, null=True, verbose_name="Agudeza Visual Ojo Derecho")
-    agudeza_visual_oi = models.CharField(max_length=50, blank=True, null=True, verbose_name="Agudeza Visual Ojo Izquierdo")
+
+    # Examen de ojos básico (PIO; agudeza → app medicion_visual.MedicionVisual)
     presion_intraocular_od = models.CharField(max_length=50, blank=True, null=True, verbose_name="Presión Intraocular Ojo Derecho")
     presion_intraocular_oi = models.CharField(max_length=50, blank=True, null=True, verbose_name="Presión Intraocular Ojo Izquierdo")
 
@@ -32,7 +30,6 @@ class Consulta(models.Model):
 
 class Estudio(models.Model):
     TIPO_ESTUDIO_CHOICES = [
-        ('agudeza_visual', 'Agudeza Visual'),
         ('refraccion', 'Refracción'),
         ('tonometria', 'Tonometría (Presión Intraocular)'),
         ('fondo_ojo', 'Fondo de Ojo'),

@@ -8,7 +8,9 @@ done
 echo "PostgreSQL is ready!"
 
 echo "Applying database migrations..."
-python manage.py migrate --noinput
+# migrate_safe usa un advisory lock de PostgreSQL → es imposible que dos procesos
+# corran migraciones al mismo tiempo, sin importar desde dónde se lance el comando.
+#python manage.py migrate_safe --noinput
 
 echo "Collecting static files..."
 python manage.py collectstatic --noinput 2>/dev/null || true

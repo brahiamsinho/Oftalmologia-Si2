@@ -21,25 +21,31 @@ class AuthRepository {
   final Dio _dio;
 
   /// POST `/auth/login/` — body: `email` + `password` (solo correo).
+  /// Opcional: [fcmPayload] con `fcm_token` y `plataforma` (registro push en el mismo request).
   Future<AuthUser> login({
     required String email,
     required String password,
+    Map<String, String>? fcmPayload,
   }) async {
     try {
+      final data = <String, dynamic>{
+        'email': email.trim(),
+        'password': password,
+      };
+      if (fcmPayload != null) {
+        data.addAll(fcmPayload);
+      }
       final response = await _dio.post<Map<String, dynamic>>(
         'auth/login/',
-        data: {
-          'email': email.trim(),
-          'password': password,
-        },
+        data: data,
       );
-      final data = response.data;
-      if (data == null) {
+      final resBody = response.data;
+      if (resBody == null) {
         throw Exception('Respuesta vacía del servidor.');
       }
-      final access = data['access'] as String?;
-      final refresh = data['refresh'] as String?;
-      final usuario = data['usuario'];
+      final access = resBody['access'] as String?;
+      final refresh = resBody['refresh'] as String?;
+      final usuario = resBody['usuario'];
       if (access == null || refresh == null || usuario is! Map) {
         throw Exception('Formato de respuesta de login inesperado.');
       }

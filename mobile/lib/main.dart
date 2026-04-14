@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
+import 'core/notifications/push_notifications.dart';
 import 'features/auth/presentation/providers/session_notifier.dart';
 
 /// Punto de entrada de la aplicación.
@@ -11,6 +12,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: '.env');
+  await PushNotifications.initialize();
   await initializeDateFormatting('es');
 
   final container = ProviderContainer();
