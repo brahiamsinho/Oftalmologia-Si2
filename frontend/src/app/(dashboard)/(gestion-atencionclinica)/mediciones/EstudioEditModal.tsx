@@ -3,11 +3,16 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2, X, User, Eye, FileText, Upload } from 'lucide-react';
-import type { EstudioItem, EstudioUpdatePayload } from '@/lib/services/estudios';
+import type { EstudioUpdatePayload } from '@/lib/services/estudios';
 import { updateEstudioJson, updateEstudioMultipart } from '@/lib/services/estudios';
+import type { MedicionVisualUpdatePayload } from '@/lib/services/medicion_visual';
+import {
+  updateMedicionVisualJson,
+  updateMedicionVisualMultipart,
+} from '@/lib/services/medicion_visual';
+import type { MedicionListItem } from '@/lib/services/mediciones';
 
 const TIPO_OPTIONS: { value: string; label: string }[] = [
-  { value: 'agudeza_visual', label: 'Agudeza Visual' },
   { value: 'refraccion', label: 'Refracción' },
   { value: 'tonometria', label: 'Tonometría (Presión Intraocular)' },
   { value: 'fondo_ojo', label: 'Fondo de Ojo' },
@@ -44,38 +49,42 @@ function resolveMediaHref(url: string | null): string | null {
 type PacienteOpt = { id_paciente: number; nombres: string; apellidos: string };
 
 export function EstudioEditModal({
-  estudio,
+  item,
   pacientes,
   onClose,
   onSaved,
 }: {
-  estudio: EstudioItem;
+  item: MedicionListItem;
   pacientes: PacienteOpt[];
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [pacienteId, setPacienteId] = useState(String(estudio.paciente));
-  const [tipoEstudio, setTipoEstudio] = useState(estudio.tipo_estudio);
-  const [ojoDerecho, setOjoDerecho] = useState(estudio.ojo_derecho ?? '');
-  const [ojoIzquierdo, setOjoIzquierdo] = useState(estudio.ojo_izquierdo ?? '');
-  const [observaciones, setObservaciones] = useState(estudio.observaciones ?? '');
+  const isMedicionVisual = item.rowKind === 'medicion_visual';
+  const [pacienteId, setPacienteId] = useState(String(item.paciente));
+  const [tipoEstudio, setTipoEstudio] = useState(
+    isMedicionVisual ? 'agudeza_visual' : item.tipo_estudio,
+  );
+  const [ojoDerecho, setOjoDerecho] = useState(item.ojo_derecho ?? '');
+  const [ojoIzquierdo, setOjoIzquierdo] = useState(item.ojo_izquierdo ?? '');
+  const [observaciones, setObservaciones] = useState(item.observaciones ?? '');
   const [archivo, setArchivo] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setPacienteId(String(estudio.paciente));
-    setTipoEstudio(estudio.tipo_estudio);
-    setOjoDerecho(estudio.ojo_derecho ?? '');
-    setOjoIzquierdo(estudio.ojo_izquierdo ?? '');
-    setObservaciones(estudio.observaciones ?? '');
+    const mv = item.rowKind === 'medicion_visual';
+    setPacienteId(String(item.paciente));
+    setTipoEstudio(mv ? 'agudeza_visual' : item.tipo_estudio);
+    setOjoDerecho(item.ojo_derecho ?? '');
+    setOjoIzquierdo(item.ojo_izquierdo ?? '');
+    setObservaciones(item.observaciones ?? '');
     setArchivo(null);
     setError(null);
-  }, [estudio]);
+  }, [item]);
 
   const validate = () => {
     if (!pacienteId) return 'Elegí un paciente.';
-    if (!tipoEstudio) return 'Elegí el tipo de estudio.';
+    if (!isMedicionVisual && !tipoEstudio) return 'Elegí el tipo de estudio.';
     return null;
   };
 
@@ -88,16 +97,28 @@ export function EstudioEditModal({
     }
     setError(null);
     setLoading(true);
-    const body: EstudioUpdatePayload = {
-      paciente: Number(pacienteId),
-      tipo_estudio: tipoEstudio,
-      ojo_derecho: ojoDerecho,
-      ojo_izquierdo: ojoIzquierdo,
-      observaciones: observaciones,
-    };
     try {
-      if (archivo) await updateEstudioMultipart(estudio.id, body, archivo);
-      else await updateEstudioJson(estudio.id, body);
+      if (isMedicionVisual) {
+        const bodyMv: MedicionVisualUpdatePayload = {
+          paciente: Number(pacienteId),
+          consulta: item.consulta,
+          ojo_derecho: ojoDerecho,
+          ojo_izquierdo: ojoIzquierdo,
+          observaciones,
+        };
+        if (archivo) await updateMedicionVisualMultipart(item.id, bodyMv, archivo);
+        else await updateMedicionVisualJson(item.id, bodyMv);
+      } else {
+        const body: EstudioUpdatePayload = {
+          paciente: Number(pacienteId),
+          tipo_estudio: tipoEstudio,
+          ojo_derecho: ojoDerecho,
+          ojo_izquierdo: ojoIzquierdo,
+          observaciones: observaciones,
+        };
+        if (archivo) await updateEstudioMultipart(item.id, body, archivo);
+        else await updateEstudioJson(item.id, body);
+      }
       onSaved();
       onClose();
     } catch {
@@ -107,7 +128,7 @@ export function EstudioEditModal({
     }
   };
 
-  const archivoHref = resolveMediaHref(estudio.archivo_resultado);
+  const archivoHref = resolveMediaHref(item.archivo_resultado);
 
   const overlay = (
     <div
@@ -169,17 +190,26 @@ export function EstudioEditModal({
                   <FileText className="h-3.5 w-3.5 text-gray-400" />
                   Tipo de estudio <span className="text-red-500">*</span>
                 </label>
-                <select
-                  value={tipoEstudio}
-                  onChange={(e) => setTipoEstudio(e.target.value)}
-                  className={selectCls()}
-                >
-                  {TIPO_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                {isMedicionVisual ? (
+                  <input
+                    type="text"
+                    readOnly
+                    value="Agudeza Visual"
+                    className={inputCls()}
+                  />
+                ) : (
+                  <select
+                    value={tipoEstudio}
+                    onChange={(e) => setTipoEstudio(e.target.value)}
+                    className={selectCls()}
+                  >
+                    {TIPO_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

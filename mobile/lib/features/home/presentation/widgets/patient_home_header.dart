@@ -7,13 +7,15 @@ class PatientHomeHeader extends StatelessWidget {
     required this.userDisplayName,
     required this.initials,
     this.onNotifications,
-    this.showNotificationDot = true,
+    this.showNotificationDot = false,
+    this.noLeidasCount = 0,
   });
 
   final String userDisplayName;
   final String initials;
   final VoidCallback? onNotifications;
   final bool showNotificationDot;
+  final int noLeidasCount;
 
   String _saludo() {
     final h = DateTime.now().hour;
@@ -157,15 +159,29 @@ class PatientHomeHeader extends StatelessWidget {
                               ),
                               if (showNotificationDot)
                                 Positioned(
-                                  top: 10,
-                                  right: 10,
+                                  top: 6,
+                                  right: 6,
                                   child: Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFFEF4444),
-                                      shape: BoxShape.circle,
+                                    padding: noLeidasCount > 9
+                                        ? const EdgeInsets.symmetric(horizontal: 4, vertical: 1)
+                                        : EdgeInsets.zero,
+                                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEF4444),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
+                                    child: noLeidasCount > 0
+                                        ? Text(
+                                            noLeidasCount > 99 ? '99+' : '$noLeidasCount',
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.w700,
+                                              height: 1.4,
+                                            ),
+                                          )
+                                        : const SizedBox.shrink(),
                                   ),
                                 ),
                             ],

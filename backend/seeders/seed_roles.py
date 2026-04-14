@@ -13,7 +13,7 @@ ROLES_BASE = [
     },
     {
         'nombre': 'Médico Oftalmólogo',
-        'descripcion': 'Acceso a historias clínicas, diagnósticos, recetas y citas propias.',
+        'descripcion': 'Acceso a historias clínicas y citas propias.',
     },
     {
         'nombre': 'Recepcionista',

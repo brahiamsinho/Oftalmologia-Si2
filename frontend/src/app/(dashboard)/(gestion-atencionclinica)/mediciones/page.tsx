@@ -14,7 +14,12 @@ import {
 } from 'lucide-react';
 import { fetchAll } from '@/lib/api';
 import type { Paciente } from '@/lib/types';
-import { deleteEstudio, listEstudios, type EstudioItem } from '@/lib/services/estudios';
+import { deleteEstudio } from '@/lib/services/estudios';
+import { deleteMedicionVisual } from '@/lib/services/medicion_visual';
+import {
+  listMedicionesYEstudios,
+  type MedicionListItem,
+} from '@/lib/services/mediciones';
 import { EstudioEditModal } from './EstudioEditModal';
 
 const TIPO_LABEL: Record<string, string> = {
@@ -29,25 +34,26 @@ const TIPO_LABEL: Record<string, string> = {
   otros: 'Otros',
 };
 
-function labelTipo(codigo: string): string {
-  return TIPO_LABEL[codigo] ?? codigo;
+function labelTipo(row: MedicionListItem): string {
+  if (row.rowKind === 'medicion_visual') return 'Agudeza Visual';
+  return TIPO_LABEL[row.tipo_estudio] ?? row.tipo_estudio;
 }
 
 export default function MedicionesPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [estudios, setEstudios] = useState<EstudioItem[]>([]);
+  const [filas, setFilas] = useState<MedicionListItem[]>([]);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
-  const [editing, setEditing] = useState<EstudioItem | null>(null);
+  const [editing, setEditing] = useState<MedicionListItem | null>(null);
 
   const load = async () => {
     setLoading(true);
     try {
       const [e, p] = await Promise.all([
-        listEstudios(),
+        listMedicionesYEstudios(),
         fetchAll<Paciente>('/pacientes/'),
       ]);
-      setEstudios(e);
+      setFilas(e);
       setPacientes(p);
     } catch (err) {
       console.error(err);
@@ -78,18 +84,23 @@ export default function MedicionesPage() {
     [pacientes],
   );
 
-  const handleDelete = async (row: EstudioItem) => {
+  const handleDelete = async (row: MedicionListItem) => {
     const nombre = nombrePorPacienteId.get(row.paciente) ?? `Paciente #${row.paciente}`;
     if (
       !window.confirm(
-        `¿Eliminar esta medición (${labelTipo(row.tipo_estudio)}) de ${nombre}? Esta acción no se puede deshacer.`,
+        `¿Eliminar esta medición (${labelTipo(row)}) de ${nombre}? Esta acción no se puede deshacer.`,
       )
     ) {
       return;
     }
     try {
-      await deleteEstudio(row.id);
-      setEstudios((prev) => prev.filter((x) => x.id !== row.id));
+      if (row.rowKind === 'medicion_visual') {
+        await deleteMedicionVisual(row.id);
+        setFilas((prev) => prev.filter((x) => !(x.rowKind === 'medicion_visual' && x.id === row.id)));
+      } else {
+        await deleteEstudio(row.id);
+        setFilas((prev) => prev.filter((x) => !(x.rowKind === 'estudio' && x.id === row.id)));
+      }
     } catch (e) {
       console.error(e);
       window.alert('No se pudo eliminar el registro. Reintentá o revisá permisos.');
@@ -131,7 +142,7 @@ export default function MedicionesPage() {
           <Loader2 className="h-5 w-5 animate-spin" />
           <span className="text-sm">Cargando mediciones...</span>
         </div>
-      ) : estudios.length === 0 ? (
+      ) : filas.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-6 py-20 text-center shadow-sm">
           <Activity className="h-10 w-10 text-gray-200" />
           <p className="text-sm text-gray-500">Aún no hay mediciones registradas.</p>
@@ -141,7 +152,8 @@ export default function MedicionesPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {estudios.map((row) => {
+          {filas.map((row) => {
+            const key = row.rowKind === 'medicion_visual' ? `mv-${row.id}` : `e-${row.id}`;
             const nombre = nombrePorPacienteId.get(row.paciente) ?? `Paciente #${row.paciente}`;
             const when = row.fecha
               ? new Date(row.fecha).toLocaleString('es-BO', {
@@ -152,7 +164,7 @@ export default function MedicionesPage() {
               : '—';
             return (
               <div
-                key={row.id}
+                key={key}
                 className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -162,7 +174,7 @@ export default function MedicionesPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
-                      {labelTipo(row.tipo_estudio)}
+                      {labelTipo(row)}
                     </span>
                     <div className="flex items-center gap-1.5 text-[12px] text-gray-400">
                       <Calendar className="h-3.5 w-3.5" />
@@ -209,7 +221,7 @@ export default function MedicionesPage() {
 
       {editing && (
         <EstudioEditModal
-          estudio={editing}
+          item={editing}
           pacientes={pacienteOpts}
           onClose={() => setEditing(null)}
           onSaved={() => void load()}

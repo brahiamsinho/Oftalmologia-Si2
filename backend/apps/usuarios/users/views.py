@@ -34,6 +34,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from apps.bitacora.models import AccionBitacora
 from apps.core.permissions import IsAdministrativoOrAdmin
 from apps.core.utils import get_client_ip, registrar_bitacora
+from apps.notificaciones.services import enviar_push_a_usuario, registrar_dispositivo_fcm
 
 from .emails import enviar_confirmacion_registro, enviar_recuperacion_password
 from .models import TipoUsuario, Usuario
@@ -70,6 +71,7 @@ class RegisterView(APIView):
     """
     POST /api/auth/register/
     Registro público. Crea Paciente o Especialista automáticamente según tipo_usuario.
+    Opcional (push): "fcm_token", "plataforma" (android|ios|web).
     Retorna JWT para login inmediato post-registro.
     """
     permission_classes = [AllowAny]
@@ -81,6 +83,8 @@ class RegisterView(APIView):
             if hasattr(request.data, 'copy')
             else dict(request.data)
         )
+        fcm_token = payload.pop('fcm_token', None) or payload.pop('fcmToken', None)
+        fcm_plataforma = payload.pop('plataforma', None)
         payload['tipo_usuario'] = TipoUsuario.PACIENTE
         serializer = RegistroSerializer(data=payload)
         serializer.is_valid(raise_exception=True)
@@ -98,6 +102,16 @@ class RegisterView(APIView):
             ip_origen=get_client_ip(request),
             user_agent=request.META.get('HTTP_USER_AGENT', ''),
         )
+        registrar_dispositivo_fcm(usuario, fcm_token, fcm_plataforma)
+        enviar_push_a_usuario(
+            usuario_id=usuario.id,
+            titulo='¡Bienvenido/a!',
+            cuerpo=f'Hola {usuario.nombres}, tu cuenta fue creada exitosamente.',
+            data={'tipo': 'registro'},
+            tipo='registro',
+        )
+        if not fcm_token:
+            logger.info('[register] Sin FCM token en el request → push solo en BD (usuario_id=%s)', usuario.id)
         payload = _jwt_response(usuario)
         payload['email_confirmacion_enviada'] = email_ok
         return Response(payload, status=status.HTTP_201_CREATED)
@@ -137,12 +151,17 @@ class LoginView(APIView):
     """
     POST /api/auth/login/
     Body: { "email": "...", "password": "..." } — solo correo electrónico.
+    Opcional (push): "fcm_token", "plataforma" (android|ios|web).
     Retorna JWT + datos del usuario.
     """
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
+        data_in = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        fcm_token = data_in.pop('fcm_token', None) or data_in.pop('fcmToken', None)
+        fcm_plataforma = data_in.pop('plataforma', None)
+
+        serializer = LoginSerializer(data=data_in)
         serializer.is_valid(raise_exception=True)
         usuario = serializer.validated_data['user']
 
@@ -155,6 +174,16 @@ class LoginView(APIView):
             ip_origen=get_client_ip(request),
             user_agent=request.META.get('HTTP_USER_AGENT', ''),
         )
+        registrar_dispositivo_fcm(usuario, fcm_token, fcm_plataforma)
+        enviar_push_a_usuario(
+            usuario_id=usuario.id,
+            titulo='Sesión iniciada',
+            cuerpo=f'Hola {usuario.nombres}, accediste correctamente a tu cuenta.',
+            data={'tipo': 'login'},
+            tipo='login',
+        )
+        if not fcm_token:
+            logger.info('[login] Sin FCM token en el request → push solo en BD (usuario_id=%s)', usuario.id)
         return Response(_jwt_response(usuario))
 
 

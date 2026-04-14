@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../auth/domain/auth_user.dart';
 import '../../../auth/presentation/providers/session_notifier.dart';
+import '../../../notificaciones/presentation/providers/notificaciones_provider.dart';
+import '../../../notificaciones/presentation/screens/notificaciones_screen.dart';
 import '../widgets/patient_appointments_section.dart';
 import '../widgets/patient_home_header.dart';
 import '../widgets/patient_next_appointment_card.dart';
@@ -115,6 +117,17 @@ class _InicioTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final noLeidas = ref.watch(noLeidasProvider);
+
+    // Cargar notificaciones la primera vez que se construye la pestaña.
+    ref.listen(notificacionesProvider, (_, __) {});
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = ref.read(notificacionesProvider);
+      if (!state.isLoading && state.items.isEmpty && state.error == null) {
+        ref.read(notificacionesProvider.notifier).load();
+      }
+    });
+
     return RefreshIndicator(
       onRefresh: onRefresh,
       color: const Color(0xFF2563EB),
@@ -125,9 +138,13 @@ class _InicioTab extends ConsumerWidget {
             child: PatientHomeHeader(
               userDisplayName: firstName,
               initials: initials,
+              showNotificationDot: noLeidas > 0,
+              noLeidasCount: noLeidas,
               onNotifications: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Notificaciones próximamente.')),
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const NotificacionesScreen(),
+                  ),
                 );
               },
             ),

@@ -1,0 +1,86 @@
+# Generated manually for módulo medición visual
+
+import django.db.models.deletion
+import django.utils.timezone
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = [
+        ('consultas', '0001_initial'),
+        ('pacientes', '0002_initial'),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='MedicionVisual',
+            fields=[
+                (
+                    'id',
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name='ID',
+                    ),
+                ),
+                (
+                    'ojo_derecho',
+                    models.CharField(
+                        blank=True,
+                        max_length=255,
+                        null=True,
+                        verbose_name='Agudeza visual OD',
+                    ),
+                ),
+                (
+                    'ojo_izquierdo',
+                    models.CharField(
+                        blank=True,
+                        max_length=255,
+                        null=True,
+                        verbose_name='Agudeza visual OI',
+                    ),
+                ),
+                ('observaciones', models.TextField(blank=True, null=True)),
+                (
+                    'archivo_resultado',
+                    models.FileField(
+                        blank=True,
+                        null=True,
+                        upload_to='medicion_visual/resultados/',
+                        verbose_name='Archivo / resultado',
+                    ),
+                ),
+                ('fecha', models.DateTimeField(default=django.utils.timezone.now)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    'consulta',
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name='mediciones_visuales',
+                        to='consultas.consulta',
+                    ),
+                ),
+                (
+                    'paciente',
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name='mediciones_visuales',
+                        to='pacientes.paciente',
+                    ),
+                ),
+            ],
+            options={
+                'verbose_name': 'Medición visual',
+                'verbose_name_plural': 'Mediciones visuales',
+                'ordering': ['-fecha'],
+            },
+        ),
+    ]

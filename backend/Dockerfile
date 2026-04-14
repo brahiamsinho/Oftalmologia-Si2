@@ -30,6 +30,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     netcat-openbsd \
+    util-linux \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar paquetes Python instalados

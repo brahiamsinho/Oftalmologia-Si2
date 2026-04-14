@@ -146,24 +146,28 @@ class _DataCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isUpcoming
-                                ? const Color(0xFFD1FAE5)
-                                : const Color(0xFFE2E8F0),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            cita.motivoDisplay,
-                            style: theme.textTheme.labelSmall?.copyWith(
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
                               color: isUpcoming
-                                  ? const Color(0xFF047857)
-                                  : const Color(0xFF475569),
-                              fontWeight: FontWeight.w600,
+                                  ? const Color(0xFFD1FAE5)
+                                  : const Color(0xFFE2E8F0),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              cita.motivoDisplay,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: isUpcoming
+                                    ? const Color(0xFF047857)
+                                    : const Color(0xFF475569),
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),

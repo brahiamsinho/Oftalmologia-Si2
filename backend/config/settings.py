@@ -69,15 +69,21 @@ LOCAL_APPS = [
     'apps.atencionClinica.especialistas',
     'apps.pacientes.historial_clinico',
     'apps.atencionClinica.antecedentes',
-    'apps.atencionClinica.diagnosticos',
-    'apps.atencionClinica.tratamientos',
-    'apps.atencionClinica.evoluciones',
-    'apps.atencionClinica.recetas',
     'apps.atencionClinica.citas',
     'apps.atencionClinica.consultas',
+    'apps.atencionClinica.medicion_visual',
+    'apps.notificaciones',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+# =============================================================================
+# FIREBASE CLOUD MESSAGING (credenciales de servicio para envío desde backend)
+# =============================================================================
+FIREBASE_CREDENTIALS_PATH = config(
+    'FIREBASE_CREDENTIALS_PATH',
+    default=str(BASE_DIR / 'firebase-credentials.json'),
+)
 
 # =============================================================================
 # MIDDLEWARE

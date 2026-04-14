@@ -39,14 +39,11 @@ class HistoriaClinicaDetalleSerializer(HistoriaClinicaSerializer):
         from apps.atencionClinica.antecedentes.serializers import AntecedenteClinicoSerializer
         return AntecedenteClinicoSerializer(obj.antecedentes.all(), many=True).data
 
-    def get_diagnosticos(self, obj):
-        from apps.atencionClinica.diagnosticos.serializers import DiagnosticoClinicoSerializer
-        return DiagnosticoClinicoSerializer(obj.diagnosticos.all(), many=True).data
+    def get_diagnosticos(self, _obj):
+        return []
 
-    def get_evoluciones(self, obj):
-        from apps.atencionClinica.evoluciones.serializers import EvolucionClinicaSerializer
-        return EvolucionClinicaSerializer(obj.evoluciones.all(), many=True).data
+    def get_evoluciones(self, _obj):
+        return []
 
-    def get_recetas(self, obj):
-        from apps.atencionClinica.recetas.serializers import RecetaSerializer
-        return RecetaSerializer(obj.recetas.all(), many=True).data
+    def get_recetas(self, _obj):
+        return []

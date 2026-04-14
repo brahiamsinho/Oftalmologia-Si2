@@ -39,16 +39,6 @@ PERMISOS = [
     {'codigo': 'historias.editar',   'nombre': 'Editar historia clínica',    'modulo': 'historias_clinicas'},
     {'codigo': 'historias.eliminar', 'nombre': 'Eliminar historia clínica',  'modulo': 'historias_clinicas'},
 
-    # ── Diagnósticos ──────────────────────────────────────────────────────────
-    {'codigo': 'diagnosticos.crear',   'nombre': 'Crear diagnóstico',  'modulo': 'historias_clinicas'},
-    {'codigo': 'diagnosticos.editar',  'nombre': 'Editar diagnóstico', 'modulo': 'historias_clinicas'},
-    {'codigo': 'diagnosticos.eliminar','nombre': 'Eliminar diagnóstico','modulo': 'historias_clinicas'},
-
-    # ── Recetas ───────────────────────────────────────────────────────────────
-    {'codigo': 'recetas.crear',    'nombre': 'Crear receta',    'modulo': 'historias_clinicas'},
-    {'codigo': 'recetas.editar',   'nombre': 'Editar receta',   'modulo': 'historias_clinicas'},
-    {'codigo': 'recetas.eliminar', 'nombre': 'Eliminar receta', 'modulo': 'historias_clinicas'},
-
     # ── Citas ─────────────────────────────────────────────────────────────────
     {'codigo': 'citas.listar',      'nombre': 'Listar citas',          'modulo': 'citas'},
     {'codigo': 'citas.ver',         'nombre': 'Ver cita',              'modulo': 'citas'},
