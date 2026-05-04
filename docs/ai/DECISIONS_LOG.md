@@ -10,6 +10,48 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+**Fecha:** 2026-05-01  
+**Decisión:** En CU14 se expone `POST /api/cirugias/{id}/reprogramar/` como accion dedicada sobre el recurso en lugar de crear endpoint separado.  
+**Motivo:** Reusar patron existente en `citas` y mantener operacion de cambio de agenda como transicion de estado auditable.  
+**Impacto:** Cada reprogramacion registra bitacora con accion `REPROGRAMAR` y actualiza `estado_cirugia` a `REPROGRAMADA`.
+
+---
+
+**Fecha:** 2026-05-01  
+**Decisión:** Regla de cierre para cirugias: `FINALIZADA` requiere `fecha_real_inicio` y `fecha_real_fin`; ademas se valida orden temporal de fechas reales.  
+**Motivo:** Evitar cierres incompletos o inconsistentes en trazabilidad clinica del acto quirurgico.  
+**Impacto:** Payloads invalidos retornan 400 y deben corregirse desde cliente antes de persistir.
+
+---
+
+**Fecha:** 2026-05-01  
+**Decisión:** En CU13 (Preoperatorio), el estado `APROBADO` exige coherencia minima operativa: `checklist_completado=true` y `apto_anestesia=true`.  
+**Motivo:** Evitar aprobar preoperatorios incompletos y mantener una regla de seguridad clinica basica desde backend.  
+**Impacto:** Clientes web/mobile deben completar checklist y aptitud anestesica antes de marcar aprobado.
+
+---
+
+**Fecha:** 2026-05-01  
+**Decisión:** El modelo `Preoperatorio` se vincula con `Paciente`, `HistoriaClinica`, `EvaluacionQuirurgica` (opcional) y `Cita` (opcional) con validaciones cruzadas de pertenencia al paciente.  
+**Motivo:** Mantener trazabilidad clinica entre etapas CU12-CU13 y prevenir inconsistencias de datos.  
+**Impacto:** Payloads con relaciones cruzadas invalidas devuelven 400 con error por campo.
+
+---
+
+**Fecha:** 2026-05-01  
+**Decisión:** Para Fase 1 (CU12) se implementa endpoint plano ` /api/evaluaciones-quirurgicas/ `, manteniendo prefijo global `/api/` y sin romper rutas existentes.  
+**Motivo:** Requerimiento funcional de fase con aprobacion humana incremental.  
+**Impacto:** CU13..CU15 deben mantener consistencia de naming de endpoints planos solicitados en el plan por fases.
+
+---
+
+**Fecha:** 2026-05-01  
+**Decisión:** En CU12, escritura restringida a `IsMedicoOrAdmin`; lectura por `get_queryset` segun `tipo_usuario` (PACIENTE solo su ficha, MEDICO/ESPECIALISTA sus evaluaciones, staff global).  
+**Motivo:** Reusar politicas de seguridad existentes en consultas/citas y evitar exposicion transversal de datos clinicos.  
+**Impacto:** Nuevos modulos clinicos deben conservar el mismo patron de control por rol + filtro por propiedad del registro.
+
+---
+
 **Fecha:** 2026-04-12  
 **Decisión:** **Next.js:** rutas en Axios **sin** prefijo `/api/` duplicado; `NEXT_PUBLIC_API_URL` ya termina en `/api`. Consultas REST en **`/consultas/lista/`** y estudios en **`/consultas/estudios/`** (router Django).  
 **Motivo:** Los 404 a `/api/api/pacientes/` y formularios rotos; alinear con `config/urls.py`.  

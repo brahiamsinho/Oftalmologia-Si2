@@ -72,6 +72,9 @@ LOCAL_APPS = [
     'apps.atencionClinica.citas',
     'apps.atencionClinica.consultas',
     'apps.atencionClinica.medicion_visual',
+    'apps.atencionClinica.evaluacion_quirurgica',
+    'apps.atencionClinica.preoperatorio',
+    'apps.atencionClinica.cirugias',
     'apps.notificaciones',
 ]
 

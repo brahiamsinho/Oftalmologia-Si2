@@ -3,6 +3,12 @@
 Lista priorizada para Oftalmología Si2 (actualizada tras integración mobile paciente).
 
 ## Corto Plazo
+- [x] CU12 Backend: modulo `evaluacion_quirurgica` (CRUD + validaciones + permisos + bitacora + tests minimos).
+- [x] CU13 Backend: modulo `preoperatorio` (CRUD + estado/checklist/examenes + validaciones + permisos + bitacora + tests minimos).
+- [x] CU14 Backend: modulo `cirugias` (CRUD + reprogramacion + estado/fechas/cirujano/resultado/complicaciones + validaciones + permisos + bitacora + tests minimos).
+- [ ] CU15 Backend: modulo `postoperatorio`.
+- [ ] CU16 Backend: CRM pacientes.
+- [ ] CU17 Backend: recordatorios automaticos (management command + cron).
 - [x] Backend: CustomUser + JWT (ya existía; login refinado a email + `check_password`).
 - [x] Mobile: Login real + home paciente con `GET /citas/` + tema/rutas base.
 - [x] Frontend: Login con `email` alineado a API.
