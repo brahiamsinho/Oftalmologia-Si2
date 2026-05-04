@@ -3,6 +3,63 @@
 ## Estado Actual del Proyecto
 **Sprint 1 backend completo** + **Mobile paciente integrado** (login + home con citas reales). Frontend Next.js con auth por correo alineado al mismo contrato de API.
 
+## Actualizacion 2026-05-01 (Fase 1 CU12)
+- Nuevo modulo backend `apps.atencionClinica.evaluacion_quirurgica` implementado.
+- Endpoint CRUD habilitado: `GET/POST /api/evaluaciones-quirurgicas/` y `GET/PATCH/DELETE /api/evaluaciones-quirurgicas/{id}/`.
+- Validaciones de consistencia activas:
+  - historia clinica debe pertenecer al paciente.
+  - consulta debe pertenecer al paciente.
+- Permisos por rol:
+  - mutaciones (create/update/delete): `IsAuthenticated + IsMedicoOrAdmin`.
+  - lectura por queryset segun `tipo_usuario` (PACIENTE propio, MEDICO/ESPECIALISTA propias evaluaciones, staff global).
+- Bitacora en create/update/delete (`modulo='evaluacion_quirurgica'`).
+- Integracion de app realizada en `config/settings.py` y `config/urls.py`.
+- Tests minimos agregados para permisos, validaciones y CRUD base del modulo.
+
+## Actualizacion 2026-05-01 (Fase 2 CU13)
+- Nuevo modulo backend `apps.atencionClinica.preoperatorio` implementado.
+- Endpoint CRUD habilitado: `GET/POST /api/preoperatorios/` y `GET/PATCH/DELETE /api/preoperatorios/{id}/`.
+- Entidad incluye estado preoperatorio, checklist y examenes:
+  - `estado_preoperatorio`
+  - `checklist_completado` / `checklist_detalle`
+  - `examenes_requeridos` / `examenes_completados`
+  - `apto_anestesia`
+- Validaciones activas:
+  - historia clinica corresponde al paciente
+  - evaluacion quirurgica corresponde al paciente
+  - cita corresponde al paciente
+  - estado `APROBADO` exige `checklist_completado=true` y `apto_anestesia=true`
+- Permisos por rol:
+  - mutaciones: `IsAuthenticated + IsMedicoOrAdmin`.
+  - lectura por queryset segun `tipo_usuario` (PACIENTE propio, MEDICO/ESPECIALISTA por `validado_por`, staff global).
+- Bitacora en create/update/delete (`modulo='preoperatorio'`).
+- Integracion en `config/settings.py` y `config/urls.py`.
+- Tests minimos agregados para permisos, validaciones y CRUD base del modulo.
+
+## Actualizacion 2026-05-01 (Fase 3 CU14)
+- Nuevo modulo backend `apps.atencionClinica.cirugias` implementado.
+- Endpoint CRUD habilitado: `GET/POST /api/cirugias/` y `GET/PATCH/DELETE /api/cirugias/{id}/`.
+- Accion adicional habilitada: `POST /api/cirugias/{id}/reprogramar/`.
+- Entidad incluye:
+  - `estado_cirugia`
+  - `fecha_programada`
+  - `fecha_real_inicio` / `fecha_real_fin`
+  - `cirujano`
+  - `resultado`
+  - `complicaciones`
+- Validaciones activas:
+  - historia clinica corresponde al paciente
+  - preoperatorio corresponde al paciente
+  - cita corresponde al paciente
+  - estado `FINALIZADA` exige `fecha_real_inicio` y `fecha_real_fin`
+  - `fecha_real_fin >= fecha_real_inicio`
+- Permisos por rol:
+  - mutaciones y reprogramacion: `IsAuthenticated + IsMedicoOrAdmin`.
+  - lectura por queryset segun `tipo_usuario` (PACIENTE propio, MEDICO/ESPECIALISTA por `cirujano`, staff global).
+- Bitacora en create/update/delete y reprogramacion (`modulo='cirugias'`).
+- Integracion en `config/settings.py` y `config/urls.py`.
+- Tests minimos agregados para permisos, validaciones, CRUD y accion de reprogramacion.
+
 ## Qué Ya Está Hecho
 
 ### Backend (Django / DRF)
