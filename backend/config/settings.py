@@ -75,7 +75,10 @@ LOCAL_APPS = [
     'apps.atencionClinica.evaluacion_quirurgica',
     'apps.atencionClinica.preoperatorio',
     'apps.atencionClinica.cirugias',
+    'apps.atencionClinica.postoperatorio',
+    'apps.crm',
     'apps.notificaciones',
+    'apps.notificaciones.automatizaciones',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

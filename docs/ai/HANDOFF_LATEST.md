@@ -1,6 +1,62 @@
 # HANDOFF LATEST
 
 ## Resumen
+**Fecha:** 2026-05-04 (Fase 6 CU17 recordatorios automaticos)
+
+**Backend:** nuevo modulo `apps.notificaciones.automatizaciones` con reglas, tareas programadas y logs bajo `/api/notificaciones/`.
+
+**Datos/negocio:**
+- `ReglaRecordatorio` define tipo de recordatorio, ventana (`horas_antes`) y plantillas.
+- `TareaRecordatorioProgramada` agenda ejecuciones por paciente/postoperatorio.
+- `LogEjecucionRecordatorio` guarda resultado de cada procesamiento (info/error).
+
+**Ejecucion segura:** si no hay Celery, se habilita `python manage.py procesar_recordatorios --limit N` para cron, procesando lotes pendientes sin bloquear request-response web.
+
+**Permisos/bitacora:** mutaciones de reglas y acciones de tareas (`generar`, `procesar`) restringidas a `IsAdministrativoOrAdmin`; lectura autenticada; bitacora en CUD de reglas y generacion de tareas.
+
+**Integracion:** se agrega `apps.notificaciones.automatizaciones` en `INSTALLED_APPS`; rutas montadas via `apps/notificaciones/urls.py` manteniendo prefijo base `/api/`.
+
+**Testing:** agregado `backend/apps/notificaciones/automatizaciones/tests/test_automatizaciones.py` (crear regla, generar tarea, procesar y log de exito, fallo controlado con log de error). En host local no corre por entorno faltante: `ModuleNotFoundError: No module named 'django'` y `Unknown config option: DJANGO_SETTINGS_MODULE`.
+
+Detalle: `docs/ai/sessions/2026-05-04-agent-cu17-fase6.md`
+
+---
+
+**Fecha:** 2026-05-04 (Fase 5 CU16 CRM pacientes)
+
+**Backend:** nuevo modulo `apps.crm` con CRUD para segmentacion, campanas e historial de contacto bajo `/api/crm-segmentaciones/`, `/api/crm-campanas/` y `/api/crm-contactos/`.
+
+**Datos/negocio:**
+- `SegmentacionPaciente` para clasificar pacientes por criterios.
+- `CampanaCRM` vinculada a segmentacion con estado y rango de fechas.
+- `HistorialContacto` vinculado a paciente/campana con canal y resultado de contacto.
+
+**Permisos/bitacora:** mutaciones restringidas a `IsAdministrativoOrAdmin`; lectura para usuarios autenticados; bitacora create/update/delete en modulo `crm`.
+
+**Integracion:** app agregada en `config/settings.py` y rutas incluidas en `config/urls.py` sin romper el prefijo base `/api/`.
+
+**Testing:** agregado `backend/apps/crm/tests/test_crm.py` (permisos, validacion de fechas y CRUD base + bitacora). En host local no corre por falta de DRF (`ModuleNotFoundError: rest_framework`) y pytest-django no inicializa (`Unknown config option: DJANGO_SETTINGS_MODULE`).
+
+Detalle: `docs/ai/sessions/2026-05-04-agent-cu16-fase5.md`
+
+---
+
+**Fecha:** 2026-05-04 (Fase 4 CU15 postoperatorio)
+
+**Backend:** nuevo modulo `apps.atencionClinica.postoperatorio` con CRUD en `/api/postoperatorios/`.
+
+**Datos/negocio:** seguimiento postoperatorio con `estado_postoperatorio`, `fecha_control`, `proximo_control`, `alertas` y `profesional_atiende`; validaciones de coherencia paciente-historia-cirugia y regla temporal (`proximo_control >= fecha_control`).
+
+**Permisos/bitacora:** mutaciones restringidas a `IsMedicoOrAdmin`; bitacora en create/update/delete con `modulo='postoperatorio'`.
+
+**Integracion:** app agregada en `config/settings.py` y rutas incluidas en `config/urls.py`.
+
+**Testing:** agregado `backend/apps/atencionClinica/postoperatorio/tests/test_postoperatorio.py` (permisos, validaciones, CRUD, filtros, bitacora). En host local no corre por falta de Django/DRF; Docker local no disponible en esta ejecucion.
+
+Detalle: `docs/ai/sessions/2026-05-04-agent-cu15-fase4.md`
+
+---
+
 **Fecha:** 2026-05-01 (Fase 3 CU14 cirugias)
 
 **Backend:** nuevo modulo `apps.atencionClinica.cirugias` con CRUD en `/api/cirugias/` y accion `POST /api/cirugias/{id}/reprogramar/`.

@@ -10,6 +10,41 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+**Fecha:** 2026-05-04  
+**Decisión:** En CU17 se implementó procesamiento de recordatorios con `management command` (`procesar_recordatorios`) + ejecución por cron, en lugar de introducir Celery en esta fase.  
+**Motivo:** Priorizar una estrategia segura e incremental sin bloquear requests web ni agregar complejidad operativa prematura (broker/workers) hasta que el volumen lo justifique.  
+**Impacto:** El backend procesa tareas en lotes (`--limit`) fuera del ciclo HTTP; queda pendiente definir scheduler en infraestructura (Docker/VM) para producción.
+
+---
+
+**Fecha:** 2026-05-04  
+**Decisión:** En CU16 CRM se definieron tres recursos planos (`crm-segmentaciones`, `crm-campanas`, `crm-contactos`) bajo `/api/` en lugar de anidar rutas por campaña o paciente.  
+**Motivo:** Mantener consistencia con Fases 1-4 (endpoints DRF planos por recurso) y evitar romper convenciones existentes de consumo en web/mobile.  
+**Impacto:** Integraciones futuras consumen CRUD estándar por recurso con filtros por query params sin cambios estructurales del router.
+
+---
+
+**Fecha:** 2026-05-04  
+**Decisión:** En CU16, las mutaciones de CRM (`create/update/delete`) quedan restringidas a `IsAdministrativoOrAdmin`, dejando lectura en `IsAuthenticated`.  
+**Motivo:** El CRM operativo suele ser responsabilidad administrativa; se reutiliza permiso existente para no introducir reglas nuevas ni deuda de seguridad.  
+**Impacto:** Usuarios PACIENTE/MEDICO/ESPECIALISTA pueden consultar si tienen token, pero no alterar campañas/segmentaciones/contactos.
+
+---
+
+**Fecha:** 2026-05-04  
+**Decisión:** En CU15 el endpoint `GET /api/postoperatorios/` soporta filtro de fecha por query param `?fecha=YYYY-MM-DD` aplicado sobre `fecha_control__date`.  
+**Motivo:** Cubrir requerimiento funcional de filtro por fecha sin romper el contrato base de DRF ni crear endpoints paralelos.  
+**Impacto:** Web/mobile pueden filtrar controles del dia sin conocer internamente `__date` en ORM.
+
+---
+
+**Fecha:** 2026-05-04  
+**Decisión:** En CU15, `profesional_atiende` se asigna automaticamente con `request.user` en `perform_create`.  
+**Motivo:** Reusar patron de CU13/CU14 para trazabilidad del profesional actuante y evitar spoofing de usuario desde cliente.  
+**Impacto:** Mutaciones conservan autoria consistente y facilitan control de acceso por `tipo_usuario` en `get_queryset`.
+
+---
+
 **Fecha:** 2026-05-01  
 **Decisión:** En CU14 se expone `POST /api/cirugias/{id}/reprogramar/` como accion dedicada sobre el recurso en lugar de crear endpoint separado.  
 **Motivo:** Reusar patron existente en `citas` y mantener operacion de cambio de agenda como transicion de estado auditable.  

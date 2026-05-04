@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 
 from .views import (
     DispositivoFcmRegisterView,
@@ -12,4 +12,5 @@ urlpatterns = [
     path('', NotificacionListView.as_view(), name='notificaciones-list'),
     path('<int:pk>/leer/', NotificacionLeerView.as_view(), name='notificacion-leer'),
     path('leer-todas/', NotificacionMarcarTodasLeidasView.as_view(), name='notificaciones-leer-todas'),
+    path('', include('apps.notificaciones.automatizaciones.urls')),
 ]
