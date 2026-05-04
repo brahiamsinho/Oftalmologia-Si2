@@ -6,9 +6,9 @@ Lista priorizada para Oftalmología Si2 (actualizada tras integración mobile pa
 - [x] CU12 Backend: modulo `evaluacion_quirurgica` (CRUD + validaciones + permisos + bitacora + tests minimos).
 - [x] CU13 Backend: modulo `preoperatorio` (CRUD + estado/checklist/examenes + validaciones + permisos + bitacora + tests minimos).
 - [x] CU14 Backend: modulo `cirugias` (CRUD + reprogramacion + estado/fechas/cirujano/resultado/complicaciones + validaciones + permisos + bitacora + tests minimos).
-- [ ] CU15 Backend: modulo `postoperatorio`.
-- [ ] CU16 Backend: CRM pacientes.
-- [ ] CU17 Backend: recordatorios automaticos (management command + cron).
+- [x] CU15 Backend: modulo `postoperatorio` (CRUD + filtros paciente/cirugia/fecha/estado + validaciones + permisos + bitacora + tests minimos).
+- [x] CU16 Backend: CRM pacientes (segmentacion + campanas + historial de contacto + CRUD + permisos + bitacora + tests minimos).
+- [x] CU17 Backend: recordatorios automaticos (management command + cron).
 - [x] Backend: CustomUser + JWT (ya existía; login refinado a email + `check_password`).
 - [x] Mobile: Login real + home paciente con `GET /citas/` + tema/rutas base.
 - [x] Frontend: Login con `email` alineado a API.
@@ -34,3 +34,4 @@ Lista priorizada para Oftalmología Si2 (actualizada tras integración mobile pa
 - [ ] Doc único de convenciones TS / Dart / Python.
 - [ ] Storage compartido para imágenes clínicas (S3 / similar).
 - [ ] Tests automatizados en flujos auth + citas (backend + widget mobile crítico).
+- [ ] Infra: programar cron real para `manage.py procesar_recordatorios` en entorno Docker/VM y monitorear logs.

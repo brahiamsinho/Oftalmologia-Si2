@@ -60,6 +60,76 @@
 - Integracion en `config/settings.py` y `config/urls.py`.
 - Tests minimos agregados para permisos, validaciones, CRUD y accion de reprogramacion.
 
+## Actualizacion 2026-05-04 (Fase 4 CU15)
+- Nuevo modulo backend `apps.atencionClinica.postoperatorio` implementado.
+- Endpoint CRUD habilitado: `GET/POST /api/postoperatorios/` y `GET/PATCH/DELETE /api/postoperatorios/{id}/`.
+- Filtros funcionales habilitados por query params:
+  - `id_paciente`
+  - `id_cirugia`
+  - `estado_postoperatorio`
+  - `fecha=YYYY-MM-DD` (sobre `fecha_control`)
+- Entidad minima incluida:
+  - `alertas`
+  - `proximo_control`
+  - `profesional_atiende`
+  - `estado_postoperatorio`
+- Validaciones activas:
+  - historia clinica corresponde al paciente
+  - cirugia corresponde al paciente
+  - `proximo_control >= fecha_control`
+- Permisos por rol:
+  - mutaciones: `IsAuthenticated + IsMedicoOrAdmin`.
+  - lectura por queryset segun `tipo_usuario` (PACIENTE propio, MEDICO/ESPECIALISTA por `profesional_atiende`, staff global).
+- Bitacora en create/update/delete (`modulo='postoperatorio'`).
+- Integracion en `config/settings.py` y `config/urls.py`.
+- Tests minimos agregados en `backend/apps/atencionClinica/postoperatorio/tests/test_postoperatorio.py`.
+
+## Actualizacion 2026-05-04 (Fase 5 CU16 CRM pacientes)
+- Nuevo modulo backend `apps.crm` implementado en `backend/apps/crm/`.
+- Endpoints CRUD habilitados:
+  - `GET/POST /api/crm-segmentaciones/`
+  - `GET/PATCH/DELETE /api/crm-segmentaciones/{id}/`
+  - `GET/POST /api/crm-campanas/`
+  - `GET/PATCH/DELETE /api/crm-campanas/{id}/`
+  - `GET/POST /api/crm-contactos/`
+  - `GET/PATCH/DELETE /api/crm-contactos/{id}/`
+- Entidades minimas incluidas:
+  - Segmentacion (`nombre`, `criterios`, `activo`)
+  - Campana (`segmentacion`, `estado`, `fecha_inicio`, `fecha_fin`)
+  - Historial de contacto (`paciente`, `campana`, `canal`, `resultado`, `fecha_contacto`)
+- Validaciones activas:
+  - `fecha_fin` de campana no puede ser anterior a `fecha_inicio`.
+- Permisos por rol:
+  - mutaciones: `IsAuthenticated + IsAdministrativoOrAdmin`.
+  - lectura: `IsAuthenticated`.
+- Bitacora en create/update/delete para las 3 entidades (`modulo='crm'`).
+- Integracion en `config/settings.py` y `config/urls.py` manteniendo prefijo base `/api/`.
+- Tests minimos agregados en `backend/apps/crm/tests/test_crm.py` (permisos, validacion y CRUD base).
+
+## Actualizacion 2026-05-04 (Fase 6 CU17 recordatorios automaticos)
+- Nuevo modulo backend `apps.notificaciones.automatizaciones` implementado en `backend/apps/notificaciones/automatizaciones/`.
+- Endpoints CRUD/listado habilitados bajo `/api/notificaciones/`:
+  - `GET/POST /api/notificaciones/reglas/`
+  - `GET/PATCH/DELETE /api/notificaciones/reglas/{id}/`
+  - `GET /api/notificaciones/tareas/`
+  - `POST /api/notificaciones/tareas/generar/`
+  - `POST /api/notificaciones/tareas/procesar/`
+  - `GET /api/notificaciones/logs/`
+- Entidades minimas incluidas:
+  - `ReglaRecordatorio`
+  - `TareaRecordatorioProgramada`
+  - `LogEjecucionRecordatorio`
+- Estrategia segura de ejecucion:
+  - comando cron-friendly `python manage.py procesar_recordatorios --limit N`
+  - procesamiento asincrono por lote sin bloquear requests web.
+- Permisos y seguridad:
+  - mutaciones de reglas y generacion/procesamiento de tareas restringidas a `IsAdministrativoOrAdmin`.
+  - lecturas en `IsAuthenticated`.
+  - bitacora en create/update/delete de reglas y generacion de tareas.
+- Integracion en `config/settings.py` (`apps.notificaciones.automatizaciones`) y enrutamiento en `apps/notificaciones/urls.py`.
+- Tests minimos agregados en `backend/apps/notificaciones/automatizaciones/tests/test_automatizaciones.py`.
+- En host local no se pudo ejecutar pytest por entorno incompleto (`ModuleNotFoundError: No module named 'django'` y warning `Unknown config option: DJANGO_SETTINGS_MODULE`).
+
 ## Qué Ya Está Hecho
 
 ### Backend (Django / DRF)
@@ -139,4 +209,4 @@ Ejecutar: `docker compose exec backend python manage.py seed --only demo_pacient
 - Tras cambiar `DJANGO_SECRET_KEY` corta por derivación JWT, tokens previos invalidan hasta nuevo login.
 
 ---
-*(Actualizado: 2026-04-12)*
+*(Actualizado: 2026-05-04)*
