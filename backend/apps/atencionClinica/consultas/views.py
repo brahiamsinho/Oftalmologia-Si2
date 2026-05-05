@@ -23,12 +23,14 @@ class ConsultaViewSet(viewsets.ModelViewSet):
             .get_queryset()
             .select_related('paciente', 'cita', 'especialista')
         )
+        tenant = getattr(self.request, 'tenant', None)
+        queryset = queryset.for_tenant(tenant)
         user = self.request.user
         if not user.is_authenticated:
             return Consulta.objects.none()
         tipo = getattr(user, 'tipo_usuario', '') or ''
         if tipo == 'PACIENTE':
-            paciente = Paciente.objects.filter(usuario=user).first()
+            paciente = Paciente.objects.for_tenant(tenant).filter(usuario=user).first()
             if not paciente:
                 return Consulta.objects.none()
             return queryset.filter(paciente=paciente)
@@ -103,12 +105,14 @@ class EstudioViewSet(viewsets.ModelViewSet):
             .get_queryset()
             .select_related('paciente', 'consulta', 'consulta__especialista')
         )
+        tenant = getattr(self.request, 'tenant', None)
+        queryset = queryset.for_tenant(tenant)
         user = self.request.user
         if not user.is_authenticated:
             return Estudio.objects.none()
         tipo = getattr(user, 'tipo_usuario', '') or ''
         if tipo == 'PACIENTE':
-            paciente = Paciente.objects.filter(usuario=user).first()
+            paciente = Paciente.objects.for_tenant(tenant).filter(usuario=user).first()
             if not paciente:
                 return Estudio.objects.none()
             return queryset.filter(paciente=paciente)

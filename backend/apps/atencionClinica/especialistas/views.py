@@ -42,6 +42,13 @@ class EspecialistaViewSet(viewsets.ModelViewSet):
     ordering_fields = ['usuario__apellidos', 'especialidad', 'activo']
     ordering = ['usuario__apellidos']
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        tenant = getattr(self.request, 'tenant', None)
+        if tenant is not None:
+            qs = qs.for_tenant(tenant)
+        return qs
+
     def perform_create(self, serializer):
         especialista = serializer.save()
         registrar_bitacora(

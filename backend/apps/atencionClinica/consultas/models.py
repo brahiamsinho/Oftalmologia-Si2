@@ -1,9 +1,20 @@
 from django.db import models
+
+from apps.tenant.managers import TenantManager
+from apps.tenant.utils import resolve_tenant_for_write
 from apps.pacientes.pacientes.models import Paciente
 from apps.usuarios.users.models import Usuario
 from apps.atencionClinica.citas.models import Cita
 
 class Consulta(models.Model):
+    tenant = models.ForeignKey(
+        'tenant.Tenant',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='id_tenant',
+        related_name='consultas',
+    )
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='consultas')
     cita = models.ForeignKey(Cita, on_delete=models.SET_NULL, null=True, blank=True, related_name='consultas')
     especialista = models.ForeignKey(Usuario, on_delete=models.SET_NULL, null=True, related_name='consultas_realizadas')
@@ -20,6 +31,8 @@ class Consulta(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = TenantManager()
+
     class Meta:
         ordering = ['-fecha']
         verbose_name = 'Consulta'
@@ -28,7 +41,25 @@ class Consulta(models.Model):
     def __str__(self):
         return f"Consulta de {self.paciente} el {self.fecha.strftime('%Y-%m-%d')}"
 
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.tenant_id is None:
+            related_tenant = getattr(self.paciente, 'tenant', None)
+            if related_tenant is None:
+                related_tenant = getattr(self.cita, 'tenant', None)
+            if related_tenant is None:
+                related_tenant = getattr(self.especialista, 'tenant', None)
+            self.tenant = resolve_tenant_for_write(related_tenant=related_tenant)
+        super().save(*args, **kwargs)
+
 class Estudio(models.Model):
+    tenant = models.ForeignKey(
+        'tenant.Tenant',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='id_tenant',
+        related_name='estudios',
+    )
     TIPO_ESTUDIO_CHOICES = [
         ('refraccion', 'Refracción'),
         ('tonometria', 'Tonometría (Presión Intraocular)'),
@@ -55,6 +86,8 @@ class Estudio(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = TenantManager()
+
     class Meta:
         ordering = ['-fecha']
         verbose_name = 'Estudio Oftalmológico'
@@ -62,3 +95,11 @@ class Estudio(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_estudio_display()} - {self.paciente} ({self.fecha.strftime('%Y-%m-%d')})"
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.tenant_id is None:
+            related_tenant = getattr(self.paciente, 'tenant', None)
+            if related_tenant is None:
+                related_tenant = getattr(self.consulta, 'tenant', None)
+            self.tenant = resolve_tenant_for_write(related_tenant=related_tenant)
+        super().save(*args, **kwargs)

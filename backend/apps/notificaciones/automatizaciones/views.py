@@ -50,6 +50,11 @@ class ReglaRecordatorioViewSet(AutomatizacionesBitacoraMixin, viewsets.ModelView
             return [IsAuthenticated(), IsAdministrativoOrAdmin()]
         return [IsAuthenticated()]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        tenant = getattr(self.request, 'tenant', None)
+        return qs.for_tenant(tenant)
+
     def perform_create(self, serializer):
         instance = serializer.save(creado_por=self.request.user)
         self._registrar(AccionBitacora.CREAR, f'Creo regla de recordatorio #{instance.id_regla}', instance)
@@ -79,6 +84,8 @@ class TareaRecordatorioViewSet(
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        tenant = getattr(self.request, 'tenant', None)
+        queryset = queryset.for_tenant(tenant)
         estado = self.request.query_params.get('estado')
         if estado:
             queryset = queryset.filter(estado=estado)
@@ -91,7 +98,7 @@ class TareaRecordatorioViewSet(
 
     @action(detail=False, methods=['post'], url_path='generar')
     def generar(self, request):
-        serializer = GenerarTareaSerializer(data=request.data)
+        serializer = GenerarTareaSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         tarea = serializer.save()
         registrar_bitacora(
@@ -123,3 +130,8 @@ class LogEjecucionRecordatorioViewSet(mixins.ListModelMixin, mixins.RetrieveMode
     queryset = LogEjecucionRecordatorio.objects.select_related('id_tarea').all()
     serializer_class = LogEjecucionRecordatorioSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        tenant = getattr(self.request, 'tenant', None)
+        return qs.for_tenant(tenant)

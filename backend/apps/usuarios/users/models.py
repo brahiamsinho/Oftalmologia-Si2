@@ -12,6 +12,8 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.utils import timezone
 
+from apps.tenant.utils import resolve_tenant_for_write
+
 from .managers import UsuarioManager
 
 
@@ -38,6 +40,14 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     """
     username = models.CharField(max_length=50, unique=True)
     email = models.EmailField(max_length=120, unique=True)
+    tenant = models.ForeignKey(
+        'tenant.Tenant',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='id_tenant',
+        related_name='usuarios',
+    )
     nombres = models.CharField(max_length=100)
     apellidos = models.CharField(max_length=100)
     telefono = models.CharField(max_length=30, blank=True, null=True)
@@ -72,6 +82,11 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 
     def get_short_name(self):
         return self.nombres
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.tenant_id is None:
+            self.tenant = resolve_tenant_for_write()
+        super().save(*args, **kwargs)
 
 
 class TokenRecuperacion(models.Model):

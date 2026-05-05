@@ -7,6 +7,9 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from apps.tenant.managers import TenantManager
+from apps.tenant.utils import resolve_tenant_for_write
+
 
 class AccionBitacora(models.TextChoices):
     LOGIN = 'LOGIN', 'Inicio de sesión'
@@ -29,6 +32,14 @@ class Bitacora(models.Model):
     incluso si el usuario es eliminado.
     """
     id_bitacora = models.BigAutoField(primary_key=True)
+    tenant = models.ForeignKey(
+        'tenant.Tenant',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='id_tenant',
+        related_name='bitacoras',
+    )
     id_usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -46,6 +57,8 @@ class Bitacora(models.Model):
     user_agent = models.TextField(blank=True, null=True)
     fecha_evento = models.DateTimeField(default=timezone.now)
 
+    objects = TenantManager()
+
     class Meta:
         db_table = 'bitacora'
         verbose_name = 'Evento de Bitácora'
@@ -55,3 +68,9 @@ class Bitacora(models.Model):
     def __str__(self):
         user = self.id_usuario or 'Sistema'
         return f'[{self.fecha_evento:%Y-%m-%d %H:%M}] {self.accion} — {self.modulo} ({user})'
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.tenant_id is None:
+            related_tenant = getattr(self.id_usuario, 'tenant', None)
+            self.tenant = resolve_tenant_for_write(related_tenant=related_tenant)
+        super().save(*args, **kwargs)

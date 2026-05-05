@@ -9,6 +9,9 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from apps.tenant.managers import TenantManager
+from apps.tenant.utils import resolve_tenant_for_write
+
 
 class EstadoPaciente(models.TextChoices):
     ACTIVO = 'ACTIVO', 'Activo'
@@ -31,6 +34,14 @@ class Paciente(models.Model):
         
 
     id_paciente = models.BigAutoField(primary_key=True)
+    tenant = models.ForeignKey(
+        'tenant.Tenant',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='id_tenant',
+        related_name='pacientes',
+    )
     usuario = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -56,6 +67,8 @@ class Paciente(models.Model):
     fecha_registro = models.DateTimeField(default=timezone.now)
     observaciones_generales = models.TextField(blank=True, null=True)
 
+    objects = TenantManager()
+
     class Meta:
         db_table = 'pacientes'
         verbose_name = 'Paciente'
@@ -67,3 +80,9 @@ class Paciente(models.Model):
 
     def get_full_name(self):
         return f'{self.nombres} {self.apellidos}'
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.tenant_id is None:
+            related_tenant = getattr(self.usuario, 'tenant', None)
+            self.tenant = resolve_tenant_for_write(related_tenant=related_tenant)
+        super().save(*args, **kwargs)

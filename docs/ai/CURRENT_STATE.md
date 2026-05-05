@@ -1,5 +1,19 @@
 # CURRENT STATE
 
+## Actualizacion 2026-05-04 (Fase 1b multi-tenant primera ola)
+- Se tenantizaron roots críticos con FK nullable a `Tenant`: `Usuario`, `Paciente`, `HistoriaClinica`, `Bitacora`, `Notificacion`, `DispositivoFcm` y `Especialista`.
+- Las tablas existentes fueron backfilled al tenant `legacy` y las nuevas altas asignan tenant server-side desde contexto runtime o fallback `legacy`.
+- Se añadió scoping mínimo por tenant en listados de `Usuario`, `Paciente`, `HistoriaClinica`, `Bitacora` y `Especialista` cuando `request.tenant` existe.
+- Se agregó un test de aislamiento para `Paciente` (create + list + retrieve cross-tenant 404).
+- Aún no se fuerza `NOT NULL` en estas raíces: quedó para la siguiente ola porque auth pública sigue bypassing el middleware de tenant.
+
+## Actualizacion 2026-05-05 (Fase 1b multi-tenant segunda ola, parcial)
+- Se reforzó el scoping tenant-aware en `citas`, `consultas`, `crm` y `notificaciones.automatizaciones` con FK nullable a `Tenant`, backfill a `legacy` y validaciones cross-tenant en serializers.
+- Se agregó `for_tenant()`/`for_current_tenant()` más consistente en el queryset base de tenants.
+- Se tenantizaron `SegmentacionPaciente`, `CampanaCRM`, `HistorialContacto`, `ReglaRecordatorio`, `TareaRecordatorioProgramada`, `LogEjecucionRecordatorio`, `Consulta`, `Estudio`, `Cita` y `DisponibilidadEspecialista`.
+- Se añadieron pruebas mínimas de aislamiento cross-tenant para `Citas` y `CRM`.
+- La suite local no pudo ejecutarse por entorno incompleto: `ModuleNotFoundError: No module named 'django'` / `rest_framework` en el Python del host.
+
 ## Actualizacion 2026-05-04 (Fase 1a multi-tenant base)
 - Se agrego la infraestructura base de tenants sin scoping masivo todavia.
 - Nuevo app backend `apps.tenant` con `Tenant` y `TenantSettings`.
