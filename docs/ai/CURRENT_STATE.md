@@ -1,5 +1,14 @@
 # CURRENT STATE
 
+## Actualizacion 2026-05-04 (Fase 1a multi-tenant base)
+- Se agrego la infraestructura base de tenants sin scoping masivo todavia.
+- Nuevo app backend `apps.tenant` con `Tenant` y `TenantSettings`.
+- Middleware `apps.core.tenant_middleware.TenantMiddleware` resuelve `X-Tenant-Slug`, asigna `request.tenant` y expone el tenant en contexto utilitario.
+- Los errores del middleware ahora salen como `JsonResponse` de Django y el `ContextVar` se limpia al inicio/final de cada request.
+- Se bootstrappea el tenant default `legacy` para compatibilidad inicial.
+- Se agregaron tests minimos para header tenant, tenant ausente/inexistente/inactivo y bypass de health/public.
+- No se toco frontend ni el scoping por modulo existente.
+
 ## Estado Actual del Proyecto
 **Sprint 1 backend completo** + **Mobile paciente integrado** (login + home con citas reales). Frontend Next.js con auth por correo alineado al mismo contrato de API.
 
