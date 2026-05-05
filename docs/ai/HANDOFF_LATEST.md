@@ -1,6 +1,23 @@
 # HANDOFF LATEST
 
 ## Resumen
+**Fecha:** 2026-05-04 (Fase 1a multi-tenant base)
+
+**Backend:** se agrego la base multi-tenant con `apps.tenant`, middleware `X-Tenant-Slug` y contexto utilitario en `apps.core`.
+
+**Datos/negocio:** `Tenant` controla slug unico, nombre, activo y dominio base; `TenantSettings` guarda timezone, idioma, branding minimo y flags.
+
+**Ejecucion segura:** el middleware marca `request.tenant`; si falta el header en endpoints protegidos responde `400`; si el tenant no existe o esta inactivo responde `403`. Las respuestas de error ahora usan `JsonResponse` de Django (no DRF `Response`) y el `ContextVar` se resetea por request. `/api/health/` y `/api/auth/` quedan exentos.
+
+**Bootstrap:** migracion de datos crea el tenant `legacy` con settings por defecto para compatibilidad inicial.
+
+**Testing:** agregados tests minimos del middleware en `backend/apps/core/tests/test_tenant_middleware.py`.
+
+Detalle: `docs/ai/sessions/2026-05-04-agent-multi-tenant-fase1a.md`
+
+---
+
+## Resumen
 **Fecha:** 2026-05-04 (Fase 6 CU17 recordatorios automaticos)
 
 **Backend:** nuevo modulo `apps.notificaciones.automatizaciones` con reglas, tareas programadas y logs bajo `/api/notificaciones/`.

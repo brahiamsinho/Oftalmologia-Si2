@@ -11,6 +11,20 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 ---
 
 **Fecha:** 2026-05-04  
+**Decisión:** El middleware multi-tenant ya no devuelve `rest_framework.response.Response`; los errores se emiten con `JsonResponse` de Django y el `ContextVar` del tenant se limpia al inicio/final de cada request.  
+**Motivo:** Evitar fragilidad de renderizado/runtime por mezclar respuestas DRF dentro de middleware Django y reducir fugas de contexto entre requests.  
+**Impacto:** Los tests del middleware deben validar `JsonResponse`/`HttpResponse` válidos, bypass de rutas públicas y limpieza de contexto incluso ante excepciones.
+
+---
+
+**Fecha:** 2026-05-04  
+**Decisión:** En la Fase 1a multi-tenant se resolvera el tenant por header `X-Tenant-Slug`, guardandolo en `request.tenant` y en contexto utilitario, con bypass para `health` y `auth` publicos.  
+**Motivo:** Introducir la infraestructura base sin romper los módulos actuales ni forzar scoping masivo prematuro.  
+**Impacto:** Los endpoints protegidos empiezan a exigir tenant; los endpoints publicos siguen operando sin header. El scoping por modelo queda para la Fase 1b.
+
+---
+
+**Fecha:** 2026-05-04  
 **Decisión:** En CU17 se implementó procesamiento de recordatorios con `management command` (`procesar_recordatorios`) + ejecución por cron, en lugar de introducir Celery en esta fase.  
 **Motivo:** Priorizar una estrategia segura e incremental sin bloquear requests web ni agregar complejidad operativa prematura (broker/workers) hasta que el volumen lo justifique.  
 **Impacto:** El backend procesa tareas en lotes (`--limit`) fuera del ciclo HTTP; queda pendiente definir scheduler en infraestructura (Docker/VM) para producción.

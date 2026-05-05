@@ -61,6 +61,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     'apps.core',
+    'apps.tenant',
     'apps.usuarios.users',
     'apps.usuarios.permisos',
     'apps.usuarios.roles',
@@ -99,6 +100,7 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'apps.core.tenant_middleware.TenantMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',

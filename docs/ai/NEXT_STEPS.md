@@ -3,6 +3,8 @@
 Lista priorizada para Oftalmología Si2 (actualizada tras integración mobile paciente).
 
 ## Corto Plazo
+- [x] Fase 1a multi-tenant base: app `tenant`, middleware `X-Tenant-Slug`, `request.tenant`, bootstrap `legacy`, tests minimos.
+- [x] Fase 1a multi-tenant hardening: errores del middleware con `JsonResponse` + limpieza de `ContextVar` + tests de bypass/aislamiento.
 - [x] CU12 Backend: modulo `evaluacion_quirurgica` (CRUD + validaciones + permisos + bitacora + tests minimos).
 - [x] CU13 Backend: modulo `preoperatorio` (CRUD + estado/checklist/examenes + validaciones + permisos + bitacora + tests minimos).
 - [x] CU14 Backend: modulo `cirugias` (CRUD + reprogramacion + estado/fechas/cirujano/resultado/complicaciones + validaciones + permisos + bitacora + tests minimos).
