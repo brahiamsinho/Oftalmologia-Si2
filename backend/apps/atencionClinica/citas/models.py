@@ -7,6 +7,9 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from apps.tenant.managers import TenantManager
+from apps.tenant.utils import resolve_tenant_for_write
+
 
 class TipoCitaNombre(models.TextChoices):
     CONSULTA = 'CONSULTA', 'Consulta'
@@ -47,6 +50,14 @@ class DisponibilidadEspecialista(models.Model):
     dia_semana: 1=Lunes … 7=Domingo
     """
     id_disponibilidad = models.BigAutoField(primary_key=True)
+    tenant = models.ForeignKey(
+        'tenant.Tenant',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='id_tenant',
+        related_name='disponibilidades_especialista',
+    )
     id_especialista = models.ForeignKey(
         'especialistas.Especialista',
         on_delete=models.CASCADE,
@@ -61,6 +72,8 @@ class DisponibilidadEspecialista(models.Model):
     fecha_hasta = models.DateField(null=True, blank=True)
     activo = models.BooleanField(default=True)
 
+    objects = TenantManager()
+
     class Meta:
         db_table = 'disponibilidades_especialista'
         verbose_name = 'Disponibilidad de Especialista'
@@ -71,12 +84,26 @@ class DisponibilidadEspecialista(models.Model):
         dias = {1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb', 7: 'Dom'}
         return f'{self.id_especialista} — {dias.get(self.dia_semana, "?")} {self.hora_inicio}-{self.hora_fin}'
 
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.tenant_id is None:
+            related_tenant = getattr(self.id_especialista, 'tenant', None)
+            self.tenant = resolve_tenant_for_write(related_tenant=related_tenant)
+        super().save(*args, **kwargs)
+
 
 class Cita(models.Model):
     """
     Programación, reprogramación, cancelación, confirmación y control de citas.
     """
     id_cita = models.BigAutoField(primary_key=True)
+    tenant = models.ForeignKey(
+        'tenant.Tenant',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='id_tenant',
+        related_name='citas',
+    )
     id_paciente = models.ForeignKey(
         'pacientes.Paciente',
         on_delete=models.CASCADE,
@@ -119,6 +146,8 @@ class Cita(models.Model):
     )
     fecha_creacion = models.DateTimeField(default=timezone.now)
 
+    objects = TenantManager()
+
     class Meta:
         db_table = 'citas'
         verbose_name = 'Cita'
@@ -130,3 +159,13 @@ class Cita(models.Model):
             f'Cita {self.id_cita} — {self.id_paciente} con {self.id_especialista} '
             f'[{self.fecha_hora_inicio:%Y-%m-%d %H:%M}] ({self.estado})'
         )
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.tenant_id is None:
+            related_tenant = getattr(self.id_paciente, 'tenant', None)
+            if related_tenant is None:
+                related_tenant = getattr(self.id_especialista, 'tenant', None)
+            if related_tenant is None:
+                related_tenant = getattr(self.creado_por, 'tenant', None)
+            self.tenant = resolve_tenant_for_write(related_tenant=related_tenant)
+        super().save(*args, **kwargs)

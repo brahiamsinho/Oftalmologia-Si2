@@ -7,6 +7,9 @@ que atiende consultas, diagnostica y prescribe tratamientos.
 from django.conf import settings
 from django.db import models
 
+from apps.tenant.managers import TenantManager
+from apps.tenant.utils import resolve_tenant_for_write
+
 
 class Especialista(models.Model):
     """
@@ -16,6 +19,14 @@ class Especialista(models.Model):
     para evitar imports circulares.
     """
     id_especialista = models.BigAutoField(primary_key=True)
+    tenant = models.ForeignKey(
+        'tenant.Tenant',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='id_tenant',
+        related_name='especialistas',
+    )
     usuario = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -34,8 +45,16 @@ class Especialista(models.Model):
         verbose_name_plural = 'Especialistas'
         ordering = ['usuario__apellidos', 'usuario__nombres']
 
+    objects = TenantManager()
+
     def __str__(self):
         return f'{self.usuario.get_full_name()} — {self.especialidad}'
 
     def get_full_name(self):
         return self.usuario.get_full_name()
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.tenant_id is None:
+            related_tenant = getattr(self.usuario, 'tenant', None)
+            self.tenant = resolve_tenant_for_write(related_tenant=related_tenant)
+        super().save(*args, **kwargs)

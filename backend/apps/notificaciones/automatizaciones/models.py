@@ -1,6 +1,9 @@
 from django.db import models
 from django.utils import timezone
 
+from apps.tenant.managers import TenantManager
+from apps.tenant.utils import resolve_tenant_for_write
+
 
 class TipoReglaRecordatorio(models.TextChoices):
     CONTROL_POSTOPERATORIO = 'CONTROL_POSTOPERATORIO', 'Control postoperatorio'
@@ -20,7 +23,15 @@ class NivelLog(models.TextChoices):
 
 class ReglaRecordatorio(models.Model):
     id_regla = models.BigAutoField(primary_key=True)
-    nombre = models.CharField(max_length=120, unique=True)
+    tenant = models.ForeignKey(
+        'tenant.Tenant',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='id_tenant',
+        related_name='reglas_recordatorio',
+    )
+    nombre = models.CharField(max_length=120)
     tipo_regla = models.CharField(
         max_length=40,
         choices=TipoReglaRecordatorio.choices,
@@ -41,18 +52,37 @@ class ReglaRecordatorio(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = TenantManager()
+
     class Meta:
         db_table = 'notificaciones_reglas_recordatorio'
         verbose_name = 'Regla de recordatorio'
         verbose_name_plural = 'Reglas de recordatorio'
         ordering = ['nombre']
+        constraints = [
+            models.UniqueConstraint(fields=['tenant', 'nombre'], name='recordatorio_tenant_nombre_uniq'),
+        ]
 
     def __str__(self):
         return f'{self.nombre} ({self.horas_antes}h antes)'
 
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.tenant_id is None:
+            related_tenant = getattr(self.creado_por, 'tenant', None)
+            self.tenant = resolve_tenant_for_write(related_tenant=related_tenant)
+        super().save(*args, **kwargs)
+
 
 class TareaRecordatorioProgramada(models.Model):
     id_tarea = models.BigAutoField(primary_key=True)
+    tenant = models.ForeignKey(
+        'tenant.Tenant',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='id_tenant',
+        related_name='tareas_recordatorio',
+    )
     id_regla = models.ForeignKey(
         ReglaRecordatorio,
         on_delete=models.PROTECT,
@@ -86,6 +116,8 @@ class TareaRecordatorioProgramada(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = TenantManager()
+
     class Meta:
         db_table = 'notificaciones_tareas_recordatorio'
         verbose_name = 'Tarea de recordatorio'
@@ -103,9 +135,27 @@ class TareaRecordatorioProgramada(models.Model):
         self.procesada_en = timezone.now()
         self.save(update_fields=['estado', 'intentos', 'procesada_en', 'updated_at'])
 
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.tenant_id is None:
+            related_tenant = getattr(self.id_paciente, 'tenant', None)
+            if related_tenant is None:
+                related_tenant = getattr(self.id_regla, 'tenant', None)
+            if related_tenant is None:
+                related_tenant = getattr(self.id_postoperatorio.id_paciente, 'tenant', None) if self.id_postoperatorio_id else None
+            self.tenant = resolve_tenant_for_write(related_tenant=related_tenant)
+        super().save(*args, **kwargs)
+
 
 class LogEjecucionRecordatorio(models.Model):
     id_log = models.BigAutoField(primary_key=True)
+    tenant = models.ForeignKey(
+        'tenant.Tenant',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column='id_tenant',
+        related_name='logs_recordatorio',
+    )
     id_tarea = models.ForeignKey(
         TareaRecordatorioProgramada,
         on_delete=models.SET_NULL,
@@ -125,5 +175,13 @@ class LogEjecucionRecordatorio(models.Model):
         verbose_name_plural = 'Logs de ejecución de recordatorio'
         ordering = ['-ejecutado_en']
 
+    objects = TenantManager()
+
     def __str__(self):
         return f'[{self.nivel}] {self.mensaje}'
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.tenant_id is None:
+            related_tenant = getattr(self.id_tarea, 'tenant', None)
+            self.tenant = resolve_tenant_for_write(related_tenant=related_tenant)
+        super().save(*args, **kwargs)

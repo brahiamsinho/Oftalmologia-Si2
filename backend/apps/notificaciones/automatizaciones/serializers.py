@@ -19,30 +19,57 @@ class ReglaRecordatorioSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReglaRecordatorio
         fields = '__all__'
-        read_only_fields = ['id_regla', 'creado_por', 'created_at', 'updated_at']
+        read_only_fields = ['id_regla', 'tenant', 'creado_por', 'created_at', 'updated_at']
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        nombre = attrs.get('nombre') or getattr(self.instance, 'nombre', None)
+        tenant = getattr(self.context.get('request'), 'tenant', None) or getattr(self.instance, 'tenant', None)
+        if nombre and tenant is not None:
+            qs = ReglaRecordatorio.objects.filter(tenant=tenant, nombre=nombre)
+            if self.instance is not None:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError({'nombre': 'Ya existe una regla con ese nombre en este tenant.'})
+        return attrs
 
 
 class TareaRecordatorioSerializer(serializers.ModelSerializer):
     class Meta:
         model = TareaRecordatorioProgramada
         fields = '__all__'
-        read_only_fields = ['id_tarea', 'estado', 'intentos', 'procesada_en', 'created_at', 'updated_at']
+        read_only_fields = ['id_tarea', 'tenant', 'estado', 'intentos', 'procesada_en', 'created_at', 'updated_at']
 
 
 class LogEjecucionRecordatorioSerializer(serializers.ModelSerializer):
     class Meta:
         model = LogEjecucionRecordatorio
         fields = '__all__'
-        read_only_fields = fields
+        read_only_fields = ['id_log', 'tenant', 'id_tarea', 'nivel', 'mensaje', 'detalle', 'ejecutado_en']
 
 
 class GenerarTareaSerializer(serializers.Serializer):
     id_regla = serializers.PrimaryKeyRelatedField(queryset=ReglaRecordatorio.objects.filter(activa=True))
     id_postoperatorio = serializers.PrimaryKeyRelatedField(queryset=Postoperatorio.objects.all())
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        tenant = getattr(request, 'tenant', None)
+        if tenant is not None:
+            self.fields['id_regla'].queryset = ReglaRecordatorio.objects.filter(activa=True, tenant=tenant)
+            self.fields['id_postoperatorio'].queryset = Postoperatorio.objects.filter(id_paciente__tenant=tenant)
+
     def validate(self, attrs):
+        attrs = super().validate(attrs)
         regla = attrs['id_regla']
         postoperatorio = attrs['id_postoperatorio']
+        tenant = getattr(self.context.get('request'), 'tenant', None)
+        if tenant is not None:
+            if getattr(regla, 'tenant_id', None) != tenant.pk:
+                raise serializers.ValidationError({'id_regla': 'La regla no pertenece al tenant actual.'})
+            if getattr(postoperatorio.id_paciente, 'tenant_id', None) != tenant.pk:
+                raise serializers.ValidationError({'id_postoperatorio': 'El postoperatorio no pertenece al tenant actual.'})
         programada_para = postoperatorio.proximo_control - timedelta(hours=regla.horas_antes)
         if programada_para <= timezone.now():
             raise serializers.ValidationError(

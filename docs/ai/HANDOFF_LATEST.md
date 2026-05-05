@@ -1,6 +1,32 @@
 # HANDOFF LATEST
 
 ## Resumen
+**Fecha:** 2026-05-05 (Fase 1b multi-tenant segunda ola, parcial)
+
+**Backend:** se reforzó el tenant-aware scoping en citas, consultas, CRM y automatizaciones con FK a `Tenant`, backfill `legacy` y serializers que bloquean tenant/relaciones cruzadas desde el cliente.
+
+**Datos/negocio:** `SegmentacionPaciente` y `ReglaRecordatorio` pasaron a unicidad por tenant; `Consulta`, `Estudio`, `Cita`, `DisponibilidadEspecialista`, `CampanaCRM`, `HistorialContacto`, `TareaRecordatorioProgramada` y `LogEjecucionRecordatorio` ahora guardan tenant explícito.
+
+**Testing:** se agregaron tests de aislamiento cross-tenant para `Citas` y `CRM`; la ejecución local quedó bloqueada por faltantes del entorno Python (`django`/`rest_framework`).
+
+Detalle: `docs/ai/sessions/2026-05-05-agent-multi-tenant-fase1b-oleada2.md`
+
+---
+
+## Resumen
+**Fecha:** 2026-05-04 (Fase 1b multi-tenant primera ola)
+
+**Backend:** se agregaron FK nullable a `Tenant` en raíces críticas (`Usuario`, `Paciente`, `HistoriaClinica`, `Bitacora`, `Notificacion`, `DispositivoFcm`, `Especialista`) con backfill a `legacy`.
+
+**Datos/negocio:** nuevas altas se autopoblan con tenant desde contexto runtime; si no hay contexto, caen a `legacy` para no romper auth pública ni flujos legacy.
+
+**Aislamiento mínimo:** `Usuario`, `Paciente`, `HistoriaClinica`, `Bitacora` y `Especialista` ya respetan `request.tenant` en sus listados cuando existe; `Paciente` además tiene test de aislamiento cross-tenant.
+
+**Decisión de prudencia:** no se forzó `NOT NULL` todavía porque el circuito de auth pública no pasa por el middleware de tenant y requería fallback estable.
+
+Detalle: `docs/ai/sessions/2026-05-04-agent-multi-tenant-fase1b-oleada1.md`
+
+## Resumen
 **Fecha:** 2026-05-04 (Fase 1a multi-tenant base)
 
 **Backend:** se agrego la base multi-tenant con `apps.tenant`, middleware `X-Tenant-Slug` y contexto utilitario en `apps.core`.

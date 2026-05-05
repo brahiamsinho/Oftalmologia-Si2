@@ -327,6 +327,13 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all().order_by('apellidos', 'nombres')
     permission_classes = [IsAuthenticated, IsAdministrativoOrAdmin]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        tenant = getattr(self.request, 'tenant', None)
+        if tenant is not None:
+            qs = qs.filter(tenant=tenant)
+        return qs
+
     def get_serializer_class(self):
         return UsuarioCreateSerializer if self.action == 'create' else UsuarioSerializer
 

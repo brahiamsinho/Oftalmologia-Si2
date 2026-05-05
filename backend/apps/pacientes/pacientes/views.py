@@ -39,6 +39,9 @@ class PacienteViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        tenant = getattr(self.request, 'tenant', None)
+        if tenant is not None:
+            qs = qs.for_tenant(tenant)
         raw = self.request.query_params.get('sin_cuenta', '').strip().lower()
         if raw in ('1', 'true', 'yes', 'si'):
             return qs.filter(usuario__isnull=True)

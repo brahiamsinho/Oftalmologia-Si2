@@ -10,16 +10,44 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
-**Fecha:** 2026-05-04  
-**Decisión:** El middleware multi-tenant ya no devuelve `rest_framework.response.Response`; los errores se emiten con `JsonResponse` de Django y el `ContextVar` del tenant se limpia al inicio/final de cada request.  
-**Motivo:** Evitar fragilidad de renderizado/runtime por mezclar respuestas DRF dentro de middleware Django y reducir fugas de contexto entre requests.  
+**Fecha:** 2026-05-05
+**Decisión:** La segunda ola de Fase 1b extiende el tenant-aware scoping a citas, consultas, CRM y automatizaciones con `tenant` nullable, backfill a `legacy` y serializers que bloquean FK cruzadas o tenant escrito por cliente.
+**Motivo:** El aislamiento mínimo por listados no era suficiente para evitar lecturas/escrituras cruzadas en dominios dependientes.
+**Impacto:** Se agregan migraciones nuevas y validaciones en `create/update`; las URLs existentes bajo `/api/` no cambian.
+
+---
+
+**Fecha:** 2026-05-05
+**Decisión:** `SegmentacionPaciente` y `ReglaRecordatorio` pasan a unicidad por tenant en lugar de unicidad global.
+**Motivo:** Un nombre de segmentación o regla debe poder repetirse entre tenants sin colisión global.
+**Impacto:** Se agrega constraint compuesto `(tenant, nombre)` y el backend debe seguir pasando tenant explícito o vía contexto.
+
+---
+
+**Fecha:** 2026-05-05
+**Decisión:** El queryset base de tenants ganó `for_current_tenant()` y `for_legacy()` además de `for_tenant()`.
+**Motivo:** Evitar duplicar lógica de scoping y dar una salida segura para scripts/admin/seed.
+**Impacto:** Los repositorios/servicios futuros pueden usar el helper sin reimplementar la resolución del contexto.
+
+---
+
+**Fecha:** 2026-05-04
+**Decisión:** En la primera ola de Fase 1b se tenantizaron raíces críticas con `tenant` nullable + backfill a `legacy`, y el alta server-side asigna tenant desde contexto runtime o fallback legacy; por ahora no se fuerza `NOT NULL`.
+**Motivo:** Evitar un corte grande sobre auth pública y creaciones existentes mientras se introduce aislamiento por tenant sin romper login ni endpoints actuales.
+**Impacto:** `Usuario`, `Paciente`, `HistoriaClinica`, `Bitacora`, `Notificacion`, `DispositivoFcm` y `Especialista` quedan preparadas para scoping; el endurecimiento a `null=False` queda para una oleada posterior cuando el recorrido de creación esté cubierto de punta a punta.
+
+---
+
+**Fecha:** 2026-05-04
+**Decisión:** El middleware multi-tenant ya no devuelve `rest_framework.response.Response`; los errores se emiten con `JsonResponse` de Django y el `ContextVar` del tenant se limpia al inicio/final de cada request.
+**Motivo:** Evitar fragilidad de renderizado/runtime por mezclar respuestas DRF dentro de middleware Django y reducir fugas de contexto entre requests.
 **Impacto:** Los tests del middleware deben validar `JsonResponse`/`HttpResponse` válidos, bypass de rutas públicas y limpieza de contexto incluso ante excepciones.
 
 ---
 
-**Fecha:** 2026-05-04  
-**Decisión:** En la Fase 1a multi-tenant se resolvera el tenant por header `X-Tenant-Slug`, guardandolo en `request.tenant` y en contexto utilitario, con bypass para `health` y `auth` publicos.  
-**Motivo:** Introducir la infraestructura base sin romper los módulos actuales ni forzar scoping masivo prematuro.  
+**Fecha:** 2026-05-04
+**Decisión:** En la Fase 1a multi-tenant se resolvera el tenant por header `X-Tenant-Slug`, guardandolo en `request.tenant` y en contexto utilitario, con bypass para `health` y `auth` publicos.
+**Motivo:** Introducir la infraestructura base sin romper los módulos actuales ni forzar scoping masivo prematuro.
 **Impacto:** Los endpoints protegidos empiezan a exigir tenant; los endpoints publicos siguen operando sin header. El scoping por modelo queda para la Fase 1b.
 
 ---

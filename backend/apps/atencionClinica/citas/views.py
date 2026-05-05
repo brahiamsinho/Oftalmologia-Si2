@@ -51,6 +51,11 @@ class DisponibilidadEspecialistaViewSet(viewsets.ModelViewSet):
     filterset_fields = ['id_especialista', 'dia_semana', 'activo']
     ordering = ['id_especialista', 'dia_semana', 'hora_inicio']
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        tenant = getattr(self.request, 'tenant', None)
+        return qs.for_tenant(tenant)
+
 
 class CitaViewSet(viewsets.ModelViewSet):
     """
@@ -73,17 +78,19 @@ class CitaViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        tenant = getattr(self.request, 'tenant', None)
+        qs = qs.for_tenant(tenant)
         user = self.request.user
         if not user.is_authenticated:
             return Cita.objects.none()
         tipo = getattr(user, 'tipo_usuario', '') or ''
         if tipo == 'PACIENTE':
-            paciente = Paciente.objects.filter(usuario=user).first()
+            paciente = Paciente.objects.for_tenant(tenant).filter(usuario=user).first()
             if not paciente:
                 return Cita.objects.none()
             return qs.filter(id_paciente=paciente)
         if tipo in ('MEDICO', 'ESPECIALISTA'):
-            esp = Especialista.objects.filter(usuario=user).first()
+            esp = Especialista.objects.for_tenant(tenant).filter(usuario=user).first()
             if not esp:
                 return Cita.objects.none()
             return qs.filter(id_especialista=esp)
@@ -177,7 +184,7 @@ class CitaViewSet(viewsets.ModelViewSet):
             'motivo': cita_original.motivo,
             'id_cita_reprogramada_desde': cita_original.id_cita,
         }
-        serializer = CitaSerializer(data=nueva_data)
+        serializer = CitaSerializer(data=nueva_data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         nueva_cita = serializer.save(
             creado_por=request.user, estado=EstadoCita.REPROGRAMADA

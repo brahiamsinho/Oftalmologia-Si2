@@ -22,3 +22,10 @@ class HistoriaClinicaViewSet(viewsets.ModelViewSet):
         if self.action == 'retrieve':
             return HistoriaClinicaDetalleSerializer
         return HistoriaClinicaSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        tenant = getattr(self.request, 'tenant', None)
+        if tenant is not None:
+            qs = qs.for_tenant(tenant)
+        return qs

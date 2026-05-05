@@ -7,6 +7,7 @@ from rest_framework.test import APIClient
 
 from apps.atencionClinica.cirugias.models import Cirugia
 from apps.atencionClinica.postoperatorio.models import Postoperatorio
+from apps.tenant.models import Tenant
 from apps.notificaciones.automatizaciones.models import EstadoTarea, LogEjecucionRecordatorio, TareaRecordatorioProgramada
 from apps.pacientes.historial_clinico.models import HistoriaClinica
 from apps.pacientes.pacientes.models import Paciente
@@ -19,7 +20,12 @@ def api_client():
 
 
 @pytest.fixture
-def administrativo(db):
+def tenant_uno(db):
+    return Tenant.objects.create(slug='tenant-notif-uno', nombre='Tenant Notif Uno', activo=True)
+
+
+@pytest.fixture
+def administrativo(db, tenant_uno):
     return Usuario.objects.create_user(
         username='adm_notif',
         email='adm_notif@test.local',
@@ -27,11 +33,12 @@ def administrativo(db):
         nombres='Admin',
         apellidos='Notif',
         tipo_usuario=TipoUsuario.ADMINISTRATIVO,
+        tenant=tenant_uno,
     )
 
 
 @pytest.fixture
-def paciente_user(db):
+def paciente_user(db, tenant_uno):
     return Usuario.objects.create_user(
         username='pac_notif',
         email='pac_notif@test.local',
@@ -39,11 +46,12 @@ def paciente_user(db):
         nombres='Paciente',
         apellidos='Notif',
         tipo_usuario=TipoUsuario.PACIENTE,
+        tenant=tenant_uno,
     )
 
 
 @pytest.fixture
-def medico(db):
+def medico(db, tenant_uno):
     return Usuario.objects.create_user(
         username='med_notif',
         email='med_notif@test.local',
@@ -51,12 +59,14 @@ def medico(db):
         nombres='Medico',
         apellidos='Notif',
         tipo_usuario=TipoUsuario.MEDICO,
+        tenant=tenant_uno,
     )
 
 
 @pytest.fixture
-def paciente(db, paciente_user):
+def paciente(db, paciente_user, tenant_uno):
     return Paciente.objects.create(
+        tenant=tenant_uno,
         usuario=paciente_user,
         numero_historia='HC-CU17-001',
         tipo_documento='DNI',
@@ -98,13 +108,13 @@ def test_crear_regla_recordatorio(api_client, administrativo):
         'cuerpo_template': 'Tu control es el {fecha_control}',
         'activa': True,
     }
-    response = api_client.post('/api/notificaciones/reglas/', payload, format='json')
+    response = api_client.post('/api/notificaciones/reglas/', payload, format='json', HTTP_X_TENANT_SLUG=administrativo.tenant.slug)
     assert response.status_code == 201
     assert response.data['nombre'] == 'Control 24h'
 
 
 @pytest.mark.django_db
-def test_generar_tarea_programada(api_client, administrativo, postoperatorio):
+def test_generar_tarea_programada(api_client, administrativo, postoperatorio, tenant_uno):
     api_client.force_authenticate(user=administrativo)
     regla = api_client.post(
         '/api/notificaciones/reglas/',
@@ -117,12 +127,14 @@ def test_generar_tarea_programada(api_client, administrativo, postoperatorio):
             'activa': True,
         },
         format='json',
+        HTTP_X_TENANT_SLUG=tenant_uno.slug,
     ).data
 
     response = api_client.post(
         '/api/notificaciones/tareas/generar/',
         {'id_regla': regla['id_regla'], 'id_postoperatorio': postoperatorio.id_postoperatorio},
         format='json',
+        HTTP_X_TENANT_SLUG=tenant_uno.slug,
     )
     assert response.status_code == 201
     assert response.data['estado'] == EstadoTarea.PENDIENTE
@@ -133,6 +145,7 @@ def test_procesamiento_genera_log_exitoso(postoperatorio):
     from apps.notificaciones.automatizaciones.models import ReglaRecordatorio
 
     regla = ReglaRecordatorio.objects.create(
+        tenant=postoperatorio.id_paciente.tenant,
         nombre='Control 1h',
         horas_antes=1,
         titulo_template='Recordatorio para {paciente}',
@@ -140,6 +153,7 @@ def test_procesamiento_genera_log_exitoso(postoperatorio):
         activa=True,
     )
     TareaRecordatorioProgramada.objects.create(
+        tenant=postoperatorio.id_paciente.tenant,
         id_regla=regla,
         id_paciente=postoperatorio.id_paciente,
         id_postoperatorio=postoperatorio,
@@ -159,6 +173,7 @@ def test_fallo_controlado_registra_error(postoperatorio):
     from apps.notificaciones.automatizaciones.models import ReglaRecordatorio
 
     regla = ReglaRecordatorio.objects.create(
+        tenant=postoperatorio.id_paciente.tenant,
         nombre='Control error',
         horas_antes=1,
         titulo_template='Recordatorio para {paciente}',
@@ -166,6 +181,7 @@ def test_fallo_controlado_registra_error(postoperatorio):
         activa=True,
     )
     tarea = TareaRecordatorioProgramada.objects.create(
+        tenant=postoperatorio.id_paciente.tenant,
         id_regla=regla,
         id_paciente=postoperatorio.id_paciente,
         id_postoperatorio=postoperatorio,
