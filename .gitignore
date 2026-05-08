@@ -108,3 +108,5 @@ Thumbs.db
 *.pdb
 AGENTS.md
 .docs/
+
+venv/
