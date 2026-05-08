@@ -1,47 +1,55 @@
 """
 config/settings.py
-============================
-Configuración única de Django — un solo archivo.
-Los valores específicos de entorno se controlan vía .env
 
-Para producción, sobreescribe via variables de entorno:
-  DJANGO_DEBUG=False
-  DJANGO_SECRET_KEY=tu-clave-segura
-  CORS_ALLOWED_ORIGINS=https://tudominio.com
-  (ver .env.example para la lista completa)
+Configuración principal de Django.
+Los valores sensibles o dependientes del entorno se cargan desde variables .env.
 """
+
 import hashlib
 from datetime import timedelta
 from pathlib import Path
 
 from decouple import Csv, config
 
-# BASE_DIR apunta a la raíz /backend/
-# __file__ está en /backend/config/settings.py → .parent.parent
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 # =============================================================================
 # SEGURIDAD
 # =============================================================================
+
 SECRET_KEY = config('DJANGO_SECRET_KEY', default='INSECURE-change-me-in-production')
 DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
 
 
 def _jwt_signing_key() -> str:
-    """HS256 exige clave HMAC ≥ 32 bytes; si SECRET_KEY es corta, se deriva SHA-256 hex (64 chars)."""
-    raw = SECRET_KEY
-    if len(raw.encode('utf-8')) >= 32:
-        return raw
-    return hashlib.sha256(raw.encode('utf-8')).hexdigest()
-# Obligatorio vía .env (ver .env.example). En DEBUG se añade '*' para IP LAN / móvil sin listar cada host.
-_csv_hosts = [h.strip() for h in config('DJANGO_ALLOWED_HOSTS', cast=Csv()) if h.strip()]
+    """
+    Genera una clave válida para JWT.
+    HS256 requiere una clave HMAC de al menos 32 bytes.
+    """
+    if len(SECRET_KEY.encode('utf-8')) >= 32:
+        return SECRET_KEY
+
+    return hashlib.sha256(SECRET_KEY.encode('utf-8')).hexdigest()
+
+
+_csv_hosts = [
+    host.strip()
+    for host in config('DJANGO_ALLOWED_HOSTS', cast=Csv())
+    if host.strip()
+]
+
 ALLOWED_HOSTS = list(_csv_hosts)
+
 if DEBUG and '*' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('*')
+
 
 # =============================================================================
 # APLICACIONES
 # =============================================================================
+
 DJANGO_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -62,13 +70,17 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     'apps.core',
     'apps.tenant',
+
     'apps.usuarios.users',
     'apps.usuarios.permisos',
     'apps.usuarios.roles',
+
     'apps.bitacora',
+
     'apps.pacientes.pacientes',
-    'apps.atencionClinica.especialistas',
     'apps.pacientes.historial_clinico',
+
+    'apps.atencionClinica.especialistas',
     'apps.atencionClinica.antecedentes',
     'apps.atencionClinica.citas',
     'apps.atencionClinica.consultas',
@@ -77,45 +89,60 @@ LOCAL_APPS = [
     'apps.atencionClinica.preoperatorio',
     'apps.atencionClinica.cirugias',
     'apps.atencionClinica.postoperatorio',
+
     'apps.crm',
+
     'apps.notificaciones',
     'apps.notificaciones.automatizaciones',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
+
 # =============================================================================
-# FIREBASE CLOUD MESSAGING (credenciales de servicio para envío desde backend)
+# FIREBASE
 # =============================================================================
+
 FIREBASE_CREDENTIALS_PATH = config(
     'FIREBASE_CREDENTIALS_PATH',
     default=str(BASE_DIR / 'firebase-credentials.json'),
 )
 
+
 # =============================================================================
 # MIDDLEWARE
 # =============================================================================
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+
     'apps.core.tenant_middleware.TenantMiddleware',
+
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+
 ROOT_URLCONF = 'config.urls'
+WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
+
 
 # =============================================================================
 # TEMPLATES
 # =============================================================================
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [
+            BASE_DIR / 'templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -128,12 +155,11 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
-ASGI_APPLICATION = 'config.asgi.application'
 
 # =============================================================================
-# BASE DE DATOS — PostgreSQL
+# BASE DE DATOS
 # =============================================================================
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -145,25 +171,32 @@ DATABASES = {
         'OPTIONS': {
             'connect_timeout': 10,
         },
-    }
+    },
 }
 
-# =============================================================================
-# MODELO DE USUARIO PERSONALIZADO
-# =============================================================================
-AUTH_USER_MODEL = 'users.Usuario'
 
 # =============================================================================
-# VALIDACIÓN DE CONTRASEÑAS
+# AUTENTICACIÓN
 # =============================================================================
+
+AUTH_USER_MODEL = 'users.Usuario'
+
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        'OPTIONS': {'min_length': 8},
+        'OPTIONS': {
+            'min_length': 8,
+        },
     },
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
 ]
 
 PASSWORD_HASHERS = [
@@ -174,8 +207,6 @@ PASSWORD_HASHERS = [
 ]
 
 if DEBUG:
-    # Acelerar sustancialmente el inicio de sesión y creación de usuarios
-    # localmente al usar un algoritmo de hashing más rápido
     PASSWORD_HASHERS = [
         'django.contrib.auth.hashers.MD5PasswordHasher',
         'django.contrib.auth.hashers.Argon2PasswordHasher',
@@ -184,33 +215,40 @@ if DEBUG:
         'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
     ]
 
+
 # =============================================================================
 # INTERNACIONALIZACIÓN
 # =============================================================================
+
 LANGUAGE_CODE = 'es'
-# Bolivia (Santa Cruz de la Sierra — mismo huso que La Paz: UTC−4 sin DST)
 TIME_ZONE = 'America/La_Paz'
 USE_I18N = True
 USE_TZ = True
 
+
 # =============================================================================
 # ARCHIVOS ESTÁTICOS Y MULTIMEDIA
 # =============================================================================
+
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+] if (BASE_DIR / 'static').exists() else []
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+
 # =============================================================================
 # DJANGO REST FRAMEWORK
 # =============================================================================
+
 _drf_renderer_classes = (
     'rest_framework.renderers.JSONRenderer',
-    'rest_framework.renderers.BrowsableAPIRenderer',  # Solo se ve si DEBUG=True
+    'rest_framework.renderers.BrowsableAPIRenderer',
 )
 
 REST_FRAMEWORK = {
@@ -239,15 +277,17 @@ REST_FRAMEWORK = {
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%S%z',
 }
 
+
 # =============================================================================
 # SIMPLE JWT
 # =============================================================================
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(
-        minutes=config('JWT_ACCESS_TOKEN_LIFETIME', default=30, cast=int)
+        minutes=config('JWT_ACCESS_TOKEN_LIFETIME', default=30, cast=int),
     ),
     'REFRESH_TOKEN_LIFETIME': timedelta(
-        days=config('JWT_REFRESH_TOKEN_LIFETIME', default=7, cast=int)
+        days=config('JWT_REFRESH_TOKEN_LIFETIME', default=7, cast=int),
     ),
     'SIGNING_KEY': _jwt_signing_key(),
     'ROTATE_REFRESH_TOKENS': True,
@@ -255,37 +295,46 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
+
 # =============================================================================
 # CORS
 # =============================================================================
+
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
     CORS_ALLOWED_ORIGINS = [
-        o.strip() for o in config('CORS_ALLOWED_ORIGINS', cast=Csv()) if o.strip()
+        origin.strip()
+        for origin in config('CORS_ALLOWED_ORIGINS', cast=Csv())
+        if origin.strip()
     ]
     CORS_ALLOW_CREDENTIALS = True
 
+
 # =============================================================================
-# HEADERS DE SEGURIDAD
+# SEGURIDAD HTTP
 # =============================================================================
+
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_BROWSER_XSS_FILTER = True
 
-# En producción (DEBUG=False) activar HTTPS headers:
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
-    SECURE_HSTS_SECONDS = 31_536_000  # 1 año
+    SECURE_HSTS_SECONDS = 31_536_000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+
 # =============================================================================
-# EMAIL (Mailhog en Docker dev | SMTP real en producción via .env)
+# EMAIL
 # =============================================================================
+
 EMAIL_BACKEND = config(
     'EMAIL_BACKEND',
     default='django.core.mail.backends.smtp.EmailBackend',
@@ -295,23 +344,35 @@ EMAIL_PORT = config('EMAIL_PORT', default=1025, cast=int)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@oftalmologia.local')
+
+DEFAULT_FROM_EMAIL = config(
+    'DEFAULT_FROM_EMAIL',
+    default='noreply@oftalmologia.local',
+)
+
 FRONTEND_URL = config('FRONTEND_URL')
 
-# Texto de marca en correos de registro (evita hardcodear en templates Python).
 SITE_DISPLAY_NAME = config('SITE_DISPLAY_NAME', default='Oftalmología Si2')
-# Pie opcional del correo de confirmación (p. ej. enlace a Mailhog en dev: http://localhost:8025).
-REGISTRATION_EMAIL_FOOTER_HINT = config('REGISTRATION_EMAIL_FOOTER_HINT', default='')
+REGISTRATION_EMAIL_FOOTER_HINT = config(
+    'REGISTRATION_EMAIL_FOOTER_HINT',
+    default='',
+)
+
 
 # =============================================================================
 # LOGGING
 # =============================================================================
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'format': (
+                '{levelname} {asctime} {module} '
+                '{process:d} {thread:d} {message}'
+            ),
             'style': '{',
         },
         'simple': {
@@ -319,16 +380,19 @@ LOGGING = {
             'style': '{',
         },
     },
+
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
     },
+
     'root': {
         'handlers': ['console'],
         'level': 'INFO',
     },
+
     'loggers': {
         'django': {
             'handlers': ['console'],
