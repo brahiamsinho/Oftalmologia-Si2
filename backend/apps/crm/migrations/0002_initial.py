@@ -10,8 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("citas", "0001_initial"),
-        ("especialistas", "0001_initial"),
+        ("crm", "0001_initial"),
         ("pacientes", "0001_initial"),
         ("tenant", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
@@ -19,91 +18,101 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(
-            model_name="cita",
+            model_name="campanacrm",
             name="creado_por",
             field=models.ForeignKey(
                 blank=True,
                 db_column="creado_por",
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
-                related_name="citas_creadas",
+                related_name="campanas_crm_creadas",
                 to=settings.AUTH_USER_MODEL,
             ),
         ),
         migrations.AddField(
-            model_name="cita",
-            name="id_cita_reprogramada_desde",
+            model_name="campanacrm",
+            name="tenant",
             field=models.ForeignKey(
                 blank=True,
-                db_column="id_cita_reprogramada_desde",
+                db_column="id_tenant",
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
-                related_name="reprogramaciones",
-                to="citas.cita",
+                related_name="crm_campanas",
+                to="tenant.tenant",
             ),
         ),
         migrations.AddField(
-            model_name="cita",
-            name="id_especialista",
+            model_name="historialcontacto",
+            name="contactado_por",
             field=models.ForeignKey(
-                db_column="id_especialista",
-                on_delete=django.db.models.deletion.RESTRICT,
-                related_name="citas",
-                to="especialistas.especialista",
+                blank=True,
+                db_column="contactado_por",
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="crm_contactos_registrados",
+                to=settings.AUTH_USER_MODEL,
             ),
         ),
         migrations.AddField(
-            model_name="cita",
+            model_name="historialcontacto",
+            name="id_campana",
+            field=models.ForeignKey(
+                blank=True,
+                db_column="id_campana",
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="historial_contactos",
+                to="crm.campanacrm",
+            ),
+        ),
+        migrations.AddField(
+            model_name="historialcontacto",
             name="id_paciente",
             field=models.ForeignKey(
                 db_column="id_paciente",
                 on_delete=django.db.models.deletion.CASCADE,
-                related_name="citas",
+                related_name="crm_historial_contactos",
                 to="pacientes.paciente",
             ),
         ),
         migrations.AddField(
-            model_name="cita",
+            model_name="historialcontacto",
             name="tenant",
             field=models.ForeignKey(
                 blank=True,
                 db_column="id_tenant",
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
-                related_name="citas",
+                related_name="crm_historial_contactos",
                 to="tenant.tenant",
             ),
         ),
         migrations.AddField(
-            model_name="disponibilidadespecialista",
-            name="id_especialista",
-            field=models.ForeignKey(
-                db_column="id_especialista",
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="disponibilidades",
-                to="especialistas.especialista",
-            ),
-        ),
-        migrations.AddField(
-            model_name="disponibilidadespecialista",
+            model_name="segmentacionpaciente",
             name="tenant",
             field=models.ForeignKey(
                 blank=True,
                 db_column="id_tenant",
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
-                related_name="disponibilidades_especialista",
+                related_name="crm_segmentaciones",
                 to="tenant.tenant",
             ),
         ),
         migrations.AddField(
-            model_name="cita",
-            name="id_tipo_cita",
+            model_name="campanacrm",
+            name="id_segmentacion",
             field=models.ForeignKey(
-                db_column="id_tipo_cita",
-                on_delete=django.db.models.deletion.RESTRICT,
-                related_name="citas",
-                to="citas.tipocita",
+                db_column="id_segmentacion",
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="campanas",
+                to="crm.segmentacionpaciente",
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name="segmentacionpaciente",
+            constraint=models.UniqueConstraint(
+                fields=("tenant", "nombre"), name="crm_segmentacion_tenant_nombre_uniq"
             ),
         ),
     ]

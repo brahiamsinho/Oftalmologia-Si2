@@ -10,34 +10,40 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("bitacora", "0001_initial"),
+        ("notificaciones", "0001_initial"),
         ("tenant", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name="bitacora",
-            name="id_usuario",
+            model_name="dispositivofcm",
+            name="usuario",
             field=models.ForeignKey(
-                blank=True,
-                db_column="id_usuario",
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="bitacora_eventos",
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="dispositivos_fcm",
                 to=settings.AUTH_USER_MODEL,
             ),
         ),
         migrations.AddField(
-            model_name="bitacora",
+            model_name="notificacion",
             name="tenant",
             field=models.ForeignKey(
                 blank=True,
                 db_column="id_tenant",
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
-                related_name="bitacoras",
+                related_name="notificaciones",
                 to="tenant.tenant",
+            ),
+        ),
+        migrations.AddField(
+            model_name="notificacion",
+            name="usuario",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="notificaciones",
+                to=settings.AUTH_USER_MODEL,
             ),
         ),
     ]

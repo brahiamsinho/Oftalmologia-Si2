@@ -10,18 +10,20 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("especialistas", "0001_initial"),
+        ("preoperatorio", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name="especialista",
-            name="usuario",
-            field=models.OneToOneField(
-                db_column="id_usuario",
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="especialista",
+            model_name="preoperatorio",
+            name="validado_por",
+            field=models.ForeignKey(
+                blank=True,
+                db_column="validado_por",
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="preoperatorios_validados",
                 to=settings.AUTH_USER_MODEL,
             ),
         ),

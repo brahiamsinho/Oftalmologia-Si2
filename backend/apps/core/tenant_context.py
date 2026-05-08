@@ -1,5 +1,7 @@
 from contextvars import ContextVar
 
+from django.db import connection
+
 
 _current_tenant = ContextVar('current_tenant', default=None)
 
@@ -9,7 +11,10 @@ def set_current_tenant(tenant):
 
 
 def get_current_tenant():
-    return _current_tenant.get()
+    tenant = _current_tenant.get()
+    if tenant is not None:
+        return tenant
+    return getattr(connection, 'tenant', None)
 
 
 def reset_current_tenant(token):

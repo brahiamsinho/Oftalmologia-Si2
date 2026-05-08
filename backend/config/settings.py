@@ -1,10 +1,3 @@
-"""
-config/settings.py
-
-Configuración principal de Django.
-Los valores sensibles o dependientes del entorno se cargan desde variables .env.
-"""
-
 import hashlib
 from datetime import timedelta
 from pathlib import Path
@@ -14,62 +7,56 @@ from decouple import Csv, config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# =============================================================================
-# SEGURIDAD
-# =============================================================================
-
 SECRET_KEY = config('DJANGO_SECRET_KEY', default='INSECURE-change-me-in-production')
 DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
 
 
 def _jwt_signing_key() -> str:
-    """
-    Genera una clave válida para JWT.
-    HS256 requiere una clave HMAC de al menos 32 bytes.
-    """
     if len(SECRET_KEY.encode('utf-8')) >= 32:
         return SECRET_KEY
-
     return hashlib.sha256(SECRET_KEY.encode('utf-8')).hexdigest()
 
 
-_csv_hosts = [
+ALLOWED_HOSTS = [
     host.strip()
-    for host in config('DJANGO_ALLOWED_HOSTS', cast=Csv())
+    for host in config('DJANGO_ALLOWED_HOSTS', default='localhost,127.0.0.1,testserver', cast=Csv())
     if host.strip()
 ]
-
-ALLOWED_HOSTS = list(_csv_hosts)
 
 if DEBUG and '*' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('*')
 
 
 # =============================================================================
-# APLICACIONES
+# DJANGO-TENANTS - MODO HÍBRIDO PARA MIGRAR TENANT MANUAL ANTIGUO
 # =============================================================================
 
-DJANGO_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
+TENANT_MODEL = 'tenant.Tenant'
+TENANT_DOMAIN_MODEL = 'tenant.Domain'
+PUBLIC_SCHEMA_NAME = 'public'
+TENANT_SUBFOLDER_PREFIX = 't'
+PUBLIC_SCHEMA_URLCONF = 'config.urls_public'
+
+# En esta fase híbrida dejamos todas las apps en public para no perder acceso
+# a tus datos antiguos con id_tenant.
+SHARED_APPS = [
+    'django_tenants',
+    'apps.tenant',
+
     'django.contrib.contenttypes',
+    'django.contrib.auth',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.admin',
     'django.contrib.staticfiles',
-]
 
-THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
-]
 
-LOCAL_APPS = [
     'apps.core',
-    'apps.tenant',
 
     'apps.usuarios.users',
     'apps.usuarios.permisos',
@@ -96,30 +83,46 @@ LOCAL_APPS = [
     'apps.notificaciones.automatizaciones',
 ]
 
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+TENANT_APPS = [
+    'django.contrib.contenttypes',
+    'django.contrib.auth',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.admin',
+    'django.contrib.staticfiles',
+]
+
+INSTALLED_APPS = list(SHARED_APPS) + [
+    app for app in TENANT_APPS if app not in SHARED_APPS
+]
 
 
-# =============================================================================
-# FIREBASE
-# =============================================================================
+DATABASES = {
+    'default': {
+        'ENGINE': 'django_tenants.postgresql_backend',
+        'NAME': config('POSTGRES_DB', default='oftalmologia_db'),
+        'USER': config('POSTGRES_USER', default='oftalmologia_user'),
+        'PASSWORD': config('POSTGRES_PASSWORD', default='password'),
+        'HOST': config('POSTGRES_HOST', default='localhost' if DEBUG else 'db'),
+        'PORT': config('POSTGRES_PORT', default='5432'),
+        'OPTIONS': {
+            'connect_timeout': 10,
+        },
+    },
+}
 
-FIREBASE_CREDENTIALS_PATH = config(
-    'FIREBASE_CREDENTIALS_PATH',
-    default=str(BASE_DIR / 'firebase-credentials.json'),
+DATABASE_ROUTERS = (
+    'django_tenants.routers.TenantSyncRouter',
 )
 
 
-# =============================================================================
-# MIDDLEWARE
-# =============================================================================
-
 MIDDLEWARE = [
+    'django_tenants.middleware.TenantSubfolderMiddleware',
+
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-
-    'apps.core.tenant_middleware.TenantMiddleware',
 
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -132,10 +135,6 @@ ROOT_URLCONF = 'config.urls'
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
-
-# =============================================================================
-# TEMPLATES
-# =============================================================================
 
 TEMPLATES = [
     {
@@ -156,47 +155,16 @@ TEMPLATES = [
 ]
 
 
-# =============================================================================
-# BASE DE DATOS
-# =============================================================================
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('POSTGRES_DB', default='oftalmologia_db'),
-        'USER': config('POSTGRES_USER', default='oftalmologia_user'),
-        'PASSWORD': config('POSTGRES_PASSWORD', default='password'),
-        'HOST': config('POSTGRES_HOST', default='db'),
-        'PORT': config('POSTGRES_PORT', default='5432'),
-        'OPTIONS': {
-            'connect_timeout': 10,
-        },
-    },
-}
-
-
-# =============================================================================
-# AUTENTICACIÓN
-# =============================================================================
-
 AUTH_USER_MODEL = 'users.Usuario'
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        'OPTIONS': {
-            'min_length': 8,
-        },
+        'OPTIONS': {'min_length': 8},
     },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 PASSWORD_HASHERS = [
@@ -216,40 +184,20 @@ if DEBUG:
     ]
 
 
-# =============================================================================
-# INTERNACIONALIZACIÓN
-# =============================================================================
-
 LANGUAGE_CODE = 'es'
 TIME_ZONE = 'America/La_Paz'
 USE_I18N = True
 USE_TZ = True
 
-
-# =============================================================================
-# ARCHIVOS ESTÁTICOS Y MULTIMEDIA
-# =============================================================================
-
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-] if (BASE_DIR / 'static').exists() else []
+STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-# =============================================================================
-# DJANGO REST FRAMEWORK
-# =============================================================================
-
-_drf_renderer_classes = (
-    'rest_framework.renderers.JSONRenderer',
-    'rest_framework.renderers.BrowsableAPIRenderer',
-)
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -265,7 +213,10 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
-    'DEFAULT_RENDERER_CLASSES': _drf_renderer_classes,
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ),
     'DEFAULT_THROTTLE_CLASSES': (
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
@@ -277,10 +228,6 @@ REST_FRAMEWORK = {
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%S%z',
 }
 
-
-# =============================================================================
-# SIMPLE JWT
-# =============================================================================
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(
@@ -296,24 +243,16 @@ SIMPLE_JWT = {
 }
 
 
-# =============================================================================
-# CORS
-# =============================================================================
-
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
     CORS_ALLOWED_ORIGINS = [
         origin.strip()
-        for origin in config('CORS_ALLOWED_ORIGINS', cast=Csv())
+        for origin in config('CORS_ALLOWED_ORIGINS', default='', cast=Csv())
         if origin.strip()
     ]
     CORS_ALLOW_CREDENTIALS = True
 
-
-# =============================================================================
-# SEGURIDAD HTTP
-# =============================================================================
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
@@ -324,75 +263,48 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31_536_000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
-# =============================================================================
-# EMAIL
-# =============================================================================
-
-EMAIL_BACKEND = config(
-    'EMAIL_BACKEND',
-    default='django.core.mail.backends.smtp.EmailBackend',
-)
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = config('EMAIL_HOST', default='mailhog')
 EMAIL_PORT = config('EMAIL_PORT', default=1025, cast=int)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
 
-DEFAULT_FROM_EMAIL = config(
-    'DEFAULT_FROM_EMAIL',
-    default='noreply@oftalmologia.local',
-)
-
-FRONTEND_URL = config('FRONTEND_URL')
-
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@oftalmologia.local')
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 SITE_DISPLAY_NAME = config('SITE_DISPLAY_NAME', default='Oftalmología Si2')
-REGISTRATION_EMAIL_FOOTER_HINT = config(
-    'REGISTRATION_EMAIL_FOOTER_HINT',
-    default='',
+REGISTRATION_EMAIL_FOOTER_HINT = config('REGISTRATION_EMAIL_FOOTER_HINT', default='')
+
+FIREBASE_CREDENTIALS_PATH = config(
+    'FIREBASE_CREDENTIALS_PATH',
+    default=str(BASE_DIR / 'firebase-credentials.json'),
 )
 
-
-# =============================================================================
-# LOGGING
-# =============================================================================
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-
     'formatters': {
-        'verbose': {
-            'format': (
-                '{levelname} {asctime} {module} '
-                '{process:d} {thread:d} {message}'
-            ),
-            'style': '{',
-        },
         'simple': {
             'format': '{levelname} {asctime} {message}',
             'style': '{',
         },
     },
-
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
     },
-
     'root': {
         'handlers': ['console'],
         'level': 'INFO',
     },
-
     'loggers': {
         'django': {
             'handlers': ['console'],

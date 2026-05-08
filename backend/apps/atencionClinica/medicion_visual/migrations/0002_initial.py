@@ -9,19 +9,18 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("antecedentes", "0001_initial"),
-        ("historial_clinico", "0001_initial"),
+        ("medicion_visual", "0001_initial"),
+        ("pacientes", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name="antecedenteclinico",
-            name="id_historia_clinica",
+            model_name="medicionvisual",
+            name="paciente",
             field=models.ForeignKey(
-                db_column="id_historia_clinica",
                 on_delete=django.db.models.deletion.CASCADE,
-                related_name="antecedentes",
-                to="historial_clinico.historiaclinica",
+                related_name="mediciones_visuales",
+                to="pacientes.paciente",
             ),
         ),
     ]
