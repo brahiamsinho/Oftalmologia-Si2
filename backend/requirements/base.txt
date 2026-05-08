@@ -11,3 +11,4 @@ Pillow>=10.0
 gunicorn>=21.2
 argon2-cffi>=23.1
 firebase-admin>=6.5,<7.0
+django-tenants>=3.10,<4.0
