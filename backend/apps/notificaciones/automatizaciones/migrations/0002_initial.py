@@ -10,100 +10,98 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("citas", "0001_initial"),
-        ("especialistas", "0001_initial"),
+        ("automatizaciones", "0001_initial"),
         ("pacientes", "0001_initial"),
+        ("postoperatorio", "0001_initial"),
         ("tenant", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name="cita",
+            model_name="reglarecordatorio",
             name="creado_por",
             field=models.ForeignKey(
                 blank=True,
                 db_column="creado_por",
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
-                related_name="citas_creadas",
+                related_name="reglas_recordatorio_creadas",
                 to=settings.AUTH_USER_MODEL,
             ),
         ),
         migrations.AddField(
-            model_name="cita",
-            name="id_cita_reprogramada_desde",
+            model_name="reglarecordatorio",
+            name="tenant",
             field=models.ForeignKey(
                 blank=True,
-                db_column="id_cita_reprogramada_desde",
+                db_column="id_tenant",
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
-                related_name="reprogramaciones",
-                to="citas.cita",
+                related_name="reglas_recordatorio",
+                to="tenant.tenant",
             ),
         ),
         migrations.AddField(
-            model_name="cita",
-            name="id_especialista",
-            field=models.ForeignKey(
-                db_column="id_especialista",
-                on_delete=django.db.models.deletion.RESTRICT,
-                related_name="citas",
-                to="especialistas.especialista",
-            ),
-        ),
-        migrations.AddField(
-            model_name="cita",
+            model_name="tarearecordatorioprogramada",
             name="id_paciente",
             field=models.ForeignKey(
                 db_column="id_paciente",
                 on_delete=django.db.models.deletion.CASCADE,
-                related_name="citas",
+                related_name="recordatorios_programados",
                 to="pacientes.paciente",
             ),
         ),
         migrations.AddField(
-            model_name="cita",
-            name="tenant",
+            model_name="tarearecordatorioprogramada",
+            name="id_postoperatorio",
             field=models.ForeignKey(
                 blank=True,
-                db_column="id_tenant",
+                db_column="id_postoperatorio",
                 null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="citas",
-                to="tenant.tenant",
-            ),
-        ),
-        migrations.AddField(
-            model_name="disponibilidadespecialista",
-            name="id_especialista",
-            field=models.ForeignKey(
-                db_column="id_especialista",
                 on_delete=django.db.models.deletion.CASCADE,
-                related_name="disponibilidades",
-                to="especialistas.especialista",
+                related_name="recordatorios_programados",
+                to="postoperatorio.postoperatorio",
             ),
         ),
         migrations.AddField(
-            model_name="disponibilidadespecialista",
+            model_name="tarearecordatorioprogramada",
+            name="id_regla",
+            field=models.ForeignKey(
+                db_column="id_regla",
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="tareas_programadas",
+                to="automatizaciones.reglarecordatorio",
+            ),
+        ),
+        migrations.AddField(
+            model_name="tarearecordatorioprogramada",
             name="tenant",
             field=models.ForeignKey(
                 blank=True,
                 db_column="id_tenant",
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
-                related_name="disponibilidades_especialista",
+                related_name="tareas_recordatorio",
                 to="tenant.tenant",
             ),
         ),
         migrations.AddField(
-            model_name="cita",
-            name="id_tipo_cita",
+            model_name="logejecucionrecordatorio",
+            name="id_tarea",
             field=models.ForeignKey(
-                db_column="id_tipo_cita",
-                on_delete=django.db.models.deletion.RESTRICT,
-                related_name="citas",
-                to="citas.tipocita",
+                blank=True,
+                db_column="id_tarea",
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="logs",
+                to="automatizaciones.tarearecordatorioprogramada",
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name="reglarecordatorio",
+            constraint=models.UniqueConstraint(
+                fields=("tenant", "nombre"), name="recordatorio_tenant_nombre_uniq"
             ),
         ),
     ]
