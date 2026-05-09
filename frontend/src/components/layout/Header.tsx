@@ -26,8 +26,15 @@ const BREADCRUMB: Record<string, string> = {
   '/permisos':       'Permisos',
   '/bitacora':       'Bitácora',
   '/perfil':              'Mi perfil',
-  '/planes':              'Planes y Suscripción',
-  '/configuracion-org':   'Configuración de la Organización',
+  '/planes':                    'Planes y Suscripción',
+  '/configuracion-org':         'Configuración de la Organización',
+  '/evaluaciones-quirurgicas':  'Evaluaciones Quirúrgicas',
+  '/preoperatorio':             'Preoperatorio',
+  '/cirugias':                  'Cirugías',
+  '/postoperatorio':            'Postoperatorio',
+  '/crm/contactos':             'CRM · Comunicaciones',
+  '/crm/campanas':              'CRM · Campañas',
+  '/crm':                       'CRM',
 };
 
 export default function Header() {

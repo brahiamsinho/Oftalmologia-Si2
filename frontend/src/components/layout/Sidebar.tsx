@@ -8,8 +8,8 @@ import {
   Activity, LayoutDashboard, Users, ShieldCheck, ScrollText,
   ClipboardList, LogOut, ChevronLeft, ChevronRight,
   ChevronDown, ChevronUp, KeyRound,
-  Stethoscope, Eye, Calendar, List,
-  Megaphone, Bell, BarChart2, Settings,
+  Stethoscope, Eye, Calendar, List, Scissors, Scalpel, HeartPulse,
+  Megaphone, Bell, BarChart2, Settings, MessageSquare,
 } from 'lucide-react';
 import { useAuth }    from '@/context/AuthContext';
 import { useSidebar } from '@/context/SidebarContext';
@@ -230,15 +230,29 @@ export default function Sidebar() {
         <ul className="space-y-0.5 mt-1">
           <NavGroup
             label="Atención Clínica" icon={Stethoscope}
-            active={is('/registrar-consulta') || is('/registrar-medicion') || is('/mediciones') || is('/citas-agenda') || is('/consultas')}
+            active={
+              is('/registrar-consulta') || is('/registrar-medicion') ||
+              is('/mediciones') || is('/citas-agenda') || is('/consultas') ||
+              is('/evaluaciones-quirurgicas') || is('/preoperatorio') ||
+              is('/cirugias') || is('/postoperatorio')
+            }
             collapsed={isCollapsed}
-            defaultOpen={is('/registrar-consulta') || is('/registrar-medicion') || is('/mediciones') || is('/citas-agenda') || is('/consultas')}
+            defaultOpen={
+              is('/registrar-consulta') || is('/registrar-medicion') ||
+              is('/mediciones') || is('/citas-agenda') || is('/consultas') ||
+              is('/evaluaciones-quirurgicas') || is('/preoperatorio') ||
+              is('/cirugias') || is('/postoperatorio')
+            }
           >
-            <NavItem href="/registrar-consulta" label="Registrar Consulta" icon={Stethoscope} active={is('/registrar-consulta')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
-            <NavItem href="/consultas"          label="Consultas"          icon={List}        active={is('/consultas')}          collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
-            <NavItem href="/mediciones"         label="Mediciones"         icon={Activity}    active={is('/mediciones')}         collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
-            <NavItem href="/registrar-medicion" label="Registrar Medición" icon={Eye}         active={is('/registrar-medicion')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
-            <NavItem href="/citas-agenda"       label="Citas y Agenda"     icon={Calendar}    active={is('/citas-agenda')}       collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/registrar-consulta"       label="Registrar Consulta"    icon={Stethoscope}   active={is('/registrar-consulta')}        collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/consultas"                label="Consultas"             icon={List}          active={is('/consultas')}                 collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/mediciones"               label="Mediciones"            icon={Activity}      active={is('/mediciones')}                collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/registrar-medicion"       label="Registrar Medición"    icon={Eye}           active={is('/registrar-medicion')}        collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/citas-agenda"             label="Citas y Agenda"        icon={Calendar}      active={is('/citas-agenda')}              collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/evaluaciones-quirurgicas" label="Eval. Quirúrgica"      icon={Scissors}      active={is('/evaluaciones-quirurgicas')}  collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/preoperatorio"            label="Preoperatorio"         icon={ClipboardList} active={is('/preoperatorio')}             collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/cirugias"                 label="Cirugías"              icon={Scalpel}       active={is('/cirugias')}                  collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/postoperatorio"           label="Postoperatorio"        icon={HeartPulse}    active={is('/postoperatorio')}            collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
           </NavGroup>
         </ul>
 
@@ -251,8 +265,8 @@ export default function Sidebar() {
               collapsed={isCollapsed}
               defaultOpen={is('/crm')}
             >
-              <NavItem href="/crm/campanas"  label="Campañas"   icon={Megaphone}  active={is('/crm/campanas')}  collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
-              <NavItem href="/crm/contactos" label="Contactos"  icon={Users}      active={is('/crm/contactos')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+              <NavItem href="/crm/contactos" label="Comunicaciones" icon={MessageSquare} active={is('/crm/contactos')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+              <NavItem href="/crm/campanas"  label="Campañas"       icon={Megaphone}     active={is('/crm/campanas')}  collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
             </NavGroup>
           </ul>
         )}

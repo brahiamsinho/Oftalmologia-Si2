@@ -397,6 +397,54 @@ Nueva página conectada a `GET/PATCH /t/<slug>/api/organization/settings/`:
 - Al guardar: llama `refresh()` del `TenantContext` → el Sidebar actualiza inmediatamente el nombre y colores sin recargar la página.
 - Agregada al Sidebar en el grupo "Cuenta" → "Organización".
 
+### Q. CU12 — Evaluaciones Quirúrgicas (frontend)
+
+Backend ya existía. Se implementó el frontend completo:
+
+**Archivos creados:**
+- `frontend/src/lib/services/evaluacion_quirurgica.ts`
+  - Interfaces: `EvaluacionQuirurgica`, `EvaluacionQuirurgicaCreate`, `EvaluacionQuirurgicaParams`.
+  - Constantes: `ESTADO_PREQUIRURGICO`, `ESTADO_LABELS`.
+  - Servicio: `list()`, `get()`, `create()`, `update()`, `destroy()`.
+- `frontend/src/app/(dashboard)/(gestion-atencionclinica)/evaluaciones-quirurgicas/page.tsx`
+  - Página CRUD completa con lista, filtros, modal crear/editar y modal de eliminación.
+
+**Archivos modificados:**
+- `frontend/src/components/layout/Sidebar.tsx` — NavItem "Eval. Quirúrgica" con icono `Scissors` bajo "Atención Clínica".
+- `frontend/src/components/layout/Header.tsx` — breadcrumb para `/evaluaciones-quirurgicas`.
+- `frontend/src/lib/services/index.ts` — exporta `evaluacionQuirurgicaService` y tipos.
+
+**Campos del modelo manejados en el formulario:**
+| Campo | Tipo | UI |
+|---|---|---|
+| `id_paciente` | FK select | Select con lista de pacientes |
+| `id_historia_clinica` | FK select (filtrado por paciente) | Select habilitado después de elegir paciente |
+| `id_consulta` | FK opcional | (omitido en esta versión inicial) |
+| `fecha_evaluacion` | datetime | Input `datetime-local` |
+| `estado_prequirurgico` | choice | Select: PENDIENTE / APTO / APTO_CON_OBSERVACIONES / NO_APTO |
+| `riesgo_quirurgico` | text | Input libre |
+| `requiere_estudios_complementarios` | boolean | Toggle visual |
+| `estudios_solicitados` | textarea | Visible solo si el toggle está activo |
+| `hallazgos` | textarea | Sección "Hallazgos clínicos" |
+| `plan_quirurgico` | textarea | Sección "Plan quirúrgico" |
+| `observaciones` | textarea | Sección "Observaciones médicas" |
+
+**Badges de estado:**
+- `PENDIENTE` → amber (reloj)
+- `APTO` → verde (check)
+- `APTO_CON_OBSERVACIONES` → azul (triángulo)
+- `NO_APTO` → rojo (X)
+
+**Consideración técnica:**
+El serializer del backend usa `fields = '__all__'` y devuelve solo el ID del paciente (`id_paciente: number`).
+Para mostrar el nombre en la lista se hace un join cliente-lado con el resultado de `pacientesService.fetchAll()`.
+Si en el futuro se necesita optimización, agregar un `SerializerMethodField` al backend (`paciente_nombre_completo`) eliminaría la llamada extra.
+
+**Impacto del multi-tenant en CU12:**
+- No fue necesario ningún cambio especial: el interceptor de Axios ya reescribe la baseURL a `/t/<slug>/api/` automáticamente.
+- Las evaluaciones quedan aisladas por tenant a nivel de base de datos gracias a `django-tenants`.
+- Los permisos del backend (`IsMedicoOrAdmin` para escritura) funcionan sin cambios en el frontend.
+
 ---
 
 ## 8. Siguiente prioridad técnica sugerida
@@ -407,4 +455,234 @@ Nueva página conectada a `GET/PATCH /t/<slug>/api/organization/settings/`:
 | Alta | Web: validar límite de almacenamiento en subida de archivos (mediciones) | Pendiente |
 | Media | Web: restricciones de plan en módulos CRM y Notificaciones (cuando se implementen las rutas) | Pendiente |
 | Media | Web/Mobile: flujo de recuperación de contraseña adaptado al tenant | Pendiente |
+| Media | Backend: agregar `paciente_nombre_completo` en serializer de `EvaluacionQuirurgica` | Pendiente |
+| Media | Backend: agregar `paciente_nombre_completo` en serializer de `Preoperatorio` | Pendiente |
+| Media | Backend: agregar `paciente_nombre_completo` en serializer de `Cirugia` | Pendiente |
+| Media | Backend: agregar `paciente_nombre_completo` en serializer de `Postoperatorio` | Pendiente |
 | Baja | Web: panel de administración central de tenants (superadmin) | Pendiente |
+
+---
+
+### T. CU15 — Postoperatorio (frontend)
+
+**Archivos creados:**
+- `frontend/src/lib/services/postoperatorio.ts`
+  - Interfaces: `Postoperatorio`, `PostoperatorioCreate`, `PostoperatorioParams`.
+  - Constantes: `ESTADO_POSTOP`, `ESTADO_POSTOP_LABELS`.
+  - Servicio: `list()`, `get()`, `create()`, `update()`, `destroy()`.
+  - Parámetro especial: `fecha?: string` para el filtro `?fecha=YYYY-MM-DD` del backend.
+- `frontend/src/app/(dashboard)/(gestion-atencionclinica)/postoperatorio/page.tsx`
+
+**Archivos modificados:**
+- `Sidebar.tsx` — NavItem "Postoperatorio" con icono `HeartPulse` (rose-600), cierra la cadena CU12→CU15.
+- `Header.tsx` — breadcrumb `/postoperatorio`.
+- `lib/services/index.ts` — exporta `postoperatorioService` y tipos.
+
+**Campos del modelo en el formulario:**
+| Campo | Tipo | UI |
+|---|---|---|
+| `id_paciente` | FK select | Dropdown |
+| `id_historia_clinica` | FK select filtrado | Habilitado tras elegir paciente |
+| `id_cirugia` | FK opcional | Vincula CU14 → CU15 |
+| `estado_postoperatorio` | choice | ESTABLE/EN_OBSERVACION/COMPLICADO/CERRADO |
+| `fecha_control` | datetime | **Requerida** |
+| `proximo_control` | datetime opcional | Debe ser >= fecha_control |
+| `alertas` | textarea | Campo visual especial — fondo ámbar cuando tiene contenido |
+| `observaciones` | textarea | Evolución, tratamiento, indicaciones de recuperación |
+
+**Features exclusivas de esta página:**
+1. **Banner de urgencia automático**: detecta controles con `proximo_control` vencido o en ≤ 48h y muestra aviso global.
+2. **Borde lateral de color** en cada tarjeta según estado (verde=ESTABLE, azul=EN_OBSERVACION, rojo=COMPLICADO, gris=CERRADO).
+3. **Indicador de días** al próximo control: "Vencido" / "Mañana" / "en Xd" con colores semafórico.
+4. **Zona de alertas visual** (fondo ámbar con ícono `Bell`) en tarjeta y en formulario.
+5. **Filtro de fecha exacta** (`?fecha=YYYY-MM-DD`) — usa el endpoint nativo del backend.
+6. **Stat card "Complicados" en rojo** cuando el valor es > 0 (urgencia visual).
+
+**Flujo quirúrgico completo implementado (CU12 → CU13 → CU14 → CU15):**
+El Sidebar ahora tiene la secuencia clínica completa bajo "Atención Clínica":
+`Eval. Quirúrgica → Preoperatorio → Cirugías → Postoperatorio`
+
+---
+
+### S. CU14 — Cirugías (frontend)
+
+**Archivos creados:**
+- `frontend/src/lib/services/cirugias.ts`
+  - Interfaces: `Cirugia`, `CirugiaCreate`, `CirugiaReprogramar`, `CirugiaParams`.
+  - Constantes: `ESTADO_CIRUGIA`, `ESTADO_CIRUGIA_LABELS`.
+  - Servicio: `list()`, `get()`, `create()`, `update()`, `destroy()`, `reprogramar()`.
+- `frontend/src/app/(dashboard)/(gestion-atencionclinica)/cirugias/page.tsx`
+
+**Archivos modificados:**
+- `Sidebar.tsx` — NavItem "Cirugías" con icono `Scalpel` bajo "Atención Clínica".
+- `Header.tsx` — breadcrumb `/cirugias`.
+- `lib/services/index.ts` — exporta `cirugiasService` y tipos.
+
+**Campos del modelo en el formulario:**
+| Campo | Tipo | UI |
+|---|---|---|
+| `id_paciente` | FK select | Dropdown de pacientes |
+| `id_historia_clinica` | FK select filtrado | Habilitado tras elegir paciente |
+| `id_preoperatorio` | FK opcional | Vincula CU13 → CU14 |
+| `estado_cirugia` | choice | PROGRAMADA/REPROGRAMADA/EN_CURSO/FINALIZADA/CANCELADA |
+| `fecha_programada` | datetime | Input `datetime-local`, **requerido** |
+| `fecha_real_inicio` | datetime opcional | Visible siempre, requerido si FINALIZADA |
+| `fecha_real_fin` | datetime opcional | Visible siempre, requerido si FINALIZADA |
+| `procedimiento` | textarea | **Requerido**, tipo de cirugía + técnica |
+| `resultado` | textarea | Resultado intraoperatorio |
+| `complicaciones` | textarea | Incidentes durante la cirugía |
+| `observaciones` | textarea | Indicaciones postoperatorias |
+| `motivo_reprogramacion` | textarea | Visible solo si estado = REPROGRAMADA |
+
+**Reglas de negocio implementadas:**
+- Si `estado === 'FINALIZADA'` y faltan `fecha_real_inicio` o `fecha_real_fin`: banner de aviso + bloqueo de submit.
+- Si ambas fechas reales están ingresadas: validación cronológica `inicio <= fin`.
+- En la tarjeta: se calcula y muestra la **duración en minutos** cuando ambas fechas reales están disponibles.
+- Botón "Reprogramar" (ícono naranja `RefreshCw`) visible solo si estado ≠ FINALIZADA y ≠ CANCELADA.
+
+**Mini-modal Reprogramar:**
+- Muestra la fecha actual de la cirugía.
+- Solicita nueva fecha (`datetime-local`) + motivo (textarea).
+- Llama a `POST /cirugias/{id}/reprogramar/` — el backend cambia el estado a REPROGRAMADA automáticamente.
+- Registra el evento en la bitácora del sistema.
+
+**Flujo quirúrgico completo (CU12 → CU13 → CU14):**
+1. Evaluación Quirúrgica (CU12): determina si el paciente es apto.
+2. Preoperatorio (CU13): prepara al paciente, requiere checklist + aptitud anestesia.
+3. Cirugía (CU14): registro del procedimiento, programación, resultado y complicaciones.
+El Sidebar refleja esta secuencia en el orden de los NavItems.
+
+---
+
+### R. CU13 — Preoperatorio (frontend)
+
+**Archivos creados:**
+- `frontend/src/lib/services/preoperatorio.ts`
+  - Interfaces: `Preoperatorio`, `PreoperatorioCreate`, `PreoperatorioParams`.
+  - Constantes: `ESTADO_PREOPERATORIO`, `ESTADO_PREOP_LABELS`.
+  - Servicio: `list()`, `get()`, `create()`, `update()`, `destroy()`.
+- `frontend/src/app/(dashboard)/(gestion-atencionclinica)/preoperatorio/page.tsx`
+
+**Archivos modificados:**
+- `Sidebar.tsx` — NavItem "Preoperatorio" con icono `ClipboardList` bajo "Atención Clínica".
+- `Header.tsx` — breadcrumb `/preoperatorio`.
+- `lib/services/index.ts` — exporta `preoperatorioService` y tipos.
+
+**Campos del modelo en el formulario:**
+| Campo | Tipo | UI |
+|---|---|---|
+| `id_paciente` | FK select | Dropdown con lista de pacientes |
+| `id_historia_clinica` | FK select (filtrado) | Habilitado tras elegir paciente |
+| `id_evaluacion_quirurgica` | FK opcional | Vincula CU12 → CU13 |
+| `fecha_programada_cirugia` | datetime opcional | Input `datetime-local` |
+| `estado_preoperatorio` | choice | PENDIENTE/EN_PROCESO/APROBADO/OBSERVADO/RECHAZADO |
+| `checklist_completado` | boolean | Toggle visual teal |
+| `checklist_detalle` | textarea | Visible siempre, detalla ítems del checklist |
+| `examenes_requeridos` | textarea | Columna izquierda del grid de exámenes |
+| `examenes_completados` | textarea | Columna derecha del grid de exámenes |
+| `apto_anestesia` | boolean | Toggle visual verde |
+| `observaciones` | textarea | Indicaciones, restricciones, notas |
+
+**Regla de negocio implementada en el frontend:**
+- Si `estado_preoperatorio === 'APROBADO'` y `!(checklist_completado && apto_anestesia)`:
+  - Se muestra un banner informativo antes de que el usuario intente guardar.
+  - La validación en `validate()` bloquea el submit con mensaje de error específico.
+  - Esta regla es espejo exacto de la validación del serializer del backend.
+
+**Flujo quirúrgico completo (CU12 → CU13):**
+- La página de Preoperatorio puede vincularse a una evaluación quirúrgica previa (CU12) mediante el campo `id_evaluacion_quirurgica`.
+- El dropdown de evaluaciones se filtra automáticamente al paciente seleccionado.
+- Esto representa el flujo natural: Evaluación Quirúrgica → Preoperatorio → Cirugía.
+
+---
+
+## CU16 — Backend CRM para la comunicacion con pacientes
+
+**Fecha:** 2026-05-09
+
+### Contexto del caso de uso
+El modulo pps/crm ya existia con tres modelos:
+- SegmentacionPaciente — segmentos de pacientes por criterios
+- CampanaCRM — campanas que apuntan a segmentos
+- HistorialContacto — registro individual de cada contacto con un paciente
+
+El CU16 requeria campos adicionales que HistorialContacto no tenia:
+tipo de mensaje, contenido del mensaje, respuesta del paciente y estado de comunicacion.
+
+### Nuevos TextChoices en models.py
+
+**TipoMensaje** — proposito semantico del mensaje (distinto al canal):
+- RECORDATORIO — para recordar citas o controles
+- NOTIFICACION — avisos del sistema
+- SEGUIMIENTO — seguimiento clinico
+- RESULTADO — entrega de resultados de examenes
+- INFORMATIVO — comunicacion general
+- OTRO
+
+**EstadoComunicacion** — ciclo de vida de la comunicacion:
+- PENDIENTE (default) — aun no se ha enviado
+- ENVIADO — mensaje despachado al canal
+- ENTREGADO — confirmacion de entrega
+- LEIDO — el paciente vio el mensaje
+- RESPONDIDO — hay respuesta registrada del paciente
+- FALLIDO — el envio fallo
+
+### Nuevos campos en HistorialContacto
+
+| Campo | Tipo DB | Obligatorio | Default |
+|-------|---------|-------------|---------|
+| 	ipo_mensaje | VARCHAR(20) | No | SEGUIMIENTO |
+| sunto | VARCHAR(200) | No | NULL |
+| mensaje | TEXT | No | NULL |
+| espuesta_paciente | TEXT | No | NULL |
+| estado_comunicacion | VARCHAR(20) | No | PENDIENTE |
+
+### Regla de negocio en serializers.py
+Si estado_comunicacion = RESPONDIDO y espuesta_paciente esta vacio -> ValidationError 400.
+Esto garantiza coherencia: no se puede marcar como "respondido" sin registrar la respuesta.
+
+### ViewSet actualizado (iews.py)
+Nuevos ilterset_fields:
+- 	ipo_mensaje
+- estado_comunicacion
+
+Nuevos search_fields adicionales:
+- sunto
+- mensaje
+- espuesta_paciente
+
+El mensaje de bitacora ahora incluye canal, tipo y estado para mejor trazabilidad.
+
+### Admin actualizado
+- ieldsets con 4 grupos: Identificacion / Comunicacion / Contenido / Auditoria
+- list_display incluye canal, 	ipo_mensaje, estado_comunicacion
+- list_filter incluye 	ipo_mensaje y estado_comunicacion
+
+### Migracion 0003
+Archivo: ackend/apps/crm/migrations/0003_historialcontacto_cu16_fields.py
+Depende de: crm/0002_initial
+Operaciones: 5 AddField (una por cada campo nuevo)
+
+**Comando para aplicar:**
+`
+docker compose exec backend python manage.py migrate crm
+`
+
+### Endpoints CRM disponibles (sin cambios en URLs)
+`
+GET/POST        /crm-contactos/
+GET/PATCH/DELETE /crm-contactos/{id}/
+
+GET/POST        /crm-campanas/
+GET/PATCH/DELETE /crm-campanas/{id}/
+
+GET/POST        /crm-segmentaciones/
+GET/PATCH/DELETE /crm-segmentaciones/{id}/
+`
+
+### Proximo paso natural
+Crear el frontend CU16:
+- Ruta: rontend/src/app/(dashboard)/(gestion-crm)/crm/page.tsx (o similar)
+- Visible en Sidebar solo si planInfo.permite_crm && flags.mostrar_modulo_crm
+- La pagina debe mostrar el historial de comunicaciones, filtros por canal/tipo/estado,
+  y un modal para registrar nuevas comunicaciones o actualizar el estado de existentes.

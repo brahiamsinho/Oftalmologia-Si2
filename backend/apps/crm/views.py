@@ -100,6 +100,25 @@ class CampanaCRMViewSet(CrmBitacoraMixin, viewsets.ModelViewSet):
 
 
 class HistorialContactoViewSet(CrmBitacoraMixin, viewsets.ModelViewSet):
+    """
+    CU16 — Gestionar CRM para la comunicación con pacientes.
+
+    Endpoints:
+        GET    /crm-contactos/           — lista paginada
+        POST   /crm-contactos/           — crear comunicación (contactado_por = request.user)
+        GET    /crm-contactos/{id}/      — detalle
+        PATCH  /crm-contactos/{id}/      — editar parcial
+        DELETE /crm-contactos/{id}/      — eliminar
+
+    Filtros disponibles:
+        ?id_paciente=          — por paciente
+        ?id_campana=           — por campaña CRM
+        ?canal=                — LLAMADA | WHATSAPP | EMAIL | SMS | OTRO
+        ?tipo_mensaje=         — RECORDATORIO | NOTIFICACION | SEGUIMIENTO | RESULTADO | INFORMATIVO | OTRO
+        ?estado_comunicacion=  — PENDIENTE | ENVIADO | ENTREGADO | LEIDO | RESPONDIDO | FALLIDO
+        ?search=               — busca en nombre paciente, asunto, mensaje, resultado, observaciones
+        ?ordering=             — fecha_contacto, created_at, updated_at
+    """
     queryset = HistorialContacto.objects.select_related(
         'id_paciente',
         'id_campana',
@@ -107,10 +126,19 @@ class HistorialContactoViewSet(CrmBitacoraMixin, viewsets.ModelViewSet):
     ).all()
     serializer_class = HistorialContactoSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['id_paciente', 'id_campana', 'canal']
+    filterset_fields = [
+        'id_paciente',
+        'id_campana',
+        'canal',
+        'tipo_mensaje',
+        'estado_comunicacion',
+    ]
     search_fields = [
         'id_paciente__nombres',
         'id_paciente__apellidos',
+        'asunto',
+        'mensaje',
+        'respuesta_paciente',
         'resultado',
         'observaciones',
     ]
@@ -128,6 +156,17 @@ class HistorialContactoViewSet(CrmBitacoraMixin, viewsets.ModelViewSet):
         instance = serializer.save(contactado_por=self.request.user)
         self._registrar(
             AccionBitacora.CREAR,
-            f'Creo historial de contacto CRM #{instance.id_historial_contacto}',
+            f'Creo comunicacion CRM #{instance.id_historial_contacto} '
+            f'canal={instance.canal} tipo={instance.tipo_mensaje} '
+            f'estado={instance.estado_comunicacion}',
+            instance,
+        )
+
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        self._registrar(
+            AccionBitacora.EDITAR,
+            f'Edito comunicacion CRM #{instance.id_historial_contacto} '
+            f'estado={instance.estado_comunicacion}',
             instance,
         )
