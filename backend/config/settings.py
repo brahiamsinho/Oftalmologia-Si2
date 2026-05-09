@@ -33,35 +33,32 @@ if DEBUG and '*' not in ALLOWED_HOSTS:
 
 TENANT_MODEL = 'tenant.Tenant'
 TENANT_DOMAIN_MODEL = 'tenant.Domain'
+
 PUBLIC_SCHEMA_NAME = 'public'
 TENANT_SUBFOLDER_PREFIX = 't'
+
 PUBLIC_SCHEMA_URLCONF = 'config.urls_public'
 
 SHARED_APPS = [
     'django_tenants',
+
     'apps.tenant',
 
     'django.contrib.contenttypes',
-    'django.contrib.auth',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.admin',
     'django.contrib.staticfiles',
 
     'rest_framework',
     'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
 
     'apps.core',
-
-    # Se deja en public para poder tener superadmin público.
-    # También se migra dentro de cada tenant porque está en TENANT_APPS.
-    'apps.usuarios.users',
 ]
 
 TENANT_APPS = [
+    # Auth por clínica.
     'django.contrib.contenttypes',
     'django.contrib.auth',
     'django.contrib.sessions',
@@ -69,17 +66,22 @@ TENANT_APPS = [
     'django.contrib.admin',
     'django.contrib.staticfiles',
 
+    # Blacklist JWT por clínica.
     'rest_framework_simplejwt.token_blacklist',
 
+    # Usuarios, roles y permisos por clínica.
     'apps.usuarios.users',
     'apps.usuarios.permisos',
     'apps.usuarios.roles',
 
+    # Auditoría por clínica.
     'apps.bitacora',
 
+    # Módulo pacientes por clínica.
     'apps.pacientes.pacientes',
     'apps.pacientes.historial_clinico',
 
+    # Atención clínica por clínica.
     'apps.atencionClinica.especialistas',
     'apps.atencionClinica.antecedentes',
     'apps.atencionClinica.citas',
@@ -90,16 +92,18 @@ TENANT_APPS = [
     'apps.atencionClinica.cirugias',
     'apps.atencionClinica.postoperatorio',
 
+    # CRM por clínica.
     'apps.crm',
 
+    # Notificaciones por clínica.
     'apps.notificaciones',
     'apps.notificaciones.automatizaciones',
 ]
 
+
 INSTALLED_APPS = list(SHARED_APPS) + [
     app for app in TENANT_APPS if app not in SHARED_APPS
 ]
-
 
 DATABASES = {
     'default': {

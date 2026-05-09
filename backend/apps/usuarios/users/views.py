@@ -11,6 +11,7 @@ Auth endpoints:
   POST  /api/auth/logout/
   GET   /api/auth/me/
   PATCH /api/auth/me/
+  GET   /api/auth/tenant/
   POST  /api/auth/change-password/
   POST  /api/auth/reset-password/
   POST  /api/auth/reset-password/confirm/
@@ -23,6 +24,8 @@ Users CRUD:
 """
 import logging
 
+from django.conf import settings
+from django.db import connection
 from django.utils import timezone
 from rest_framework import generics, status, viewsets
 from rest_framework.decorators import action
@@ -35,8 +38,7 @@ from apps.bitacora.models import AccionBitacora
 from apps.core.permissions import IsAdministrativoOrAdmin
 from apps.core.utils import get_client_ip, registrar_bitacora
 from apps.notificaciones.services import enviar_push_a_usuario, registrar_dispositivo_fcm
-from django.conf import settings
-from django.db import connection
+from apps.tenant.serializers import TenantPublicSerializer
 
 from .emails import enviar_confirmacion_registro, enviar_recuperacion_password
 from .models import TipoUsuario, Usuario
@@ -55,46 +57,42 @@ from .tokens import crear_token_recuperacion, validar_token_recuperacion
 logger = logging.getLogger('apps')
 
 
-def _first_attr(obj, *names, default=None):
-    """
-    Devuelve el primer atributo existente y no vacío.
-    Sirve para soportar distintos nombres de campos del modelo Tenant.
-    """
-    for name in names:
-        value = getattr(obj, name, None)
-        if value not in (None, ''):
-            return value
-    return default
-
-
-def _build_file_url(request, value):
-    """
-    Convierte un FileField/ImageField o string en URL absoluta.
-    """
-    if not value:
-        return None
-
-    url = getattr(value, 'url', None)
-
-    if not url and isinstance(value, str):
-        url = value
-
-    if not url:
-        return None
-
-    if url.startswith('http://') or url.startswith('https://'):
-        return url
-
-    return request.build_absolute_uri(url)
+def _public_tenant_payload(schema_name='public'):
+    return {
+        'id': None,
+        'id_tenant': None,
+        'schema_name': schema_name,
+        'slug': None,
+        'nombre': 'Sistema',
+        'razon_social': '',
+        'nit': '',
+        'email_contacto': '',
+        'telefono_contacto': '',
+        'activo': True,
+        'dominio_base': None,
+        'dominio': None,
+        'is_public': True,
+        'url_prefix': '/',
+        'branding': {
+            'nombre': 'Sistema',
+            'logo_url': None,
+            'color_primario': '#2563eb',
+            'color_secundario': '#0f172a',
+        },
+        'config': {},
+        'settings': None,
+        'subscription': None,
+    }
 
 
 def _tenant_payload(request):
     """
     Devuelve información pública del tenant actual.
 
-    En django-tenants, request.tenant lo resuelve:
-    - TenantSubfolderMiddleware si usas /t/<slug>/
-    - TenantMainMiddleware si usas subdominios/dominios
+    Para el flujo frontend:
+      1. GET  /t/<slug>/api/auth/tenant/
+      2. POST /t/<slug>/api/auth/login/
+      3. Frontend usa tenant.branding/config para pintar la UI.
     """
     tenant = getattr(request, 'tenant', None)
 
@@ -104,78 +102,16 @@ def _tenant_payload(request):
         getattr(connection, 'schema_name', settings.PUBLIC_SCHEMA_NAME),
     )
 
-    is_public = schema_name == getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
+    public_schema_name = getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
+    is_public = schema_name == public_schema_name
 
     if tenant is None or is_public:
-        return {
-            'id': None,
-            'schema_name': schema_name,
-            'slug': None,
-            'nombre': 'Sistema',
-            'is_public': True,
-            'branding': {
-                'logo_url': None,
-                'color_primario': None,
-                'color_secundario': None,
-            },
-            'config': {},
-        }
+        return _public_tenant_payload(schema_name=schema_name)
 
-    logo = _first_attr(
+    return TenantPublicSerializer(
         tenant,
-        'logo',
-        'logo_url',
-        'imagen_logo',
-        'logo_clinica',
-        default=None,
-    )
-
-    config = _first_attr(
-        tenant,
-        'config',
-        'configuracion',
-        'settings',
-        default={},
-    )
-
-    return {
-        'id': getattr(tenant, 'id', None),
-        'schema_name': schema_name,
-        'slug': _first_attr(tenant, 'slug', 'codigo', default=schema_name),
-        'nombre': _first_attr(
-            tenant,
-            'nombre',
-            'name',
-            'razon_social',
-            'nombre_comercial',
-            default=schema_name,
-        ),
-        'dominio': _first_attr(
-            tenant,
-            'domain_url',
-            'dominio',
-            'dominio_principal',
-            default=None,
-        ),
-        'is_public': False,
-        'branding': {
-            'logo_url': _build_file_url(request, logo),
-            'color_primario': _first_attr(
-                tenant,
-                'color_primario',
-                'primary_color',
-                'color_principal',
-                default='#2563eb',
-            ),
-            'color_secundario': _first_attr(
-                tenant,
-                'color_secundario',
-                'secondary_color',
-                default='#0f172a',
-            ),
-        },
-        'config': config if isinstance(config, dict) else {},
-    }
+        context={'request': request},
+    ).data
 
 
 def _jwt_response(usuario, request=None):
@@ -186,29 +122,27 @@ def _jwt_response(usuario, request=None):
 
     tenant_data = _tenant_payload(request) if request is not None else None
 
-    # Claims útiles para debug/cliente.
-    # No pongas aquí datos sensibles ni configuración grande.
-    if tenant_data:
+    if tenant_data and not tenant_data.get('is_public'):
+        refresh['tenant_id'] = tenant_data.get('id')
         refresh['tenant_schema'] = tenant_data.get('schema_name')
         refresh['tenant_slug'] = tenant_data.get('slug')
+
+    access = refresh.access_token
 
     return {
         'usuario': UsuarioSerializer(usuario).data,
         'tenant': tenant_data,
-        'access': str(refresh.access_token),
+        'access': str(access),
         'refresh': str(refresh),
     }
 
-# ---------------------------------------------------------------------------
-# Auth Views
-# ---------------------------------------------------------------------------
 
 class TenantActualView(APIView):
     """
     GET /api/auth/tenant/
 
     Devuelve la configuración pública del tenant actual.
-    Sirve para que el frontend pinte la pantalla de login según la organización.
+    Útil antes del login para pintar logo, colores y nombre de la organización.
     """
     permission_classes = [AllowAny]
     authentication_classes = []
@@ -218,25 +152,27 @@ class TenantActualView(APIView):
             'tenant': _tenant_payload(request),
         })
 
+
 class RegisterView(APIView):
     """
     POST /api/auth/register/
-    Registro público. Crea Paciente o Especialista automáticamente según tipo_usuario.
-    Opcional (push): "fcm_token", "plataforma" (android|ios|web).
-    Retorna JWT para login inmediato post-registro.
+    Registro público. Crea Paciente automáticamente.
+    Opcional push: "fcm_token", "plataforma" (android|ios|web).
     """
     permission_classes = [AllowAny]
 
     def post(self, request):
-        # Registro público: solo pacientes (móvil y cualquier cliente del endpoint).
         payload = (
             request.data.copy()
             if hasattr(request.data, 'copy')
             else dict(request.data)
         )
+
         fcm_token = payload.pop('fcm_token', None) or payload.pop('fcmToken', None)
         fcm_plataforma = payload.pop('plataforma', None)
+
         payload['tipo_usuario'] = TipoUsuario.PACIENTE
+
         serializer = RegistroSerializer(data=payload)
         serializer.is_valid(raise_exception=True)
         usuario = serializer.save()
@@ -247,13 +183,18 @@ class RegisterView(APIView):
         email_ok = enviar_confirmacion_registro(usuario)
 
         registrar_bitacora(
-            usuario=usuario, modulo='auth', accion=AccionBitacora.CREAR,
+            usuario=usuario,
+            modulo='auth',
+            accion=AccionBitacora.CREAR,
             descripcion=f'Nuevo registro: {usuario.username} ({usuario.tipo_usuario})',
-            tabla_afectada='usuarios', id_registro_afectado=usuario.id,
+            tabla_afectada='usuarios',
+            id_registro_afectado=usuario.id,
             ip_origen=get_client_ip(request),
             user_agent=request.META.get('HTTP_USER_AGENT', ''),
         )
+
         registrar_dispositivo_fcm(usuario, fcm_token, fcm_plataforma)
+
         enviar_push_a_usuario(
             usuario_id=usuario.id,
             titulo='¡Bienvenido/a!',
@@ -261,10 +202,16 @@ class RegisterView(APIView):
             data={'tipo': 'registro'},
             tipo='registro',
         )
+
         if not fcm_token:
-            logger.info('[register] Sin FCM token en el request → push solo en BD (usuario_id=%s)', usuario.id)
+            logger.info(
+                '[register] Sin FCM token en el request → push solo en BD (usuario_id=%s)',
+                usuario.id,
+            )
+
         payload = _jwt_response(usuario, request=request)
         payload['email_confirmacion_enviada'] = email_ok
+
         return Response(payload, status=status.HTTP_201_CREATED)
 
     def _crear_perfil(self, usuario, extra):
@@ -272,7 +219,9 @@ class RegisterView(APIView):
             try:
                 from apps.pacientes.pacientes.models import Paciente
                 from apps.pacientes.pacientes.utils import generar_numero_historia
+
                 num_doc = extra.get('numero_documento') or f'PENDIENTE-{usuario.id}'
+
                 Paciente.objects.create(
                     usuario=usuario,
                     numero_historia=generar_numero_historia(),
@@ -284,48 +233,59 @@ class RegisterView(APIView):
                     email=usuario.email,
                 )
             except Exception as exc:
-                logger.error(f'[register] Error creando Paciente: {exc}')
+                logger.error('[register] Error creando Paciente: %s', exc)
 
         elif usuario.tipo_usuario in ('MEDICO', 'ESPECIALISTA'):
             try:
                 from apps.atencionClinica.especialistas.models import Especialista
+
                 Especialista.objects.create(
                     usuario=usuario,
                     especialidad=extra.get('especialidad', 'General'),
                     codigo_profesional=extra.get('codigo_profesional') or None,
                 )
             except Exception as exc:
-                logger.error(f'[register] Error creando Especialista: {exc}')
+                logger.error('[register] Error creando Especialista: %s', exc)
 
 
 class LoginView(APIView):
     """
     POST /api/auth/login/
-    Body: { "email": "...", "password": "..." } — solo correo electrónico.
-    Opcional (push): "fcm_token", "plataforma" (android|ios|web).
-    Retorna JWT + datos del usuario.
+    Body: { "email": "...", "password": "..." }
+    Opcional push: "fcm_token", "plataforma" (android|ios|web).
+
+    Debe llamarse desde:
+      /t/<slug>/api/auth/login/
+
+    Así django-tenants ya habrá cambiado al schema correcto.
     """
     permission_classes = [AllowAny]
 
     def post(self, request):
         data_in = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+
         fcm_token = data_in.pop('fcm_token', None) or data_in.pop('fcmToken', None)
         fcm_plataforma = data_in.pop('plataforma', None)
 
         serializer = LoginSerializer(data=data_in)
         serializer.is_valid(raise_exception=True)
+
         usuario = serializer.validated_data['user']
 
         usuario.ultimo_acceso = timezone.now()
         usuario.save(update_fields=['ultimo_acceso'])
 
         registrar_bitacora(
-            usuario=usuario, modulo='auth', accion=AccionBitacora.LOGIN,
+            usuario=usuario,
+            modulo='auth',
+            accion=AccionBitacora.LOGIN,
             descripcion=f'Login exitoso: {usuario.username}',
             ip_origen=get_client_ip(request),
             user_agent=request.META.get('HTTP_USER_AGENT', ''),
         )
+
         registrar_dispositivo_fcm(usuario, fcm_token, fcm_plataforma)
+
         enviar_push_a_usuario(
             usuario_id=usuario.id,
             titulo='Sesión iniciada',
@@ -333,8 +293,13 @@ class LoginView(APIView):
             data={'tipo': 'login'},
             tipo='login',
         )
+
         if not fcm_token:
-            logger.info('[login] Sin FCM token en el request → push solo en BD (usuario_id=%s)', usuario.id)
+            logger.info(
+                '[login] Sin FCM token en el request → push solo en BD (usuario_id=%s)',
+                usuario.id,
+            )
+
         return Response(_jwt_response(usuario, request=request))
 
 
@@ -348,27 +313,38 @@ class LogoutView(APIView):
 
     def post(self, request):
         refresh_token = request.data.get('refresh')
+
         if not refresh_token:
-            return Response({'error': 'Se requiere el refresh token.'}, status=400)
+            return Response(
+                {'error': 'Se requiere el refresh token.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             token = RefreshToken(refresh_token)
             token.blacklist()
         except Exception:
-            return Response({'error': 'Token inválido o ya expirado.'}, status=400)
+            return Response(
+                {'error': 'Token inválido o ya expirado.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         registrar_bitacora(
-            usuario=request.user, modulo='auth', accion=AccionBitacora.LOGOUT,
+            usuario=request.user,
+            modulo='auth',
+            accion=AccionBitacora.LOGOUT,
             descripcion=f'Logout: {request.user.username}',
             ip_origen=get_client_ip(request),
             user_agent=request.META.get('HTTP_USER_AGENT', ''),
         )
+
         return Response({'mensaje': 'Sesión cerrada correctamente.'})
 
 
 class MeView(generics.RetrieveUpdateAPIView):
     """
-    GET   /api/auth/me/  — Ver perfil propio
-    PATCH /api/auth/me/  — Editar perfil propio
+    GET   /api/auth/me/
+    PATCH /api/auth/me/
     """
     permission_classes = [IsAuthenticated]
     serializer_class = PerfilSerializer
@@ -385,6 +361,7 @@ class MeView(generics.RetrieveUpdateAPIView):
 
     def perform_update(self, serializer):
         serializer.save()
+
         registrar_bitacora(
             usuario=self.request.user,
             modulo='auth',
@@ -395,8 +372,11 @@ class MeView(generics.RetrieveUpdateAPIView):
             ip_origen=get_client_ip(self.request),
         )
 
+
 class ChangePasswordView(APIView):
-    """POST /api/auth/change-password/"""
+    """
+    POST /api/auth/change-password/
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -404,37 +384,47 @@ class ChangePasswordView(APIView):
         serializer.is_valid(raise_exception=True)
 
         if not request.user.check_password(serializer.validated_data['password_actual']):
-            return Response({'error': 'La contraseña actual es incorrecta.'}, status=400)
+            return Response(
+                {'error': 'La contraseña actual es incorrecta.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         request.user.set_password(serializer.validated_data['password_nuevo'])
         request.user.save(update_fields=['password'])
 
         registrar_bitacora(
-            usuario=request.user, modulo='auth', accion=AccionBitacora.CAMBIAR_PASSWORD,
+            usuario=request.user,
+            modulo='auth',
+            accion=AccionBitacora.CAMBIAR_PASSWORD,
             descripcion=f'Cambio de contraseña: {request.user.username}',
             ip_origen=get_client_ip(request),
         )
+
         return Response({'mensaje': 'Contraseña actualizada correctamente.'})
 
 
 class ResetPasswordView(APIView):
     """
     POST /api/auth/reset-password/
-    Envía email con token de reset. Siempre responde 200 (no revela si el email existe).
+    Envía email con token de reset. Siempre responde 200 para no revelar si existe.
     """
     permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = RecuperarPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
         email = serializer.validated_data['email']
 
         try:
             usuario = Usuario.objects.get(email=email, estado='ACTIVO')
             token_obj = crear_token_recuperacion(usuario)
             enviar_recuperacion_password(usuario, token_obj.token)
+
             registrar_bitacora(
-                usuario=usuario, modulo='auth', accion=AccionBitacora.RECUPERAR_PASSWORD,
+                usuario=usuario,
+                modulo='auth',
+                accion=AccionBitacora.RECUPERAR_PASSWORD,
                 descripcion=f'Solicitud reset password: {usuario.email}',
                 ip_origen=get_client_ip(request),
             )
@@ -445,7 +435,9 @@ class ResetPasswordView(APIView):
 
 
 class ResetPasswordConfirmView(APIView):
-    """POST /api/auth/reset-password/confirm/"""
+    """
+    POST /api/auth/reset-password/confirm/
+    """
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -453,35 +445,34 @@ class ResetPasswordConfirmView(APIView):
         serializer.is_valid(raise_exception=True)
 
         token_obj, error = validar_token_recuperacion(serializer.validated_data['token'])
+
         if error:
-            return Response({'error': error}, status=400)
+            return Response(
+                {'error': error},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         usuario = token_obj.id_usuario
         usuario.set_password(serializer.validated_data['password_nuevo'])
         usuario.save(update_fields=['password'])
+
         token_obj.usado = True
         token_obj.save(update_fields=['usado'])
 
         registrar_bitacora(
-            usuario=usuario, modulo='auth', accion=AccionBitacora.CAMBIAR_PASSWORD,
+            usuario=usuario,
+            modulo='auth',
+            accion=AccionBitacora.CAMBIAR_PASSWORD,
             descripcion=f'Password restablecida via token: {usuario.username}',
             ip_origen=get_client_ip(request),
         )
+
         return Response({'mensaje': 'Contraseña restablecida correctamente.'})
 
-
-# ---------------------------------------------------------------------------
-# Gestión de Usuarios (Admin/Administrativo)
-# ---------------------------------------------------------------------------
 
 class UsuarioViewSet(viewsets.ModelViewSet):
     """
     CRUD completo de usuarios.
-    GET/POST    /api/users/
-    GET/PUT/PATCH/DELETE /api/users/{id}/
-    POST        /api/users/{id}/activar/
-    POST        /api/users/{id}/bloquear/
-    GET/POST    /api/users/{id}/roles/
     """
     queryset = Usuario.objects.all().order_by('apellidos', 'nombres')
     permission_classes = [IsAuthenticated, IsAdministrativoOrAdmin]
@@ -533,6 +524,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         usuario.estado = 'ACTIVO'
         usuario.is_active = True
         usuario.save(update_fields=['estado', 'is_active'])
+
         return Response({'mensaje': f'Usuario {usuario.username} activado.'})
 
     @action(detail=True, methods=['post'])
@@ -541,6 +533,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         usuario.estado = 'BLOQUEADO'
         usuario.is_active = False
         usuario.save(update_fields=['estado', 'is_active'])
+
         return Response({'mensaje': f'Usuario {usuario.username} bloqueado.'})
 
     @action(detail=True, methods=['get', 'post'], url_path='roles')
@@ -554,10 +547,12 @@ class UsuarioViewSet(viewsets.ModelViewSet):
             asignaciones = UsuarioRol.objects.filter(
                 id_usuario=usuario,
             ).select_related('id_rol')
+
             return Response(UsuarioRolSerializer(asignaciones, many=True).data)
 
         data = {**request.data, 'id_usuario': usuario.pk}
         serializer = UsuarioRolSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)

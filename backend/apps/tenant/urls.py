@@ -7,6 +7,7 @@ from .views import (
     TenantChangePlanView,
     TenantCurrentView,
     TenantManagementViewSet,
+    TenantSettingsCurrentView,
 )
 
 router = DefaultRouter()
@@ -15,9 +16,24 @@ router.register('plans', SubscriptionPlanViewSet, basename='subscription-plans')
 
 urlpatterns = [
     path('organization/me/', TenantCurrentView.as_view(), name='tenant-current'),
-    path('organization/change-plan/', TenantChangePlanView.as_view(), name='tenant-change-plan'),
 
-    path('tenants/<slug:slug>/', PublicTenantLookupView.as_view(), name='public-tenant-lookup'),
+    path(
+        'organization/settings/',
+        TenantSettingsCurrentView.as_view(),
+        name='tenant-settings-current',
+    ),
+
+    path(
+        'organization/change-plan/',
+        TenantChangePlanView.as_view(),
+        name='tenant-change-plan',
+    ),
+
+    path(
+        'tenants/<slug:slug>/',
+        PublicTenantLookupView.as_view(),
+        name='public-tenant-lookup',
+    ),
 
     path('', include(router.urls)),
 ]

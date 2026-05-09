@@ -1,4 +1,5 @@
 from datetime import timedelta
+import re
 
 from django.db import transaction
 from django.utils import timezone
@@ -16,8 +17,50 @@ from .models import (
 )
 
 
+HEX_COLOR_RE = re.compile(r'^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$')
+
+
 def normalizar_schema_desde_slug(slug: str) -> str:
     return slug.strip().lower().replace('-', '_')
+
+
+def _safe_related(obj, attr):
+    try:
+        return getattr(obj, attr, None)
+    except Exception:
+        return None
+
+
+def _absolute_url(request, value):
+    if not value:
+        return None
+
+    raw = getattr(value, 'url', None) or str(value)
+
+    if not raw:
+        return None
+
+    if raw.startswith('http://') or raw.startswith('https://'):
+        return raw
+
+    if request is not None:
+        return request.build_absolute_uri(raw)
+
+    return raw
+
+
+def _validar_color_hex(value):
+    if value in (None, ''):
+        return value
+
+    value = value.strip()
+
+    if not HEX_COLOR_RE.match(value):
+        raise serializers.ValidationError(
+            'Debe ser un color HEX válido. Ejemplo: #2563eb o #fff.'
+        )
+
+    return value
 
 
 class SubscriptionPlanSerializer(serializers.ModelSerializer):
@@ -30,6 +73,43 @@ class TenantSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = TenantSettings
         fields = [
+            'id_tenant_settings',
+            'timezone',
+            'idioma',
+            'branding_nombre',
+            'branding_color_primario',
+            'branding_color_secundario',
+            'branding_logo_url',
+            'flags',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = [
+            'id_tenant_settings',
+            'timezone',
+            'idioma',
+            'branding_nombre',
+            'branding_color_primario',
+            'branding_color_secundario',
+            'branding_logo_url',
+            'flags',
+            'created_at',
+            'updated_at',
+        ]
+
+
+class TenantSettingsUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer para modificar la configuración pública/visual del tenant actual.
+
+    Este serializer se usa en:
+      PATCH /t/<slug>/api/organization/settings/
+      PUT   /t/<slug>/api/organization/settings/
+    """
+
+    class Meta:
+        model = TenantSettings
+        fields = [
             'timezone',
             'idioma',
             'branding_nombre',
@@ -38,6 +118,42 @@ class TenantSettingsSerializer(serializers.ModelSerializer):
             'branding_logo_url',
             'flags',
         ]
+
+    def validate_branding_color_primario(self, value):
+        return _validar_color_hex(value)
+
+    def validate_branding_color_secundario(self, value):
+        return _validar_color_hex(value)
+
+    def validate_flags(self, value):
+        if value is None:
+            return {}
+
+        if not isinstance(value, dict):
+            raise serializers.ValidationError(
+                'El campo flags debe ser un objeto JSON. Ejemplo: {"permite_agenda_online": true}.'
+            )
+
+        return value
+
+    def validate_timezone(self, value):
+        value = (value or '').strip()
+
+        if not value:
+            raise serializers.ValidationError('La zona horaria no puede estar vacía.')
+
+        return value
+
+    def validate_idioma(self, value):
+        value = (value or '').strip().lower()
+
+        if not value:
+            raise serializers.ValidationError('El idioma no puede estar vacío.')
+
+        if len(value) > 10:
+            raise serializers.ValidationError('El idioma no puede superar 10 caracteres.')
+
+        return value
 
 
 class TenantSubscriptionSerializer(serializers.ModelSerializer):
@@ -73,6 +189,12 @@ class TenantUsageSerializer(serializers.ModelSerializer):
 
 
 class TenantPublicSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
+    id_tenant = serializers.IntegerField(read_only=True)
+    is_public = serializers.SerializerMethodField()
+    dominio = serializers.SerializerMethodField()
+    branding = serializers.SerializerMethodField()
+    config = serializers.SerializerMethodField()
     settings = TenantSettingsSerializer(read_only=True)
     subscription = TenantSubscriptionSerializer(read_only=True)
     url_prefix = serializers.CharField(read_only=True)
@@ -80,6 +202,7 @@ class TenantPublicSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tenant
         fields = [
+            'id',
             'id_tenant',
             'schema_name',
             'slug',
@@ -90,10 +213,58 @@ class TenantPublicSerializer(serializers.ModelSerializer):
             'telefono_contacto',
             'activo',
             'dominio_base',
+            'dominio',
+            'is_public',
             'url_prefix',
+            'branding',
+            'config',
             'settings',
             'subscription',
         ]
+
+    def get_is_public(self, obj):
+        return getattr(obj, 'schema_name', None) == 'public'
+
+    def get_dominio(self, obj):
+        if obj.dominio_base:
+            return obj.dominio_base
+
+        try:
+            domain = obj.domains.filter(is_primary=True).first()
+            if domain:
+                return domain.domain
+        except Exception:
+            pass
+
+        return obj.slug
+
+    def get_branding(self, obj):
+        request = self.context.get('request')
+        settings_obj = _safe_related(obj, 'settings')
+
+        logo_url = None
+        color_primario = '#2563eb'
+        color_secundario = '#0f172a'
+        branding_nombre = obj.nombre
+
+        if settings_obj is not None:
+            logo_url = _absolute_url(request, settings_obj.branding_logo_url)
+            color_primario = settings_obj.branding_color_primario or color_primario
+            color_secundario = settings_obj.branding_color_secundario or color_secundario
+            branding_nombre = settings_obj.branding_nombre or branding_nombre
+
+        return {
+            'nombre': branding_nombre,
+            'logo_url': logo_url,
+            'color_primario': color_primario,
+            'color_secundario': color_secundario,
+        }
+
+    def get_config(self, obj):
+        settings_obj = _safe_related(obj, 'settings')
+        if settings_obj is None:
+            return {}
+        return settings_obj.flags or {}
 
 
 class TenantCreateSerializer(serializers.Serializer):
@@ -134,6 +305,7 @@ class TenantCreateSerializer(serializers.Serializer):
 
         slug = validated_data['slug']
         schema_name = normalizar_schema_desde_slug(slug)
+
         plan = SubscriptionPlan.objects.get(codigo=plan_codigo, activo=True)
 
         tenant = Tenant.objects.create(
@@ -143,7 +315,11 @@ class TenantCreateSerializer(serializers.Serializer):
             **validated_data,
         )
 
-        Domain.objects.create(domain=slug, tenant=tenant, is_primary=True)
+        Domain.objects.create(
+            domain=slug,
+            tenant=tenant,
+            is_primary=True,
+        )
 
         TenantSettings.objects.create(
             tenant=tenant,
@@ -158,18 +334,25 @@ class TenantCreateSerializer(serializers.Serializer):
         )
 
         TenantUsage.objects.create(tenant=tenant)
+
         return tenant
 
 
 class TenantManagementSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='pk', read_only=True)
     settings = TenantSettingsSerializer(read_only=True)
     subscription = TenantSubscriptionSerializer(read_only=True)
     usage = TenantUsageSerializer(read_only=True)
     url_prefix = serializers.CharField(read_only=True)
+    dominio = serializers.SerializerMethodField()
+    branding = serializers.SerializerMethodField()
+    config = serializers.SerializerMethodField()
+    is_public = serializers.SerializerMethodField()
 
     class Meta:
         model = Tenant
         fields = [
+            'id',
             'id_tenant',
             'schema_name',
             'slug',
@@ -180,14 +363,36 @@ class TenantManagementSerializer(serializers.ModelSerializer):
             'telefono_contacto',
             'activo',
             'dominio_base',
+            'dominio',
+            'is_public',
             'url_prefix',
+            'branding',
+            'config',
             'settings',
             'subscription',
             'usage',
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id_tenant', 'schema_name', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id',
+            'id_tenant',
+            'schema_name',
+            'created_at',
+            'updated_at',
+        ]
+
+    def get_dominio(self, obj):
+        return TenantPublicSerializer(obj, context=self.context).get_dominio(obj)
+
+    def get_branding(self, obj):
+        return TenantPublicSerializer(obj, context=self.context).get_branding(obj)
+
+    def get_config(self, obj):
+        return TenantPublicSerializer(obj, context=self.context).get_config(obj)
+
+    def get_is_public(self, obj):
+        return getattr(obj, 'schema_name', None) == 'public'
 
 
 class TenantChangePlanSerializer(serializers.Serializer):
@@ -208,14 +413,17 @@ class TenantChangePlanSerializer(serializers.Serializer):
     def _get_tenant(self):
         request = self.context.get('request')
         tenant = self.context.get('tenant') or getattr(request, 'tenant', None)
+
         if tenant is None:
             raise serializers.ValidationError({
                 'tenant': 'No se pudo resolver la organización actual.'
             })
+
         if getattr(tenant, 'schema_name', None) == 'public':
             raise serializers.ValidationError({
                 'tenant': 'No puedes cambiar el plan del schema public desde este endpoint.'
             })
+
         return tenant
 
     def validate(self, attrs):
@@ -237,6 +445,7 @@ class TenantChangePlanSerializer(serializers.Serializer):
         )
 
         plan_actual = suscripcion.plan if suscripcion else None
+
         es_downgrade = (
             plan_actual is not None
             and nuevo_plan.precio_mensual < plan_actual.precio_mensual
@@ -307,7 +516,10 @@ class TenantChangePlanSerializer(serializers.Serializer):
         suscripcion.fecha_inicio = timezone.now()
 
         if 'renovar_automaticamente' in self.initial_data:
-            suscripcion.renovar_automaticamente = self.validated_data.get('renovar_automaticamente', False)
+            suscripcion.renovar_automaticamente = self.validated_data.get(
+                'renovar_automaticamente',
+                False,
+            )
 
         if 'proveedor_pago' in self.initial_data:
             suscripcion.proveedor_pago = self.validated_data.get('proveedor_pago', '')

@@ -48,18 +48,49 @@ class Tenant(TenantMixin):
         return f'{self.nombre} ({self.schema_name})'
 
     @property
+    def id(self):
+        """
+        Alias de compatibilidad para evitar respuestas con id=null.
+        Internamente Django sigue usando pk/id_tenant.
+        """
+        return self.pk
+
+    @property
+    def is_public(self):
+        return self.schema_name == 'public'
+
+    @property
     def url_prefix(self):
         return f'/t/{self.slug}/'
 
+    def get_primary_domain(self):
+        """
+        Retorna el dominio principal si existe.
+        En modo subfolder, puede ser el slug o el dominio configurado.
+        """
+        try:
+            primary = self.domains.filter(is_primary=True).first()
+            if primary:
+                return primary.domain
+        except Exception:
+            pass
+
+        return self.dominio_base or self.slug
+
     def clean(self):
         super().clean()
+
         if self.schema_name:
             normalized = self.schema_name.lower().replace('-', '_')
             if self.schema_name != normalized:
-                raise ValidationError({'schema_name': 'Usa minúsculas y guion bajo. Ejemplo: clinica_demo.'})
+                raise ValidationError({
+                    'schema_name': 'Usa minúsculas y guion bajo. Ejemplo: clinica_demo.'
+                })
 
         if self.schema_name == 'public' and self.slug != 'public':
-            raise ValidationError({'slug': 'El schema public debe usar slug public.'})
+            raise ValidationError({
+                'slug': 'El schema public debe usar slug public.'
+            })
 
 
 class Domain(DomainMixin):
@@ -123,7 +154,11 @@ class TenantSubscription(models.Model):
         db_column='id_plan',
     )
 
-    estado = models.CharField(max_length=20, choices=EstadoSuscripcion.choices, default=EstadoSuscripcion.TRIAL)
+    estado = models.CharField(
+        max_length=20,
+        choices=EstadoSuscripcion.choices,
+        default=EstadoSuscripcion.TRIAL,
+    )
     fecha_inicio = models.DateTimeField(default=timezone.now)
     fecha_fin = models.DateTimeField(null=True, blank=True)
     trial_fin = models.DateTimeField(null=True, blank=True)
