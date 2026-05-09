@@ -10,11 +10,14 @@ done
 echo "PostgreSQL is ready!"
 
 if [ "${RUN_MIGRATIONS:-1}" = "1" ]; then
-  echo "Applying shared/public schema migrations..."
+  echo "Applying public/shared schema migrations..."
   python manage.py migrate_schemas --shared --noinput
 
   echo "Ensuring public tenant..."
   python manage.py bootstrap_public_tenant --domain "${PUBLIC_DOMAIN:-localhost}" || true
+
+  echo "Applying tenant schema migrations..."
+  python manage.py migrate_schemas --tenant --noinput
 fi
 
 echo "Collecting static files..."

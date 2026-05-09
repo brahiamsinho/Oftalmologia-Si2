@@ -19,11 +19,6 @@ class BitacoraViewSet(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
-    """
-    GET /api/bitacora/          - Listar eventos (con filtros y paginación)
-    GET /api/bitacora/{id}/     - Detalle de un evento
-    La escritura es automática desde el sistema — no expuesta via API.
-    """
     queryset = Bitacora.objects.select_related('id_usuario').all()
     serializer_class = BitacoraSerializer
     permission_classes = [IsAuthenticated, IsAdministrativoOrAdmin]
@@ -33,10 +28,3 @@ class BitacoraViewSet(
     search_fields = ['descripcion', 'modulo', 'tabla_afectada', 'ip_origen']
     ordering_fields = ['fecha_evento', 'accion', 'modulo']
     ordering = ['-fecha_evento']
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        tenant = getattr(self.request, 'tenant', None)
-        if tenant is not None:
-            qs = qs.for_tenant(tenant)
-        return qs

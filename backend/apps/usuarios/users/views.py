@@ -322,51 +322,54 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     GET/PUT/PATCH/DELETE /api/users/{id}/
     POST        /api/users/{id}/activar/
     POST        /api/users/{id}/bloquear/
-    GET/POST    /api/users/{id}/roles/   (consulta/asigna roles via apps.usuarios.roles)
+    GET/POST    /api/users/{id}/roles/
     """
     queryset = Usuario.objects.all().order_by('apellidos', 'nombres')
     permission_classes = [IsAuthenticated, IsAdministrativoOrAdmin]
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        tenant = getattr(self.request, 'tenant', None)
-        if tenant is not None:
-            qs = qs.filter(tenant=tenant)
-        return qs
 
     def get_serializer_class(self):
         return UsuarioCreateSerializer if self.action == 'create' else UsuarioSerializer
 
     def perform_create(self, serializer):
         usuario = serializer.save()
+
         registrar_bitacora(
-            usuario=self.request.user, modulo='users', accion=AccionBitacora.CREAR,
+            usuario=self.request.user,
+            modulo='users',
+            accion=AccionBitacora.CREAR,
             descripcion=f'Creó usuario: {usuario.username}',
-            tabla_afectada='usuarios', id_registro_afectado=usuario.id,
+            tabla_afectada='usuarios',
+            id_registro_afectado=usuario.id,
             ip_origen=get_client_ip(self.request),
         )
 
     def perform_update(self, serializer):
         usuario = serializer.save()
+
         registrar_bitacora(
-            usuario=self.request.user, modulo='users', accion=AccionBitacora.EDITAR,
+            usuario=self.request.user,
+            modulo='users',
+            accion=AccionBitacora.EDITAR,
             descripcion=f'Editó usuario: {usuario.username}',
-            tabla_afectada='usuarios', id_registro_afectado=usuario.id,
+            tabla_afectada='usuarios',
+            id_registro_afectado=usuario.id,
             ip_origen=get_client_ip(self.request),
         )
 
     def perform_destroy(self, instance):
         registrar_bitacora(
-            usuario=self.request.user, modulo='users', accion=AccionBitacora.ELIMINAR,
+            usuario=self.request.user,
+            modulo='users',
+            accion=AccionBitacora.ELIMINAR,
             descripcion=f'Eliminó usuario: {instance.username}',
-            tabla_afectada='usuarios', id_registro_afectado=instance.id,
+            tabla_afectada='usuarios',
+            id_registro_afectado=instance.id,
             ip_origen=get_client_ip(self.request),
         )
         instance.delete()
 
     @action(detail=True, methods=['post'])
     def activar(self, request, pk=None):
-        """POST /api/users/{id}/activar/"""
         usuario = self.get_object()
         usuario.estado = 'ACTIVO'
         usuario.is_active = True
@@ -375,7 +378,6 @@ class UsuarioViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def bloquear(self, request, pk=None):
-        """POST /api/users/{id}/bloquear/"""
         usuario = self.get_object()
         usuario.estado = 'BLOQUEADO'
         usuario.is_active = False
@@ -384,18 +386,14 @@ class UsuarioViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get', 'post'], url_path='roles')
     def roles(self, request, pk=None):
-        """
-        GET  /api/users/{id}/roles/ — Roles asignados al usuario
-        POST /api/users/{id}/roles/ — Asignar rol al usuario
-        Body: { "id_rol": <id> }
-        """
         from apps.usuarios.roles.models import UsuarioRol
         from apps.usuarios.roles.serializers import UsuarioRolSerializer
 
         usuario = self.get_object()
+
         if request.method == 'GET':
             asignaciones = UsuarioRol.objects.filter(
-                id_usuario=usuario
+                id_usuario=usuario,
             ).select_related('id_rol')
             return Response(UsuarioRolSerializer(asignaciones, many=True).data)
 
