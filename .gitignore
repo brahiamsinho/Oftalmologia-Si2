@@ -106,5 +106,8 @@ Thumbs.db
 *.exe
 *.dll
 *.pdb
-AGENTS.md
-.docs/
+#AGENTS.md
+docs/
+BaseDeDatos.sql
+BaseDeDatos.sql
+skills-lock.json

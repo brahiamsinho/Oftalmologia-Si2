@@ -107,7 +107,7 @@ docker compose exec backend python manage.py migrate
 docker compose exec backend python manage.py showmigrations
 
 # Poblar base de datos inicial (admin, roles, etc.)
-docker-compose exec backend python manage.py seed
+docker compose exec backend python manage.py seed
 docker compose exec backend python manage.py seed --only admin  # Solo admin
 
 # Abrir shell de Django
@@ -178,3 +178,5 @@ flutter pub outdated
 ## Licencia
 
 Proyecto académico — Uso educativo.
+
+docker compose down -v --rmi all

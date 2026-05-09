@@ -55,4 +55,64 @@ class CitasRepository {
     }
     return 'No pudimos cargar las citas.';
   }
+
+  /// POST `citas/` — agenda una nueva cita para el paciente autenticado.
+  /// El backend asigna automáticamente el paciente según el usuario logueado.
+  Future<Map<String, dynamic>> scheduleAppointment({
+    required int idEspecialista,
+    required int idTipoCita,
+    required String fechaHoraInicio,
+    required String fechaHoraFin,
+    String? motivo,
+    String? observaciones,
+  }) async {
+    try {
+      final data = <String, dynamic>{
+        'id_especialista': idEspecialista,
+        'id_tipo_cita': idTipoCita,
+        'fecha_hora_inicio': fechaHoraInicio,
+        'fecha_hora_fin': fechaHoraFin,
+      };
+      if (motivo != null && motivo.isNotEmpty) data['motivo'] = motivo;
+      if (observaciones != null && observaciones.isNotEmpty) {
+        data['observaciones'] = observaciones;
+      }
+      final response = await _dio.post<Map<String, dynamic>>('citas/', data: data);
+      final resBody = response.data;
+      if (resBody == null) {
+        throw Exception('Respuesta vacía del servidor.');
+      }
+      return resBody;
+    } on DioException catch (e) {
+      throw Exception(_message(e));
+    }
+  }
+
+  /// GET `especialistas-disponibles/` — lista de especialistas activos para pacientes.
+  Future<List<Map<String, dynamic>>> getAvailableSpecialists() async {
+    try {
+      final response = await _dio.get<dynamic>('especialistas-disponibles/');
+      final data = response.data;
+      final raw = _extractResults(data);
+      return raw
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    } on DioException catch (e) {
+      throw Exception(_message(e));
+    }
+  }
+
+  /// GET `tipos-cita/` — tipos de cita disponibles.
+  Future<List<Map<String, dynamic>>> getAppointmentTypes() async {
+    try {
+      final response = await _dio.get<dynamic>('tipos-cita/');
+      final data = response.data;
+      final raw = _extractResults(data);
+      return raw
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    } on DioException catch (e) {
+      throw Exception(_message(e));
+    }
+  }
 }

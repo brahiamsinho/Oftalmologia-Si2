@@ -128,9 +128,7 @@ class _MobileLoginScreenState extends ConsumerState<MobileLoginScreen> {
                   errorMessage: _errorMessage,
                   isLoading: _isLoading,
                   onSubmit: _submit,
-                  onForgotPassword: () => _snack(
-                    'Recuperación de contraseña disponible pronto.',
-                  ),
+                  onForgotPassword: () => context.push('/forgot-password'),
                 ),
                 const SizedBox(height: 28),
                 LoginActions(
