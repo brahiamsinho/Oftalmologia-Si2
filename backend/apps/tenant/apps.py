@@ -4,4 +4,5 @@ from django.apps import AppConfig
 class TenantConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'apps.tenant'
+    label = 'tenant'
     verbose_name = 'Tenancy'
