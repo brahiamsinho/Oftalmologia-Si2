@@ -144,3 +144,12 @@ export interface PaginatedResponse<T> {
   previous: string | null;
   results: T[];
 }
+
+// ── Tenant / Multi-tenant ─────────────────────────────────────────────────────
+// Re-exportados desde lib/api.ts para que el resto del proyecto los importe
+// desde un único lugar (lib/types.ts).
+export type {
+  TenantBranding,
+  TenantSubscriptionPlan,
+  TenantPublicData,
+} from '@/lib/api';

@@ -3,14 +3,27 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Calendar as CalendarIcon, Clock, User, Stethoscope, Search,
-  Loader2, X, Plus, Edit2, Trash2, CalendarDays, Shield, Filter
+  Loader2, X, Plus, Edit2, Trash2, CalendarDays, Shield, Filter,
+  AlertTriangle, TrendingUp,
 } from 'lucide-react';
 import {
   citasService, pacientesService, especialistasService
 } from '@/lib/services';
+import api from '@/lib/api';
 import type { Cita, CitaCreate, TipoCita } from '@/lib/services/citas';
-import type { Paciente } from '@/lib/types';
+import type { Paciente, TenantSubscriptionPlan } from '@/lib/types';
 import type { Especialista } from '@/lib/services/especialistas';
+
+// ── Helpers de fecha ──────────────────────────────────────────────────────────
+function getMesActualRange(): { fecha_desde: string; fecha_hasta: string } {
+  const hoy   = new Date();
+  const anio  = hoy.getFullYear();
+  const mes   = hoy.getMonth(); // 0-indexed
+  const desde = new Date(anio, mes, 1);
+  const hasta = new Date(anio, mes + 1, 0); // último día del mes
+  const fmt   = (d: Date) => d.toISOString().split('T')[0];
+  return { fecha_desde: fmt(desde), fecha_hasta: fmt(hasta) };
+}
 
 const ESTADOS = [
   'PROGRAMADA', 'CONFIRMADA', 'REPROGRAMADA', 'CANCELADA', 'ATENDIDA', 'NO_ASISTIO'
@@ -248,6 +261,10 @@ export default function CitasAgendaPage() {
   const [editModal, setEditModal] = useState<Cita | null>(null);
   const [createModal, setCreateModal] = useState(false);
 
+  // ── Plan de suscripción + conteo mensual ──
+  const [planInfo,       setPlanInfo]       = useState<TenantSubscriptionPlan | null>(null);
+  const [citasMesCount,  setCitasMesCount]  = useState<number | null>(null);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -266,11 +283,38 @@ export default function CitasAgendaPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Carga plan + conteo de citas del mes actual al montar
+  useEffect(() => {
+    api.get<{ subscription?: { plan?: TenantSubscriptionPlan } }>('organization/me/')
+      .then(res => setPlanInfo(res.data.subscription?.plan ?? null))
+      .catch(() => setPlanInfo(null));
+
+    const { fecha_desde, fecha_hasta } = getMesActualRange();
+    citasService.list({ fecha_desde, fecha_hasta, page: 1 })
+      .then(res => setCitasMesCount(res.count))
+      .catch(() => setCitasMesCount(null));
+  }, []);
+
+  // Recalcular conteo mensual cada vez que se crea o elimina una cita
+  const refreshCitasMes = useCallback(() => {
+    const { fecha_desde, fecha_hasta } = getMesActualRange();
+    citasService.list({ fecha_desde, fecha_hasta, page: 1 })
+      .then(res => setCitasMesCount(res.count))
+      .catch(() => {});
+  }, []);
+
+  // ── Derivados del plan ──
+  const maxCitasMes   = planInfo?.max_citas_mes ?? Infinity;
+  const countMes      = citasMesCount ?? 0;
+  const atCitasLimit  = planInfo !== null && citasMesCount !== null && countMes >= maxCitasMes;
+  const nearCitasLimit = !atCitasLimit && planInfo !== null && citasMesCount !== null && countMes >= maxCitasMes - 5;
+
   const handleDelete = async (id: number) => {
     if (!window.confirm('¿Está seguro de cancelar/eliminar esta cita?')) return;
     try {
       await citasService.delete(id);
       fetchData();
+      refreshCitasMes();
     } catch (e: unknown) {
       const eResponse = e as { message?: string };
       alert('Error: No se pudo eliminar. ' + eResponse.message);
@@ -286,18 +330,85 @@ export default function CitasAgendaPage() {
           <h2 className="text-[24px] font-extrabold text-gray-900 tracking-tight">Citas y Agenda Médica</h2>
           <p className="text-[13.5px] text-gray-500 mt-1">Programación y seguimiento del calendario de especialistas</p>
         </div>
-        <button 
-          onClick={() => setCreateModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-semibold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm shadow-blue-200"
-        >
-          <Plus className="w-4 h-4" strokeWidth={2.5} /> agendar Cita
-        </button>
+
+        <div className="relative group">
+          <button
+            onClick={() => !atCitasLimit && setCreateModal(true)}
+            disabled={atCitasLimit}
+            className={`text-white text-[13px] font-semibold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm
+              ${atCitasLimit
+                ? 'bg-gray-300 cursor-not-allowed shadow-none'
+                : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200'}`}
+          >
+            <Plus className="w-4 h-4" strokeWidth={2.5} /> Agendar Cita
+          </button>
+          {atCitasLimit && (
+            <div className="absolute right-0 top-full mt-1.5 z-20 w-64 bg-gray-900 text-white text-[11.5px] rounded-lg px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Límite mensual alcanzado ({countMes}/{maxCitasMes} citas este mes).
+              Mejorá el plan para agendar más.
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* ── Banner límite alcanzado ── */}
+      {atCitasLimit && planInfo && (
+        <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3.5">
+          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[13.5px] font-semibold text-red-800">Límite mensual de citas alcanzado</p>
+            <p className="text-[12.5px] text-red-700 mt-0.5">
+              Tu plan <strong>{planInfo.nombre}</strong> permite hasta{' '}
+              <strong>{planInfo.max_citas_mes} citas por mes</strong> y ya tenés{' '}
+              <strong>{countMes}</strong> este mes. El contador se reinicia el 1 del próximo mes.
+            </p>
+          </div>
+          <a href="/planes"
+            className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-[12.5px] font-semibold px-3 py-1.5 rounded-lg transition-colors flex-shrink-0">
+            <TrendingUp className="w-3.5 h-3.5" /> Ver Planes
+          </a>
+        </div>
+      )}
+
+      {/* ── Banner advertencia preventiva ── */}
+      {nearCitasLimit && planInfo && (
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <p className="text-[12.5px] text-amber-800 flex-1">
+            Casi en el límite mensual: <strong>{countMes} de {planInfo.max_citas_mes}</strong> citas del plan{' '}
+            <strong>{planInfo.nombre}</strong> este mes.{' '}
+            <a href="/planes" className="underline font-semibold hover:text-amber-900">Mejorar plan</a>.
+          </p>
+        </div>
+      )}
 
       {/* ── Stats ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-4">
+        {/* Tarjeta "Este Mes" con indicador de plan */}
+        <div className={`bg-white rounded-2xl border shadow-sm p-4 lg:p-5 flex items-center gap-4
+          ${atCitasLimit ? 'border-red-200' : nearCitasLimit ? 'border-amber-200' : 'border-gray-200'}`}>
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0
+            ${atCitasLimit ? 'bg-red-50' : nearCitasLimit ? 'bg-amber-50' : 'bg-gray-100'}`}>
+            <CalendarDays className={`w-5 h-5 ${atCitasLimit ? 'text-red-600' : nearCitasLimit ? 'text-amber-600' : 'text-gray-900'}`} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className="text-[12px] font-semibold text-gray-400 uppercase tracking-wide">Este Mes</p>
+              {planInfo && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full
+                  ${atCitasLimit ? 'bg-red-100 text-red-700' : nearCitasLimit ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+                  /{planInfo.max_citas_mes}
+                </span>
+              )}
+            </div>
+            <p className={`text-[26px] font-black leading-none mt-1
+              ${atCitasLimit ? 'text-red-600' : nearCitasLimit ? 'text-amber-600' : 'text-gray-900'}`}>
+              {citasMesCount ?? '—'}
+            </p>
+          </div>
+        </div>
+
         {[
-          { label: 'Total Citas',  value: loading ? '—' : total, icon: CalendarDays, color: 'text-gray-900', bg: 'bg-gray-100' },
           { label: 'Programadas',  value: loading ? '—' : citas.filter(c => c.estado === 'PROGRAMADA').length, icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50' },
           { label: 'Confirmadas',  value: loading ? '—' : citas.filter(c => c.estado === 'CONFIRMADA').length, icon: Shield, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'Canceladas',   value: loading ? '—' : citas.filter(c => c.estado === 'CANCELADA').length, icon: X, color: 'text-red-600', bg: 'bg-red-50' },
@@ -431,7 +542,7 @@ export default function CitasAgendaPage() {
         <CreateUpdateModal 
           cita={editModal || undefined} 
           onClose={() => { setCreateModal(false); setEditModal(null); }} 
-          onSuccess={() => { setCreateModal(false); setEditModal(null); fetchData(); }} 
+          onSuccess={() => { setCreateModal(false); setEditModal(null); fetchData(); refreshCitasMes(); }} 
         />
       )}
     </div>
