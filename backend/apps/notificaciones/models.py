@@ -1,9 +1,6 @@
 from django.conf import settings
 from django.db import models
 
-from apps.tenant.managers import TenantManager
-from apps.tenant.utils import resolve_tenant_for_write
-
 
 class PlataformaFcm(models.TextChoices):
     ANDROID = 'android', 'Android'
@@ -12,16 +9,6 @@ class PlataformaFcm(models.TextChoices):
 
 
 class DispositivoFcm(models.Model):
-    """Token FCM asociado a un usuario (un dispositivo = un token vigente)."""
-
-    tenant = models.ForeignKey(
-        'tenant.Tenant',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        db_column='id_tenant',
-        related_name='dispositivos_fcm',
-    )
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -41,29 +28,11 @@ class DispositivoFcm(models.Model):
         verbose_name = 'Dispositivo FCM'
         verbose_name_plural = 'Dispositivos FCM'
 
-    objects = TenantManager()
-
     def __str__(self):
         return f'{self.usuario_id} — {self.plataforma}'
 
-    def save(self, *args, **kwargs):
-        if self._state.adding and self.tenant_id is None:
-            related_tenant = getattr(self.usuario, 'tenant', None)
-            self.tenant = resolve_tenant_for_write(related_tenant=related_tenant)
-        super().save(*args, **kwargs)
-
 
 class Notificacion(models.Model):
-    """Registro persistente de cada notificación enviada a un usuario."""
-
-    tenant = models.ForeignKey(
-        'tenant.Tenant',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        db_column='id_tenant',
-        related_name='notificaciones',
-    )
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -81,13 +50,5 @@ class Notificacion(models.Model):
         verbose_name = 'Notificación'
         verbose_name_plural = 'Notificaciones'
 
-    objects = TenantManager()
-
     def __str__(self):
         return f'[{self.tipo}] {self.titulo} → usuario {self.usuario_id}'
-
-    def save(self, *args, **kwargs):
-        if self._state.adding and self.tenant_id is None:
-            related_tenant = getattr(self.usuario, 'tenant', None)
-            self.tenant = resolve_tenant_for_write(related_tenant=related_tenant)
-        super().save(*args, **kwargs)

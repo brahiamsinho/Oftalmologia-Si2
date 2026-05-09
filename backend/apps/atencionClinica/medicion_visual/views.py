@@ -21,27 +21,35 @@ class MedicionVisualViewSet(viewsets.ModelViewSet):
             .get_queryset()
             .select_related('paciente', 'consulta', 'consulta__especialista')
         )
+
         user = self.request.user
+
         if not user.is_authenticated:
             return MedicionVisual.objects.none()
+
         tipo = getattr(user, 'tipo_usuario', '') or ''
+
         if tipo == 'PACIENTE':
             paciente = Paciente.objects.filter(usuario=user).first()
             if not paciente:
                 return MedicionVisual.objects.none()
             return queryset.filter(paciente=paciente)
+
         if tipo in ('MEDICO', 'ESPECIALISTA'):
             return queryset.filter(consulta__especialista=user).distinct()
+
         if tipo in ('ADMIN', 'ADMINISTRATIVO'):
             paciente_id = self.request.query_params.get('paciente_id')
             if paciente_id:
                 queryset = queryset.filter(paciente_id=paciente_id)
             return queryset
+
         return MedicionVisual.objects.none()
 
     @transaction.atomic
     def perform_create(self, serializer):
         inst = serializer.save()
+
         registrar_bitacora(
             usuario=self.request.user,
             modulo='medicion_visual',
@@ -55,6 +63,7 @@ class MedicionVisualViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         inst = serializer.save()
+
         registrar_bitacora(
             usuario=self.request.user,
             modulo='medicion_visual',
@@ -68,6 +77,7 @@ class MedicionVisualViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         mid = instance.pk
+
         registrar_bitacora(
             usuario=self.request.user,
             modulo='medicion_visual',
@@ -78,4 +88,5 @@ class MedicionVisualViewSet(viewsets.ModelViewSet):
             ip_origen=get_client_ip(self.request),
             user_agent=self.request.META.get('HTTP_USER_AGENT', ''),
         )
+
         super().perform_destroy(instance)
