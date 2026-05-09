@@ -28,7 +28,7 @@ if DEBUG and '*' not in ALLOWED_HOSTS:
 
 
 # =============================================================================
-# DJANGO-TENANTS - MODO HÍBRIDO PARA MIGRAR TENANT MANUAL ANTIGUO
+# DJANGO-TENANTS PURO
 # =============================================================================
 
 TENANT_MODEL = 'tenant.Tenant'
@@ -37,8 +37,6 @@ PUBLIC_SCHEMA_NAME = 'public'
 TENANT_SUBFOLDER_PREFIX = 't'
 PUBLIC_SCHEMA_URLCONF = 'config.urls_public'
 
-# En esta fase híbrida dejamos todas las apps en public para no perder acceso
-# a tus datos antiguos con id_tenant.
 SHARED_APPS = [
     'django_tenants',
     'apps.tenant',
@@ -57,6 +55,21 @@ SHARED_APPS = [
     'django_filters',
 
     'apps.core',
+
+    # Se deja en public para poder tener superadmin público.
+    # También se migra dentro de cada tenant porque está en TENANT_APPS.
+    'apps.usuarios.users',
+]
+
+TENANT_APPS = [
+    'django.contrib.contenttypes',
+    'django.contrib.auth',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.admin',
+    'django.contrib.staticfiles',
+
+    'rest_framework_simplejwt.token_blacklist',
 
     'apps.usuarios.users',
     'apps.usuarios.permisos',
@@ -81,15 +94,6 @@ SHARED_APPS = [
 
     'apps.notificaciones',
     'apps.notificaciones.automatizaciones',
-]
-
-TENANT_APPS = [
-    'django.contrib.contenttypes',
-    'django.contrib.auth',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.admin',
-    'django.contrib.staticfiles',
 ]
 
 INSTALLED_APPS = list(SHARED_APPS) + [
