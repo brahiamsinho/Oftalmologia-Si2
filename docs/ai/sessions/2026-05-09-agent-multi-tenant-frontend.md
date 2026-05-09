@@ -362,12 +362,49 @@ La lógica es idéntica en concepto: si hay slug → reescribir baseUrl.
 
 ---
 
-## 6. Siguiente prioridad técnica sugerida
+---
 
-| Prioridad | Tarea |
-|---|---|
-| Alta | Mobile: implementar WorkspaceScreen + TenantInterceptor de Dio |
-| Alta | Web: restricciones de plan en módulos de CRM y Notificaciones |
-| Media | Web/Mobile: mostrar alerta si el tenant es TRIAL y está por vencer |
-| Media | Web: validar límite de almacenamiento en subida de archivos (mediciones) |
-| Baja | Web/Mobile: flujo de recuperación de contraseña adaptado al tenant |
+## 7. Implementado en la tercera ronda de esta sesión (Web Frontend)
+
+### N. `TenantContext` ampliado — `usage`, `trial`, `diasRestantes`
+
+`TenantContext` ahora expone:
+- `usage`: `{ usuarios_actuales, pacientes_actuales, citas_mes_actual, almacenamiento_usado_mb }` — directamente del backend, sin llamadas extra.
+- `trial.isTrial`: `true` si `subscription.estado === 'TRIAL'`.
+- `trial.diasRestantes`: días calculados a partir de `fecha_vencimiento`.
+
+**Refactorización de llamadas duplicadas:**
+- `usuarios/page.tsx`, `pacientes/page.tsx` y `citas-agenda/page.tsx` usan `usage` del contexto.
+- Las comparaciones de límite (`atUserLimit`, `atPatientLimit`, `atCitasLimit`) usan el total real del backend en vez del total filtrado de la tabla.
+- `citas-agenda`: el fetch mensual extra solo ocurre si `usage === null` (fallback para backends que aún no expongan este campo).
+
+### O. Banner de período de prueba (`TrialBanner`)
+
+Componente `TrialBanner` en el layout del dashboard:
+- Aparece automáticamente si `trial.isTrial === true`.
+- Color rojo si quedan ≤ 3 días, naranja si ≤ 7 días, amarillo si más.
+- Mensaje: "Tu período de prueba vence en X días."
+- Botón "Ver Planes" → `/planes`.
+- Botón cerrar (dismiss para la sesión actual).
+
+### P. Página `/configuracion-org`
+
+Nueva página conectada a `GET/PATCH /t/<slug>/api/organization/settings/`:
+- **Identidad visual**: nombre de la clínica, URL del logo (con preview en tiempo real), colores primario y secundario con color picker + input hex.
+- **Vista previa en tiempo real** del header de la clínica con los colores seleccionados.
+- **Localización**: zona horaria (lista con ciudades de LATAM + UTC) e idioma.
+- **Módulos del sistema**: toggles para `permite_reserva_online`, `mostrar_modulo_crm`, `mostrar_notificaciones`.
+- Al guardar: llama `refresh()` del `TenantContext` → el Sidebar actualiza inmediatamente el nombre y colores sin recargar la página.
+- Agregada al Sidebar en el grupo "Cuenta" → "Organización".
+
+---
+
+## 8. Siguiente prioridad técnica sugerida
+
+| Prioridad | Tarea | Estado |
+|---|---|---|
+| Alta | Mobile: implementar `WorkspaceScreen` + `TenantInterceptor` de Dio | Pendiente |
+| Alta | Web: validar límite de almacenamiento en subida de archivos (mediciones) | Pendiente |
+| Media | Web: restricciones de plan en módulos CRM y Notificaciones (cuando se implementen las rutas) | Pendiente |
+| Media | Web/Mobile: flujo de recuperación de contraseña adaptado al tenant | Pendiente |
+| Baja | Web: panel de administración central de tenants (superadmin) | Pendiente |

@@ -8,8 +8,8 @@ import {
   X, ChevronDown, User, AlertTriangle, TrendingUp,
 } from 'lucide-react';
 import { pacientesService } from '@/lib/services';
-import api from '@/lib/api';
-import type { Paciente, PacienteCreate, EstadoPaciente, TipoDocumento, Sexo, TenantSubscriptionPlan } from '@/lib/types';
+import { useTenant } from '@/context/TenantContext';
+import type { Paciente, PacienteCreate, EstadoPaciente, TipoDocumento, Sexo } from '@/lib/types';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 const BADGE: Record<EstadoPaciente, string> = {
@@ -461,8 +461,8 @@ export default function PacientesPage() {
     open: false, paciente: null,
   });
 
-  // ── Plan de suscripción del tenant ──
-  const [planInfo, setPlanInfo] = useState<TenantSubscriptionPlan | null>(null);
+  // ── Plan + usage del tenant — TenantContext compartido ──
+  const { planInfo, usage } = useTenant();
 
   const fetchPacientes = useCallback(async () => {
     setLoading(true);
@@ -482,17 +482,12 @@ export default function PacientesPage() {
 
   useEffect(() => { fetchPacientes(); }, [fetchPacientes]);
 
-  // Carga plan una sola vez al montar
-  useEffect(() => {
-    api.get<{ subscription?: { plan?: TenantSubscriptionPlan } }>('organization/me/')
-      .then(res => setPlanInfo(res.data.subscription?.plan ?? null))
-      .catch(() => setPlanInfo(null));
-  }, []);
-
   // ── Derivados del plan ──
-  const maxPacientes      = planInfo?.max_pacientes ?? Infinity;
-  const atPatientLimit    = total >= maxPacientes;
-  const nearPatientLimit  = !atPatientLimit && planInfo !== null && total >= maxPacientes - 5;
+  // usageTotal: contador real del backend (sin filtros). total: tabla filtrada.
+  const usageTotal       = usage?.pacientes_actuales ?? total;
+  const maxPacientes     = planInfo?.max_pacientes ?? Infinity;
+  const atPatientLimit   = usageTotal >= maxPacientes;
+  const nearPatientLimit = !atPatientLimit && planInfo !== null && usageTotal >= maxPacientes - 5;
 
   const handleDelete = async (p: Paciente) => {
     if (!confirm(`¿Eliminar a ${p.nombres} ${p.apellidos}? Esta acción no se puede deshacer.`)) return;
@@ -542,7 +537,7 @@ export default function PacientesPage() {
             <p className="text-[12.5px] text-red-700 mt-0.5">
               Tu plan <strong>{planInfo.nombre}</strong> permite hasta{' '}
               <strong>{planInfo.max_pacientes} pacientes</strong> y ya tenés{' '}
-              <strong>{total}</strong>. Mejorá la suscripción para continuar.
+              <strong>{usageTotal}</strong>. Mejorá la suscripción para continuar.
             </p>
           </div>
           <a href="/planes"
@@ -557,7 +552,7 @@ export default function PacientesPage() {
         <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <p className="text-[12.5px] text-amber-800 flex-1">
-            Casi en el límite: <strong>{total} de {planInfo.max_pacientes}</strong> pacientes del plan{' '}
+            Casi en el límite: <strong>{usageTotal} de {planInfo.max_pacientes}</strong> pacientes del plan{' '}
             <strong>{planInfo.nombre}</strong>.{' '}
             <a href="/planes" className="underline font-semibold hover:text-amber-900">Mejorar plan</a>.
           </p>
@@ -596,7 +591,7 @@ export default function PacientesPage() {
             {planInfo && (
               <span className={`text-[11.5px] font-semibold px-2 py-0.5 rounded-full
                 ${atPatientLimit ? 'bg-red-100 text-red-700' : nearPatientLimit ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
-                {total}/{planInfo.max_pacientes}
+                {usageTotal}/{planInfo.max_pacientes}
               </span>
             )}
             <span className="text-[12px] text-gray-400">

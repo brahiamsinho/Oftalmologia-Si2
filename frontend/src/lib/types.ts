@@ -14,7 +14,8 @@ export interface LoginCredentials {
 export interface LoginResponse {
   access: string;
   refresh: string;
-  usuario: Usuario;   // el backend devuelve 'usuario', no 'user'
+  usuario: Usuario;       // el backend devuelve 'usuario', no 'user'
+  tenant?: import('@/lib/api').TenantPublicData; // incluido en la respuesta del login multi-tenant
 }
 
 // ── Usuario ───────────────────────────────────────────────────────────────────
@@ -152,4 +153,8 @@ export type {
   TenantBranding,
   TenantSubscriptionPlan,
   TenantPublicData,
+  TenantOrgData,
+  TenantOrgSettings,
+  TenantFlags,
+  TenantSubscriptionEstado,
 } from '@/lib/api';

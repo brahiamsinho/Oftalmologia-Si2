@@ -5,8 +5,8 @@ import { Search, Plus, CheckCircle, XCircle, Lock,
          Mail, Phone, SlidersHorizontal, Loader2, Users, X, Eye, EyeOff,
          Pencil, UserCheck, UserX, Trash2, AlertTriangle, TrendingUp } from 'lucide-react';
 import { pacientesService, usuariosService } from '@/lib/services';
-import api from '@/lib/api';
-import type { Usuario, TipoUsuario, EstadoUsuario, Paciente, TipoDocumento, UsuarioCreate, TenantSubscriptionPlan } from '@/lib/types';
+import { useTenant } from '@/context/TenantContext';
+import type { Usuario, TipoUsuario, EstadoUsuario, Paciente, TipoDocumento, UsuarioCreate } from '@/lib/types';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 const TIPO_BADGE: Record<TipoUsuario, string> = {
@@ -448,8 +448,8 @@ export default function UsuariosPage() {
   const [estadoFilter,setEstadoFilter]= useState('');
   const [modal,       setModal]       = useState<{ open: boolean; usuario: Usuario | null }>({ open: false, usuario: null });
 
-  // ── Plan de suscripción del tenant ──
-  const [planInfo, setPlanInfo] = useState<TenantSubscriptionPlan | null>(null);
+  // ── Plan + usage del tenant — TenantContext compartido ──
+  const { planInfo, usage } = useTenant();
 
   const fetchUsuarios = useCallback(async () => {
     setLoading(true);
@@ -468,20 +468,15 @@ export default function UsuariosPage() {
     }
   }, [search, tipoFilter, estadoFilter]);
 
-  // Carga el plan de suscripción una sola vez al montar el componente.
-  // Usa GET /t/<slug>/api/organization/me/ — el interceptor inyecta el prefix.
-  useEffect(() => {
-    api.get<{ subscription?: { plan?: TenantSubscriptionPlan } }>('organization/me/')
-      .then(res => setPlanInfo(res.data.subscription?.plan ?? null))
-      .catch(() => setPlanInfo(null));
-  }, []);
-
   useEffect(() => { fetchUsuarios(); }, [fetchUsuarios]);
 
   // ── Derivados del plan ──
+  // Para las comparaciones contra el plan usamos el total real del backend (usage)
+  // en vez del total filtrado de la lista (que puede ser menor si hay búsqueda activa).
+  const usageTotal   = usage?.usuarios_actuales ?? total;
   const maxUsuarios  = planInfo?.max_usuarios ?? Infinity;
-  const atUserLimit  = total >= maxUsuarios;
-  const nearLimit    = !atUserLimit && planInfo !== null && total >= maxUsuarios - 1;
+  const atUserLimit  = usageTotal >= maxUsuarios;
+  const nearLimit    = !atUserLimit && planInfo !== null && usageTotal >= maxUsuarios - 1;
 
   const handleAction = async (action: 'activar' | 'bloquear', id: number) => {
     try {
@@ -534,7 +529,7 @@ export default function UsuariosPage() {
           {atUserLimit && (
             <div className="absolute right-0 top-full mt-1.5 z-20 w-56 bg-gray-900 text-white text-[11.5px] rounded-lg px-3 py-2 shadow-lg
               opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              Límite del plan alcanzado ({total}/{maxUsuarios} usuarios).
+              Límite del plan alcanzado ({usageTotal}/{maxUsuarios} usuarios).
               Mejorá el plan para agregar más.
             </div>
           )}
@@ -552,7 +547,7 @@ export default function UsuariosPage() {
             <p className="text-[12.5px] text-red-700 mt-0.5">
               Tu plan <strong>{planInfo.nombre}</strong> permite hasta{' '}
               <strong>{planInfo.max_usuarios} usuarios</strong> y ya tenés{' '}
-              <strong>{total}</strong>. Para agregar más, mejorá tu suscripción.
+              <strong>{usageTotal}</strong>. Para agregar más, mejorá tu suscripción.
             </p>
           </div>
           <a
