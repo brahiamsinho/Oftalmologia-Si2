@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../config/theme.dart';
+
 class PatientHomeHeader extends StatelessWidget {
   const PatientHomeHeader({
     super.key,
@@ -71,10 +73,10 @@ class PatientHomeHeader extends StatelessWidget {
           ),
           Padding(
             padding: EdgeInsets.fromLTRB(
-              20,
-              8 + MediaQuery.paddingOf(context).top,
-              20,
-              28,
+              AppTheme.space5,
+              AppTheme.space2 + MediaQuery.paddingOf(context).top,
+              AppTheme.space5,
+              AppTheme.space6,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,18 +84,21 @@ class PatientHomeHeader extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundColor: Colors.white.withValues(alpha: 0.2),
-                      child: Text(
-                        initials,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
+                    Semantics(
+                      label: 'Avatar de $userDisplayName',
+                      child: CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Colors.white.withValues(alpha: 0.2),
+                        child: Text(
+                          initials,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    SizedBox(width: AppTheme.space3),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,85 +111,94 @@ class PatientHomeHeader extends StatelessWidget {
                               height: 1.25,
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
-                                const SizedBox(width: 8),
-                                Flexible(
-                                  child: Text(
-                                    _capitalizeDate(dateStr),
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
+                          SizedBox(height: AppTheme.space2),
+                          Semantics(
+                            label: 'Fecha de hoy: $_capitalizeDate(dateStr)',
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: AppTheme.space3,
+                                vertical: AppTheme.space2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.calendar_today_outlined,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(width: AppTheme.space2),
+                                  Flexible(
+                                    child: Text(
+                                      _capitalizeDate(dateStr),
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Material(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                      child: InkWell(
-                        onTap: onNotifications,
+                    Semantics(
+                      label: showNotificationDot
+                          ? 'Notificaciones. $noLeidasCount sin leer'
+                          : 'Notificaciones. Sin mensajes nuevos',
+                      button: true,
+                      child: Material(
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
-                        child: SizedBox(
-                          width: 44,
-                          height: 44,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              const Icon(
-                                Icons.notifications_outlined,
-                                color: Colors.white,
-                                size: 22,
-                              ),
-                              if (showNotificationDot)
-                                Positioned(
-                                  top: 6,
-                                  right: 6,
-                                  child: Container(
-                                    padding: noLeidasCount > 9
-                                        ? const EdgeInsets.symmetric(horizontal: 4, vertical: 1)
-                                        : EdgeInsets.zero,
-                                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFEF4444),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: noLeidasCount > 0
-                                        ? Text(
-                                            noLeidasCount > 99 ? '99+' : '$noLeidasCount',
-                                            textAlign: TextAlign.center,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w700,
-                                              height: 1.4,
-                                            ),
-                                          )
-                                        : const SizedBox.shrink(),
-                                  ),
+                        child: InkWell(
+                          onTap: onNotifications,
+                          borderRadius: BorderRadius.circular(12),
+                          child: SizedBox(
+                            width: 44,
+                            height: 44,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.notifications_outlined,
+                                  color: Colors.white,
+                                  size: 22,
                                 ),
-                            ],
+                                if (showNotificationDot)
+                                  Positioned(
+                                    top: 6,
+                                    right: 6,
+                                    child: Container(
+                                      padding: noLeidasCount > 9
+                                          ? EdgeInsets.symmetric(horizontal: AppTheme.space1, vertical: 1)
+                                          : EdgeInsets.zero,
+                                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEF4444),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: noLeidasCount > 0
+                                          ? Text(
+                                              noLeidasCount > 99 ? '99+' : '$noLeidasCount',
+                                              textAlign: TextAlign.center,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.w700,
+                                                height: 1.4,
+                                              ),
+                                            )
+                                          : const SizedBox.shrink(),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                       ),

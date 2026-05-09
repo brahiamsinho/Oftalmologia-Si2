@@ -17,7 +17,7 @@ class PatientQuickAccessRow extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      padding: EdgeInsets.fromLTRB(AppTheme.space5, AppTheme.space2, AppTheme.space5, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -28,42 +28,54 @@ class PatientQuickAccessRow extends StatelessWidget {
               color: const Color(0xFF0F172A),
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: AppTheme.space3),
           Row(
             children: [
               Expanded(
-                child: _QuickTile(
-                  icon: Icons.calendar_month_rounded,
-                  iconColor: AppTheme.primaryColor,
-                  title: 'Mis citas',
-                  subtitle: 'Ver todas',
-                  onTap: onMisCitas,
+                child: Semantics(
+                  label: 'Acceso rápido: Mis citas. Ver todas tus citas programadas.',
+                  button: true,
+                  child: _QuickTile(
+                    icon: Icons.calendar_month_rounded,
+                    iconColor: AppTheme.primaryColor,
+                    title: 'Mis citas',
+                    subtitle: 'Ver todas',
+                    onTap: onMisCitas,
+                  ),
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: AppTheme.space2),
               Expanded(
-                child: _QuickTile(
-                  icon: Icons.description_outlined,
-                  iconColor: const Color(0xFF0D9488),
-                  title: 'Historial',
-                  subtitle: 'Consultas · estudios',
-                  onTap: () {
-                    Navigator.of(context).push<void>(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const PatientClinicalScreen(),
-                      ),
-                    );
-                  },
+                child: Semantics(
+                  label: 'Acceso rápido: Historial clínico. Consultas y estudios.',
+                  button: true,
+                  child: _QuickTile(
+                    icon: Icons.description_outlined,
+                    iconColor: const Color(0xFF0D9488),
+                    title: 'Historial',
+                    subtitle: 'Consultas · estudios',
+                    onTap: () {
+                      Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const PatientClinicalScreen(),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: AppTheme.space2),
               Expanded(
-                child: _QuickTile(
-                  icon: Icons.phone_in_talk_rounded,
-                  iconColor: const Color(0xFFDC2626),
-                  title: 'Contacto',
-                  subtitle: 'Emergencias',
-                  onTap: () => launchClinicPhone(context),
+                child: Semantics(
+                  label: 'Acceso rápido: Contacto de emergencias con la clínica.',
+                  button: true,
+                  child: _QuickTile(
+                    icon: Icons.phone_in_talk_rounded,
+                    iconColor: const Color(0xFFDC2626),
+                    title: 'Contacto',
+                    subtitle: 'Emergencias',
+                    onTap: () => launchClinicPhone(context),
+                  ),
                 ),
               ),
             ],
@@ -101,9 +113,11 @@ class _QuickTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-          decoration: BoxDecoration(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Ink(
+            padding: EdgeInsets.symmetric(vertical: AppTheme.space3, horizontal: AppTheme.space2),
+            decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: const Color(0xFFE5E7EB)),
             boxShadow: const [
@@ -117,7 +131,7 @@ class _QuickTile extends StatelessWidget {
           child: Column(
             children: [
               Icon(icon, color: iconColor, size: 26),
-              const SizedBox(height: 8),
+              SizedBox(height: AppTheme.space2),
               Text(
                 title,
                 textAlign: TextAlign.center,
@@ -134,6 +148,7 @@ class _QuickTile extends StatelessWidget {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

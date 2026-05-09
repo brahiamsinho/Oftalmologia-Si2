@@ -26,6 +26,7 @@ api_patterns = [
     path('consultas/', include('apps.atencionClinica.consultas.urls')),
     path('medicion-visual/', include('apps.atencionClinica.medicion_visual.urls')),
     path('notificaciones/', include('apps.notificaciones.urls')),
+    path('', include('apps.backup.urls')),
 ]
 
 urlpatterns = [
