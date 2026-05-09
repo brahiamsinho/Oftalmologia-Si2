@@ -19,6 +19,19 @@ class AppTheme {
   static const Color textColor = Color(0xFF1E293B);
   static const Color textMuted = Color(0xFF94A3B8);
 
+  // ---- Motion tokens ----
+  static const Duration motionFast = Duration(milliseconds: 150);
+  static const Duration motionNormal = Duration(milliseconds: 220);
+  static const Duration motionSlow = Duration(milliseconds: 280);
+
+  // ---- Spacing scale (8dp base) ----
+  static const double space1 = 4.0;
+  static const double space2 = 8.0;
+  static const double space3 = 12.0;
+  static const double space4 = 16.0;
+  static const double space5 = 20.0;
+  static const double space6 = 24.0;
+
   // ---- Color Scheme ----
   static const ColorScheme _lightColorScheme = ColorScheme(
     brightness: Brightness.light,
