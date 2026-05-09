@@ -1,25 +1,30 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import {
   Activity, LayoutDashboard, Users, ShieldCheck, ScrollText,
   ClipboardList, LogOut, ChevronLeft, ChevronRight,
   ChevronDown, ChevronUp, KeyRound,
-  Stethoscope, Eye, Calendar, List
+  Stethoscope, Eye, Calendar, List, Scissors, Scalpel, HeartPulse,
+  Megaphone, Bell, BarChart2, Settings, MessageSquare,
 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth }    from '@/context/AuthContext';
 import { useSidebar } from '@/context/SidebarContext';
+import { useTenant }  from '@/context/TenantContext';
+import { TenantStorage } from '@/lib/api';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 // ── NavItem simple ─────────────────────────────────────────────────────────────
 function NavItem({
-  href, label, icon: Icon, active, collapsed, depth = 0, onNavigate,
+  href, label, icon: Icon, active, collapsed, depth = 0, onNavigate, badge,
 }: {
   href: string; label: string; icon: React.ElementType;
   active: boolean; collapsed: boolean; depth?: number;
   onNavigate?: () => void;
+  badge?: string;
 }) {
   return (
     <li>
@@ -43,7 +48,14 @@ function NavItem({
             ${active ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`}
           strokeWidth={active ? 2.2 : 1.8}
         />
-        {!collapsed && <span className="truncate">{label}</span>}
+        {!collapsed && (
+          <span className="truncate flex-1">{label}</span>
+        )}
+        {!collapsed && badge && (
+          <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+            {badge}
+          </span>
+        )}
       </Link>
     </li>
   );
@@ -60,7 +72,6 @@ function NavGroup({
   const [open, setOpen] = useState(defaultOpen || active);
 
   if (collapsed) {
-    // En modo colapsado solo muestra el icono del grupo, sin sub-items
     return (
       <li>
         <button
@@ -77,7 +88,6 @@ function NavGroup({
 
   return (
     <li>
-      {/* Cabecera del grupo */}
       <button
         onClick={() => setOpen(v => !v)}
         className={`w-full flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13px] font-medium transition-all duration-150
@@ -92,8 +102,6 @@ function NavGroup({
           ? <ChevronUp className="w-3 h-3 flex-shrink-0 text-gray-400" />
           : <ChevronDown className="w-3 h-3 flex-shrink-0 text-gray-400" />}
       </button>
-
-      {/* Sub-items */}
       {open && (
         <ul className="mt-0.5 ml-[10px] space-y-0.5 border-l-2 border-gray-100 pl-2">
           {children}
@@ -105,14 +113,35 @@ function NavGroup({
 
 // ── Sidebar ────────────────────────────────────────────────────────────────────
 export default function Sidebar() {
-  const pathname = usePathname();
-  const { logout } = useAuth();
+  const pathname    = usePathname();
+  const { logout }  = useAuth();
   const { isCollapsed, isMobileDrawerOpen, toggle, closeMobileDrawer } = useSidebar();
-  const isDesktop = useMediaQuery('(min-width: 768px)', false);
+  const isDesktop   = useMediaQuery('(min-width: 768px)', false);
+  const { orgData, planInfo, flags, loading: tenantLoading } = useTenant();
 
   const is = (href: string) => pathname === href || pathname.startsWith(href + '/');
-  const widthPx = isDesktop ? (isCollapsed ? 64 : 220) : 220;
+  const widthPx   = isDesktop ? (isCollapsed ? 64 : 220) : 220;
   const offCanvas = !isDesktop && !isMobileDrawerOpen;
+
+  // ── Datos de branding del tenant ──
+  // Primero intenta datos frescos del contexto, luego cae al localStorage
+  const cached       = TenantStorage.getTenantData();
+  const branding     = orgData?.branding ?? cached?.branding;
+  const clinicNombre = orgData?.nombre ?? cached?.nombre ?? 'OftalmoCRM';
+  const clinicSub    = branding?.nombre !== clinicNombre
+    ? branding?.nombre ?? 'Clínica Oftalmológica'
+    : 'Clínica Oftalmológica';
+  const logoUrl      = branding?.logo_url ?? null;
+  const colorPrimario = branding?.color_primario ?? '#2563eb';
+
+  // ── Flags de plan para mostrar módulos opcionales ──
+  const showCRM    = !tenantLoading && flags.mostrar_modulo_crm;
+  const showNotif  = !tenantLoading && flags.mostrar_notificaciones;
+  const showReport = !tenantLoading && (planInfo?.permite_reportes_avanzados ?? false);
+
+  // ── Estado del plan para badge ──
+  const subEstado = orgData?.subscription?.estado;
+  const isTrial   = subEstado === 'TRIAL';
 
   return (
     <aside
@@ -127,15 +156,44 @@ export default function Sidebar() {
         ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
         {!isCollapsed && (
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-[32px] h-[32px] rounded-xl bg-blue-600 flex items-center justify-center shadow-sm flex-shrink-0">
-              <Activity className="w-[17px] h-[17px] text-white" strokeWidth={2.5} />
-            </div>
+            {/* Logo real del tenant o icono genérico */}
+            {logoUrl ? (
+              <div className="w-[32px] h-[32px] rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
+                <Image
+                  src={logoUrl}
+                  alt={clinicNombre}
+                  width={32}
+                  height={32}
+                  className="object-contain w-full h-full"
+                  unoptimized
+                />
+              </div>
+            ) : (
+              <div
+                className="w-[32px] h-[32px] rounded-xl flex items-center justify-center shadow-sm flex-shrink-0"
+                style={{ backgroundColor: colorPrimario }}
+              >
+                <Activity className="w-[17px] h-[17px] text-white" strokeWidth={2.5} />
+              </div>
+            )}
+
             <div className="min-w-0">
-              <p className="text-[13px] font-bold text-gray-900 leading-tight truncate">OftalmoCRM</p>
-              <p className="text-[9.5px] text-gray-400 leading-tight truncate">Clínica Oftalmológica</p>
+              <p className="text-[13px] font-bold text-gray-900 leading-tight truncate">
+                {clinicNombre}
+              </p>
+              <div className="flex items-center gap-1">
+                <p className="text-[9.5px] text-gray-400 leading-tight truncate">{clinicSub}</p>
+                {isTrial && (
+                  <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-amber-100 text-amber-700 uppercase tracking-wide">
+                    Trial
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         )}
+
+        {/* Botón colapsar/expandir */}
         <button
           onClick={toggle}
           className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400
@@ -172,16 +230,62 @@ export default function Sidebar() {
         <ul className="space-y-0.5 mt-1">
           <NavGroup
             label="Atención Clínica" icon={Stethoscope}
-            active={is('/registrar-consulta') || is('/registrar-medicion') || is('/mediciones') || is('/citas-agenda') || is('/consultas')}
-            collapsed={isCollapsed} defaultOpen={is('/registrar-consulta') || is('/registrar-medicion') || is('/mediciones') || is('/citas-agenda') || is('/consultas')}
+            active={
+              is('/registrar-consulta') || is('/registrar-medicion') ||
+              is('/mediciones') || is('/citas-agenda') || is('/consultas') ||
+              is('/evaluaciones-quirurgicas') || is('/preoperatorio') ||
+              is('/cirugias') || is('/postoperatorio')
+            }
+            collapsed={isCollapsed}
+            defaultOpen={
+              is('/registrar-consulta') || is('/registrar-medicion') ||
+              is('/mediciones') || is('/citas-agenda') || is('/consultas') ||
+              is('/evaluaciones-quirurgicas') || is('/preoperatorio') ||
+              is('/cirugias') || is('/postoperatorio')
+            }
           >
-            <NavItem href="/registrar-consulta" label="Registrar Consulta" icon={Stethoscope} active={is('/registrar-consulta')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
-            <NavItem href="/consultas"          label="Consultas"            icon={List} active={is('/consultas')}          collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
-            <NavItem href="/mediciones"         label="Mediciones"           icon={Activity} active={is('/mediciones')}         collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
-            <NavItem href="/registrar-medicion" label="Registrar Medición" icon={Eye}         active={is('/registrar-medicion')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
-            <NavItem href="/citas-agenda"       label="Citas y Agenda"     icon={Calendar}    active={is('/citas-agenda')}       collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/registrar-consulta"       label="Registrar Consulta"    icon={Stethoscope}   active={is('/registrar-consulta')}        collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/consultas"                label="Consultas"             icon={List}          active={is('/consultas')}                 collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/mediciones"               label="Mediciones"            icon={Activity}      active={is('/mediciones')}                collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/registrar-medicion"       label="Registrar Medición"    icon={Eye}           active={is('/registrar-medicion')}        collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/citas-agenda"             label="Citas y Agenda"        icon={Calendar}      active={is('/citas-agenda')}              collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/evaluaciones-quirurgicas" label="Eval. Quirúrgica"      icon={Scissors}      active={is('/evaluaciones-quirurgicas')}  collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/preoperatorio"            label="Preoperatorio"         icon={ClipboardList} active={is('/preoperatorio')}             collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/cirugias"                 label="Cirugías"              icon={Scalpel}       active={is('/cirugias')}                  collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/postoperatorio"           label="Postoperatorio"        icon={HeartPulse}    active={is('/postoperatorio')}            collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
           </NavGroup>
         </ul>
+
+        {/* CRM — solo si el plan + settings lo permiten */}
+        {showCRM && (
+          <ul className="space-y-0.5 mt-1">
+            <NavGroup
+              label="CRM" icon={Megaphone}
+              active={is('/crm')}
+              collapsed={isCollapsed}
+              defaultOpen={is('/crm')}
+            >
+              <NavItem href="/crm/contactos" label="Comunicaciones" icon={MessageSquare} active={is('/crm/contactos')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+              <NavItem href="/crm/campanas"  label="Campañas"       icon={Megaphone}     active={is('/crm/campanas')}  collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            </NavGroup>
+          </ul>
+        )}
+
+        {/* Notificaciones — solo si el plan + settings lo permiten */}
+        {showNotif && (
+          <ul className="space-y-0.5 mt-1">
+            <NavItem href="/notificaciones" label="Notificaciones" icon={Bell}
+              active={is('/notificaciones')} collapsed={isCollapsed} onNavigate={closeMobileDrawer} />
+          </ul>
+        )}
+
+        {/* Reportes avanzados — solo si el plan lo permite */}
+        {showReport && (
+          <ul className="space-y-0.5 mt-1">
+            <NavItem href="/reportes" label="Reportes" icon={BarChart2}
+              active={is('/reportes')} collapsed={isCollapsed} onNavigate={closeMobileDrawer} />
+          </ul>
+        )}
 
         <div className="my-2 border-t border-gray-100 mx-1" />
 
@@ -190,14 +294,32 @@ export default function Sidebar() {
           <NavGroup
             label="Usuarios" icon={Users}
             active={is('/usuarios') || is('/roles') || is('/permisos')}
-            collapsed={isCollapsed} defaultOpen={is('/usuarios') || is('/roles') || is('/permisos')}
+            collapsed={isCollapsed}
+            defaultOpen={is('/usuarios') || is('/roles') || is('/permisos')}
           >
-            <NavItem href="/usuarios" label="Usuarios"  icon={Users}       active={is('/usuarios')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
-            <NavItem href="/roles"    label="Roles"      icon={ShieldCheck} active={is('/roles')}    collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
-            <NavItem href="/permisos" label="Permisos"   icon={KeyRound}    active={is('/permisos')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/usuarios" label="Usuarios" icon={Users}       active={is('/usuarios')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/roles"    label="Roles"    icon={ShieldCheck} active={is('/roles')}    collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/permisos" label="Permisos" icon={KeyRound}    active={is('/permisos')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
           </NavGroup>
           <NavItem href="/bitacora" label="Bitácora" icon={ScrollText}
             active={is('/bitacora')} collapsed={isCollapsed} onNavigate={closeMobileDrawer} />
+        </ul>
+
+        <div className="my-2 border-t border-gray-100 mx-1" />
+
+        {/* Cuenta */}
+        <ul className="space-y-0.5">
+          <NavGroup
+            label="Cuenta" icon={Settings}
+            active={is('/perfil') || is('/planes') || is('/configuracion-org')}
+            collapsed={isCollapsed}
+            defaultOpen={is('/perfil') || is('/planes') || is('/configuracion-org')}
+          >
+            <NavItem href="/perfil"           label="Mi Perfil"      icon={Users}       active={is('/perfil')}           collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/configuracion-org" label="Organización"  icon={Settings}    active={is('/configuracion-org')} collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/planes"           label="Planes"         icon={BarChart2}   active={is('/planes')}           collapsed={false} depth={1} onNavigate={closeMobileDrawer}
+              badge={isTrial ? 'Trial' : undefined} />
+          </NavGroup>
         </ul>
       </nav>
 

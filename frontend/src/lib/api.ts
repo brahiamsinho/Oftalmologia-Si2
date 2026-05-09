@@ -5,6 +5,7 @@
  * Maneja:
  *  - Base URL desde variable de entorno
  *  - Inyección automática del token JWT en cada request
+ *  - Inyección automática del prefijo de tenant /t/<slug>/api en rutas privadas
  *  - Refresh automático cuando el access token expira (401)
  *  - Redirección al login cuando el refresh también falla
  */
@@ -35,6 +36,22 @@ function resolveApiBaseUrl(): string {
 }
 
 const BASE_URL = resolveApiBaseUrl();
+
+/**
+ * Calcula el origin del backend (sin el sufijo /api).
+ * Ej: "http://localhost:8000/api" → "http://localhost:8000"
+ */
+export function resolveApiOrigin(): string {
+  return BASE_URL.replace(/\/api\/?$/, '');
+}
+
+/**
+ * Construye la base URL del tenant dado su slug.
+ * Ej: slug="clinica-demo" → "http://localhost:8000/t/clinica-demo/api"
+ */
+export function resolveTenantBaseUrl(slug: string): string {
+  return `${resolveApiOrigin()}/t/${slug}/api`;
+}
 
 // ── Instancia principal ───────────────────────────────────────────────────────
 export const api = axios.create({
@@ -71,12 +88,145 @@ export const TokenStorage = {
   },
 };
 
-// ── Request interceptor: agrega Authorization header ─────────────────────────
+// ── Almacenamiento del tenant activo ─────────────────────────────────────────
+/**
+ * TenantStorage persiste el slug y los datos del tenant en localStorage + cookie.
+ * El interceptor de request lo usa para reescribir la baseURL automáticamente.
+ */
+export const TenantStorage = {
+  getSlug: (): string | null =>
+    typeof window !== 'undefined' ? localStorage.getItem('tenant_slug') : null,
+
+  getTenantData: (): TenantPublicData | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem('tenant_data');
+      return raw ? (JSON.parse(raw) as TenantPublicData) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  setSlug: (slug: string): void => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('tenant_slug', slug);
+    document.cookie = `tenant_slug=${slug}; path=/; SameSite=Lax`;
+  },
+
+  setTenantData: (data: TenantPublicData): void => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('tenant_data', JSON.stringify(data));
+  },
+
+  clear: (): void => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem('tenant_slug');
+    localStorage.removeItem('tenant_data');
+    document.cookie = 'tenant_slug=; path=/; max-age=0';
+  },
+};
+
+// ── Tipos públicos del tenant (espeja TenantPublicSerializer del backend) ─────
+export interface TenantBranding {
+  nombre: string;
+  logo_url: string | null;
+  color_primario: string;
+  color_secundario: string;
+}
+
+export interface TenantSubscriptionPlan {
+  codigo: string;
+  nombre: string;
+  precio_mensual: number;
+  max_usuarios: number;
+  max_pacientes: number;
+  max_citas_mes: number;
+  max_almacenamiento_mb: number;
+  permite_crm: boolean;
+  permite_notificaciones: boolean;
+  permite_reportes_avanzados: boolean;
+  permite_soporte_prioritario: boolean;
+}
+
+/** Flags de visibilidad de módulos — vienen en TenantSettings.flags */
+export interface TenantFlags {
+  permite_reserva_online: boolean;
+  mostrar_modulo_crm: boolean;
+  mostrar_notificaciones: boolean;
+  [key: string]: boolean;
+}
+
+/** Settings de organización — vienen de GET /t/<slug>/api/organization/settings/ */
+export interface TenantOrgSettings {
+  id_tenant_settings?: number;
+  timezone: string;
+  idioma: string;
+  branding_nombre: string;
+  branding_color_primario: string;
+  branding_color_secundario: string;
+  branding_logo_url: string | null;
+  flags: TenantFlags;
+}
+
+/** Tipo de suscripción (estado) */
+export type TenantSubscriptionEstado = 'ACTIVA' | 'TRIAL' | 'SUSPENDIDA' | 'CANCELADA' | string;
+
+/** Datos completos del tenant autenticado — GET /t/<slug>/api/organization/me/ */
+export interface TenantOrgData {
+  id: number;
+  id_tenant?: number;
+  schema_name?: string;
+  slug: string;
+  nombre: string;
+  activo: boolean;
+  branding: TenantBranding;
+  /** config puede contener flags como { mostrar_modulo_crm: true } */
+  config: Partial<TenantFlags> & Record<string, unknown>;
+  settings: Partial<TenantOrgSettings> & Record<string, unknown>;
+  subscription: {
+    plan: TenantSubscriptionPlan;
+    estado: TenantSubscriptionEstado;
+    esta_activa: boolean;
+    fecha_inicio?: string;
+    fecha_vencimiento?: string;
+    renovar_automaticamente?: boolean;
+  } | null;
+  usage?: {
+    usuarios_actuales: number;
+    pacientes_actuales: number;
+    citas_mes_actual: number;
+    almacenamiento_usado_mb: number;
+  };
+}
+
+/** Datos públicos del tenant — GET /api/tenants/<slug>/ (sin autenticación) */
+export interface TenantPublicData {
+  id: number;
+  slug: string;
+  nombre: string;
+  branding: TenantBranding;
+  subscription: {
+    plan: TenantSubscriptionPlan;
+    estado: TenantSubscriptionEstado;
+    esta_activa: boolean;
+  } | null;
+}
+
+// ── Request interceptor: agrega Authorization header + prefijo de tenant ──────
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = TokenStorage.getAccess();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // Multi-tenant: reescribe baseURL de /api a /t/<slug>/api en rutas privadas.
+  // Solo aplica si hay un slug guardado y la baseURL aún es la original (evita
+  // doble-reescritura si algo llama al interceptor más de una vez).
+  const slug = TenantStorage.getSlug();
+  if (slug && config.baseURL === BASE_URL) {
+    config.baseURL = resolveTenantBaseUrl(slug);
+  }
+
   return config;
 });
 
@@ -93,6 +243,19 @@ api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // ── 403: tenant inactivo/suspendido ──────────────────────────────────────
+    // Si el backend responde 403 (que no sea en el login), interpretamos que el
+    // tenant fue suspendido. Limpiamos sesión y redirigimos al login.
+    if (error.response?.status === 403) {
+      const isLoginRoute = original?.url?.includes('/auth/login/');
+      if (!isLoginRoute && typeof window !== 'undefined') {
+        TenantStorage.clear();
+        TokenStorage.clear();
+        window.location.href = '/login?motivo=tenant_inactivo';
+        return Promise.reject(error);
+      }
+    }
 
     // Solo intentar refresh en 401 y si no es la ruta de refresh/login
     const isAuthRoute = original?.url?.includes('/auth/token/') || original?.url?.includes('/auth/login/');
@@ -119,7 +282,10 @@ api.interceptors.response.use(
       const refresh = TokenStorage.getRefresh();
       if (!refresh) throw new Error('No refresh token');
 
-      const { data } = await axios.post(`${BASE_URL}/auth/token/refresh/`, { refresh });
+      // El endpoint de refresh también debe usar el prefijo del tenant si está activo.
+      const slug = TenantStorage.getSlug();
+      const refreshBase = slug ? resolveTenantBaseUrl(slug) : BASE_URL;
+      const { data } = await axios.post(`${refreshBase}/auth/token/refresh/`, { refresh });
       TokenStorage.setAccess(data.access);
       processQueue(null, data.access);
       original.headers.Authorization = `Bearer ${data.access}`;

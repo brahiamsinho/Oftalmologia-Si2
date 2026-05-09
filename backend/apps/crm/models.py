@@ -18,6 +18,26 @@ class CanalContacto(models.TextChoices):
     OTRO = 'OTRO', 'Otro'
 
 
+class TipoMensaje(models.TextChoices):
+    """Propósito semántico del mensaje — distinto al canal (cómo se envía)."""
+    RECORDATORIO = 'RECORDATORIO', 'Recordatorio'
+    NOTIFICACION = 'NOTIFICACION', 'Notificación'
+    SEGUIMIENTO = 'SEGUIMIENTO', 'Seguimiento'
+    RESULTADO = 'RESULTADO', 'Resultado de examen'
+    INFORMATIVO = 'INFORMATIVO', 'Informativo'
+    OTRO = 'OTRO', 'Otro'
+
+
+class EstadoComunicacion(models.TextChoices):
+    """Ciclo de vida de una comunicación individual con el paciente."""
+    PENDIENTE = 'PENDIENTE', 'Pendiente de envío'
+    ENVIADO = 'ENVIADO', 'Enviado'
+    ENTREGADO = 'ENTREGADO', 'Entregado'
+    LEIDO = 'LEIDO', 'Leído'
+    RESPONDIDO = 'RESPONDIDO', 'Respondido'
+    FALLIDO = 'FALLIDO', 'Fallido'
+
+
 class SegmentacionPaciente(models.Model):
     id_segmentacion = models.BigAutoField(primary_key=True)
     nombre = models.CharField(max_length=120)
@@ -106,8 +126,21 @@ class HistorialContacto(models.Model):
     )
 
     canal = models.CharField(max_length=20, choices=CanalContacto.choices)
+    tipo_mensaje = models.CharField(
+        max_length=20,
+        choices=TipoMensaje.choices,
+        default=TipoMensaje.SEGUIMIENTO,
+    )
     fecha_contacto = models.DateTimeField(default=timezone.now)
+    asunto = models.CharField(max_length=200, blank=True, null=True)
+    mensaje = models.TextField(blank=True, null=True)
+    respuesta_paciente = models.TextField(blank=True, null=True)
     resultado = models.CharField(max_length=150, blank=True, null=True)
+    estado_comunicacion = models.CharField(
+        max_length=20,
+        choices=EstadoComunicacion.choices,
+        default=EstadoComunicacion.PENDIENTE,
+    )
     observaciones = models.TextField(blank=True, null=True)
 
     contactado_por = models.ForeignKey(

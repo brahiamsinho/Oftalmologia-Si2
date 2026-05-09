@@ -46,6 +46,9 @@ export interface CitasParams {
   id_especialista?: number | string;
   page?: number;
   ordering?: string;
+  /** Filtro de rango de fecha (YYYY-MM-DD) — añadido para cálculo del conteo mensual vs plan */
+  fecha_desde?: string;
+  fecha_hasta?: string;
 }
 
 export const citasService = {

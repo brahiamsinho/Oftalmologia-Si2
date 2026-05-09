@@ -140,7 +140,7 @@ export default function RegistrarMedicionPage() {
 
       <div className="relative rounded-3xl border border-gray-100 bg-white shadow-[0_4px_24px_-8px_rgba(0,0,0,0.05)]">
         <div className="pointer-events-none absolute right-0 top-0 overflow-hidden rounded-3xl p-8 opacity-5">
-          <MinimalIris className="h-64 w-64 text-blue-900" />
+          <MinimalIris />
         </div>
 
         {success && (

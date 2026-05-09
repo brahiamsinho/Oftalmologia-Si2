@@ -1,6 +1,11 @@
 from rest_framework import serializers
 
-from .models import CampanaCRM, HistorialContacto, SegmentacionPaciente
+from .models import (
+    CampanaCRM,
+    EstadoComunicacion,
+    HistorialContacto,
+    SegmentacionPaciente,
+)
 
 
 class SegmentacionPacienteSerializer(serializers.ModelSerializer):
@@ -61,3 +66,23 @@ class HistorialContactoSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        if self.instance:
+            estado = attrs.get('estado_comunicacion', self.instance.estado_comunicacion)
+            respuesta = attrs.get('respuesta_paciente', self.instance.respuesta_paciente)
+        else:
+            estado = attrs.get('estado_comunicacion', EstadoComunicacion.PENDIENTE)
+            respuesta = attrs.get('respuesta_paciente')
+
+        # Si el estado es RESPONDIDO, debe haber una respuesta del paciente registrada
+        if estado == EstadoComunicacion.RESPONDIDO and not (respuesta or '').strip():
+            raise serializers.ValidationError({
+                'respuesta_paciente': (
+                    'Debes registrar la respuesta del paciente para marcar el estado como Respondido.'
+                )
+            })
+
+        return attrs
