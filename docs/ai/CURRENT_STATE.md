@@ -1,5 +1,119 @@
 # CURRENT STATE
 
+## Actualizacion 2026-05-09 (push turnos: cierre backend recordatorios → FCM)
+- Se completo el faltante principal de push para turnos programados:
+  - `backend/apps/notificaciones/automatizaciones/serializers.py` ahora usa `enviar_push_a_usuario(...)` dentro de `procesar_tarea_recordatorio(...)`.
+  - Antes: el job solo persistia `Notificacion` en BD (campanita interna).
+  - Ahora: persiste en BD y ademas intenta envio FCM real a los dispositivos registrados del usuario.
+- Payload push agregado para trazabilidad en cliente:
+  - `tipo=recordatorio_control`
+  - `postoperatorio_id`
+  - `tarea_id`
+- Comportamiento por entorno:
+  - Si `FIREBASE_CREDENTIALS_PATH` no esta configurado, no rompe el flujo; queda guardada en BD y loguea warning.
+  - Si hay credenciales + tokens FCM, envia push.
+- Estado verificado de la capa push existente:
+  - Mobile ya inicializaba Firebase en `main.dart` y gestionaba token/foreground/background en `core/notifications/push_notifications.dart`.
+  - Backend ya tenia registro de dispositivos (`/api/notificaciones/dispositivos/`) y servicio de envio push (`apps.notificaciones.services`).
+
+## Actualizacion 2026-05-08 (mobile: agendar cita desde la app)
+- Se implemento flujo completo para agendar citas desde la app paciente:
+  - **Backend**: nuevo endpoint `GET /api/especialistas-disponibles/` (solo lectura, para pacientes).
+  - **CitasRepository**: metodos `scheduleAppointment()`, `getAvailableSpecialists()`, `getAppointmentTypes()`.
+  - **ScheduleAppointmentScreen**: flujo de 3 pasos (especialista → fecha/hora → confirmar).
+  - **Ruta**: `/schedule-appointment` agregada en `routes.dart`.
+  - **Home**: boton "Agendar cita >" en tarjeta de proxima cita conectado al flujo.
+- Validacion: `flutter analyze` sin errores.
+
+## Actualizacion 2026-05-08 (mobile: recuperacion de contraseña con Mailhog)
+- Se implemento flujo completo de recuperacion de contraseña en mobile:
+  - **AuthRepository**: `requestPasswordReset(email)` y `confirmPasswordReset(token, newPassword)`.
+  - **ForgotPasswordScreen**: input email → POST /auth/reset-password/ → mensaje de exito generico.
+  - **ResetPasswordScreen**: input token + nueva contraseña → POST /auth/reset-password/confirm/ → exito → login.
+  - **Rutas**: `/forgot-password` y `/reset-password` agregadas en `routes.dart`.
+  - **Login**: boton "¿Olvidaste tu contraseña?" ahora navega a `/forgot-password`.
+- Backend ya tenia endpoints implementados: siempre responde 200 en solicitud (no revela si email existe), token expira en 2h.
+- En desarrollo: token se obtiene del email en Mailhog (UI web).
+- Validacion: `flutter analyze` sin errores.
+
+## Actualizacion 2026-05-08 (mobile UI/UX UX-05: accesibilidad tactil/contraste/semantics)
+- Se aplicaron mejoras de accesibilidad en 7 archivos de la app paciente:
+  - **Semantics labels**: avatar, notificaciones, fecha, accesos rapidos, tabs de citas, tiles de citas, cards de consultas/estudios, botones de login/register.
+  - **Touch targets minimos 44x44**: `_TabChip` (ConstrainedBox minHeight: 44), `_QuickTile` (ConstrainedBox minHeight: 44), `FilledButton` (minimumSize: 48).
+  - **Feedback visual**: `InkWell` con `borderRadius` consistente en todos los elementos interactivos.
+  - **Labels descriptivos**: cada elemento interactivo tiene `Semantics(label: ...)` con contexto claro para lectores de pantalla.
+- Validacion: `flutter analyze` sin errores, solo info warnings (`prefer_const_constructors`, `unnecessary_brace_in_string_interps`).
+
+## Actualizacion 2026-05-08 (mobile UI/UX iteracion 3: tokenizacion completa Batch A+B+C)
+- **Batch A (Home screens):** `patient_home_screen.dart`, `patient_appointments_section.dart`, `patient_next_appointment_card.dart`.
+- **Batch B (Historial + Auth):** `patient_clinical_screen.dart`, `login_screen.dart`, `register_screen.dart`.
+- **Batch C (Header + Accesos):** `patient_home_header.dart`, `patient_quick_access_row.dart`.
+- Tokens aplicados: `space1` (4), `space2` (8), `space3` (12), `space4` (16), `space5` (20), `space6` (24), `motionNormal` (220ms).
+- Validacion: `flutter analyze` sin errores, solo info warnings (`prefer_const_constructors` por uso de tokens no-const).
+- Spacing y motion centralizados en `theme.dart` para toda la app paciente.
+
+## Actualizacion 2026-05-08 (mobile UI/UX iteracion 3: tokenizacion Batch A)
+- Se reemplazaron valores hardcodeados de spacing por tokens `AppTheme.space*` en:
+  - `patient_home_screen.dart` (Profile tab + _ProfileCard)
+  - `patient_appointments_section.dart` (padding, gaps, AnimatedSwitcher duration)
+  - `patient_next_appointment_card.dart` (margins, padding, gaps entre elementos)
+- Validacion: `flutter analyze` sin errores, solo 25 info warnings (`prefer_const_constructors` por uso de tokens no-const).
+- Tokens aplicados: `space1` (4), `space2` (8), `space3` (12), `space4` (16), `space5` (20), `space6` (24), `motionNormal` (220ms).
+
+## Actualizacion 2026-05-08 (mobile UI/UX iteracion 2: tokens + next appointment + perfil)
+- Se agregaron tokens de motion y spacing en `config/theme.dart`:
+  - `motionFast` (150ms), `motionNormal` (220ms), `motionSlow` (280ms)
+  - `space1` (4) a `space6` (24) para padding/margins consistentes
+- Se agrego `AppShimmerCard` en `app_async_states.dart` para loading de cards hero.
+- Se refactorizo `PatientNextAppointmentCard`:
+  - usa `AppShimmerCard`, `AppErrorStateCard`, `AppEmptyStateCard` compartidos
+  - agrega `AnimatedSwitcher` con transicion fade
+  - elimina `_LoadingCard` y `_ErrorCard` duplicados
+- Se refactorizo `_ProfileTab` en `PatientHomeScreen`:
+  - envuelto en `AppFadeSlideIn` para entrada suave
+  - agregado `_ProfileCard` con jerarquia visual mejorada (avatar, email separado)
+  - usa tokens de spacing cuando aplica
+- Validacion: `flutter analyze` sin errores, solo 3 info de `prefer_const_constructors`.
+
+## Actualizacion 2026-05-08 (mobile UI/UX iteracion 1: estados reutilizables + microanimaciones)
+- Se creo `mobile/lib/core/ui/widgets/app_async_states.dart` con componentes reutilizables de UX:
+  - `AppEmptyStateCard`
+  - `AppErrorStateCard`
+  - `AppSkeletonTile`
+  - `AppFadeSlideIn`
+- Se refactorizo `PatientAppointmentsSection` para usar estados compartidos (loading/error/empty) y `AnimatedSwitcher` + entrada `fade/slide`.
+- Se refactorizo `PatientClinicalScreen` (Consultas y Estudios) para homogeneizar feedback de carga/error/vacio con los mismos componentes compartidos y transiciones suaves.
+- Se mejoro consistencia visual/tactil en estados de error (`FilledButton` con altura minima) y semantica basica en empty state.
+- Validacion ejecutada: `flutter analyze` sobre los 3 archivos modificados, sin issues.
+
+## Actualizacion 2026-05-08 (rollback comando Sleek + artefacto DESING)
+- Se retiro el comando `.opencode/commands/sleek-design.md` para evitar dependencia operativa de API externa en flujo base del proyecto.
+- Se removio su referencia en `.opencode/README.md` y en `docs/ai/PROMPTS_LIBRARY.md`.
+- Se removio la entrada agregada de `sleek-design-mobile-apps` en `docs/ai/SKILLS_REGISTRY.md`.
+- Se creo `docs/ai/DESING.md` como registro vivo de decisiones y backlog UI/UX mobile del proyecto actual (paciente-first).
+
+## Actualizacion 2026-05-08 (workflow Sleek para diseno mobile)
+- Se agrego el comando `/sleek-design` en `.opencode/commands/sleek-design.md` para ejecutar diseno mobile con Sleek (`https://sleek.design/api/v1/*`) con flujo completo: resolver proyecto, enviar chat, poll de run, screenshots y export de HTML por `componentId`.
+- El comando incorpora reglas de seguridad: uso exclusivo de `SLEEK_API_KEY` por header Bearer, host unico HTTPS, no exponer secretos, no usar `.env` real y rechazo de `imageUrls` no HTTPS.
+- Se actualizo `.opencode/README.md`, `docs/ai/PROMPTS_LIBRARY.md` y `docs/ai/SKILLS_REGISTRY.md` para registrar el nuevo workflow y la skill de workspace `sleek-design-mobile-apps`.
+
+## Actualizacion 2026-05-08 (workflows OpenCode: commands, skills, plugin y todo-list)
+- Se agrego el comando seguro `/commit` en `.opencode/commands/commit.md`, diseñado para revisar `git status`, diffs, `.gitignore`, nombres de archivos sensibles y staged changes antes de crear un commit.
+- Se agregaron comandos reutilizables en `.opencode/commands/`: `/check-project`, `/update-memory`, `/review-security`, `/validate-stack`, `/puds-status`, `/handoff` y `/todo-start`.
+- Se agregaron skills locales OpenCode en `.opencode/skills/`: `project-memory`, `puds-traceability`, `security-review`, `docker-debug`, `clinical-ux-review` y `todo-workflow`.
+- Se agrego el plugin local `.opencode/plugins/env-protection.js`, que bloquea acceso a archivos `.env` reales y permite plantillas como `.env.example`, `.env.sample` y `.env.template`.
+- Se actualizaron los agentes de `.opencode/agents/` para recomendar uso de todo-list en tareas multi-paso y permitir `skill: allow` en especialistas.
+- El `orchestrator` ahora recomienda skills segun contexto: memoria, seguridad, PUDS, Docker, UX clinica y organizacion con todos.
+- Se actualizaron `.opencode/README.md`, `.opencode/skills/README.md`, `docs/ai/SKILLS_REGISTRY.md` y `docs/ai/PROMPTS_LIBRARY.md` para documentar los workflows reutilizables.
+
+## Actualizacion 2026-05-08 (sistema multi-agente OpenCode local)
+- Se creo la estructura OpenCode-compatible `.opencode/agents/` con agentes especializados en formato hibrido: frontmatter machine-readable soportado por OpenCode + cuerpo tecnico operativo.
+- Agentes creados: `orchestrator`, `backend`, `frontend`, `mobile`, `ui-ux`, `architecture`, `architect-planner`, `code-review`, `qa-testing`, `devops` e `infra`.
+- El `orchestrator` enruta tareas por intencion: backend, frontend, mobile, UI/UX, arquitectura, planificacion, review, testing, DevOps e infraestructura; para tareas mixtas divide trabajo y consolida respuesta.
+- Se creo `.opencode/README.md` con lista de agentes, flujo de orquestacion, reglas de routing y nota de integracion con skills. No se deja README dentro de `.opencode/agents/` porque OpenCode lo carga como agente.
+- Se creo `.opencode/skills/` como punto local para skills OpenCode del proyecto. No se detectaron skills OpenCode locales alli; adicionalmente existen skills de workspace en `.agents/skills/`: `caveman` y `find-skills`.
+- Correccion frente a la documentacion oficial: OpenCode carga agentes de proyecto desde `.opencode/agents/`; el nombre del agente viene del nombre del archivo; para heredar modelo se omite `model` en lugar de usar `model: Inherit`.
+
 ## Actualizacion 2026-05-04 (Fase 1b multi-tenant primera ola)
 - Se tenantizaron roots críticos con FK nullable a `Tenant`: `Usuario`, `Paciente`, `HistoriaClinica`, `Bitacora`, `Notificacion`, `DispositivoFcm` y `Especialista`.
 - Las tablas existentes fueron backfilled al tenant `legacy` y las nuevas altas asignan tenant server-side desde contexto runtime o fallback `legacy`.

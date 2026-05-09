@@ -10,6 +10,34 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+**Fecha:** 2026-05-08
+**Decision:** Se agrega `/commit` como comando OpenCode seguro y no como alias directo de `git commit`.
+**Motivo:** Un commit automatico sin revision puede subir secretos, `.env`, claves privadas, archivos generados o cambios ajenos. El comando debe revisar `git status`, diffs, `.gitignore`, patrones sensibles y staged changes antes de commitear.
+**Impacto:** Para usarlo se invoca `/commit "mensaje"`. El agente debe abortar si detecta credenciales, `.env` reales, claves, cambios no relacionados o un mensaje que no refleje el diff.
+
+---
+
+**Fecha:** 2026-05-08
+**Decision:** Se agregan workflows OpenCode reutilizables mediante comandos, skills locales, un plugin de proteccion `.env` y una regla explicita de uso de todo-list para tareas multi-paso.
+**Motivo:** Reducir prompts repetidos, mejorar continuidad entre agentes, proteger secretos, mantener `docs/ai/` vivo y ordenar trabajos complejos con seguimiento visible.
+**Impacto:** OpenCode ahora carga comandos desde `.opencode/commands/`, skills desde `.opencode/skills/` y plugins desde `.opencode/plugins/`. Los agentes pueden usar skills y deben usar todo-list en tareas con varias etapas, validacion o actualizacion de memoria.
+
+---
+
+**Fecha:** 2026-05-08
+**Decision:** Se amplian los subagentes OpenCode con `mobile`, `ui-ux` y `devops`, manteniendo `infra` por compatibilidad operativa.
+**Motivo:** El proyecto real tiene Flutter mobile, necesita revision dedicada de experiencia de usuario y requiere soporte DevOps explicito para Docker Compose, entornos, despliegue, cron y hardening.
+**Impacto:** `orchestrator` puede delegar ahora tareas mobile, UI/UX y DevOps. `infra` queda disponible para referencias previas, pero las tareas nuevas de contenedores/despliegue deben preferir `devops`.
+
+---
+
+**Fecha:** 2026-05-08
+**Decision:** Se adopta un sistema multi-agente OpenCode local en `.opencode/agents/` con formato hibrido compatible: frontmatter soportado por OpenCode y cuerpo tecnico operativo.
+**Motivo:** La documentacion oficial de OpenCode indica que los agentes de proyecto se cargan desde `.opencode/agents/`; el nombre del agente viene del nombre del archivo y los subagentes heredan modelo si se omite `model`.
+**Impacto:** Nuevos agentes deben mantener nombres en kebab-case, `description`, `mode`, `permission` y reglas especificas del stack real en el cuerpo. Las skills locales deben vivir en `.opencode/skills/` y el `orchestrator` debe invocarlas cuando correspondan.
+
+---
+
 **Fecha:** 2026-05-05
 **Decisión:** La segunda ola de Fase 1b extiende el tenant-aware scoping a citas, consultas, CRM y automatizaciones con `tenant` nullable, backfill a `legacy` y serializers que bloquean FK cruzadas o tenant escrito por cliente.
 **Motivo:** El aislamiento mínimo por listados no era suficiente para evitar lecturas/escrituras cruzadas en dominios dependientes.
