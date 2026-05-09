@@ -1,5 +1,4 @@
 from django.db import transaction
-
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
@@ -23,29 +22,35 @@ class ConsultaViewSet(viewsets.ModelViewSet):
             .get_queryset()
             .select_related('paciente', 'cita', 'especialista')
         )
-        tenant = getattr(self.request, 'tenant', None)
-        queryset = queryset.for_tenant(tenant)
+
         user = self.request.user
+
         if not user.is_authenticated:
             return Consulta.objects.none()
+
         tipo = getattr(user, 'tipo_usuario', '') or ''
+
         if tipo == 'PACIENTE':
-            paciente = Paciente.objects.for_tenant(tenant).filter(usuario=user).first()
+            paciente = Paciente.objects.filter(usuario=user).first()
             if not paciente:
                 return Consulta.objects.none()
             return queryset.filter(paciente=paciente)
+
         if tipo in ('MEDICO', 'ESPECIALISTA'):
             return queryset.filter(especialista=user)
+
         if tipo in ('ADMIN', 'ADMINISTRATIVO'):
             paciente_id = self.request.query_params.get('paciente_id')
             if paciente_id:
                 queryset = queryset.filter(paciente_id=paciente_id)
             return queryset
+
         return Consulta.objects.none()
 
     @transaction.atomic
     def perform_create(self, serializer):
         consulta = serializer.save(especialista=self.request.user)
+
         if consulta.cita_id:
             cita = consulta.cita
             if cita.estado in (
@@ -55,6 +60,7 @@ class ConsultaViewSet(viewsets.ModelViewSet):
             ):
                 cita.estado = EstadoCita.ATENDIDA
                 cita.save(update_fields=['estado'])
+
         registrar_bitacora(
             usuario=self.request.user,
             modulo='consultas',
@@ -105,24 +111,29 @@ class EstudioViewSet(viewsets.ModelViewSet):
             .get_queryset()
             .select_related('paciente', 'consulta', 'consulta__especialista')
         )
-        tenant = getattr(self.request, 'tenant', None)
-        queryset = queryset.for_tenant(tenant)
+
         user = self.request.user
+
         if not user.is_authenticated:
             return Estudio.objects.none()
+
         tipo = getattr(user, 'tipo_usuario', '') or ''
+
         if tipo == 'PACIENTE':
-            paciente = Paciente.objects.for_tenant(tenant).filter(usuario=user).first()
+            paciente = Paciente.objects.filter(usuario=user).first()
             if not paciente:
                 return Estudio.objects.none()
             return queryset.filter(paciente=paciente)
+
         if tipo in ('MEDICO', 'ESPECIALISTA'):
             return queryset.filter(consulta__especialista=user).distinct()
+
         if tipo in ('ADMIN', 'ADMINISTRATIVO'):
             paciente_id = self.request.query_params.get('paciente_id')
             if paciente_id:
                 queryset = queryset.filter(paciente_id=paciente_id)
             return queryset
+
         return Estudio.objects.none()
 
     def perform_create(self, serializer):

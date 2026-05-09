@@ -73,11 +73,6 @@ class SegmentacionPacienteViewSet(CrmBitacoraMixin, viewsets.ModelViewSet):
             return [IsAuthenticated(), IsAdministrativoOrAdmin()]
         return [IsAuthenticated()]
 
-    def get_queryset(self):
-        qs = super().get_queryset()
-        tenant = getattr(self.request, 'tenant', None)
-        return qs.for_tenant(tenant)
-
 
 class CampanaCRMViewSet(CrmBitacoraMixin, viewsets.ModelViewSet):
     queryset = CampanaCRM.objects.select_related('id_segmentacion', 'creado_por').all()
@@ -94,11 +89,6 @@ class CampanaCRMViewSet(CrmBitacoraMixin, viewsets.ModelViewSet):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
             return [IsAuthenticated(), IsAdministrativoOrAdmin()]
         return [IsAuthenticated()]
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        tenant = getattr(self.request, 'tenant', None)
-        return qs.for_tenant(tenant)
 
     def perform_create(self, serializer):
         instance = serializer.save(creado_por=self.request.user)
@@ -118,7 +108,12 @@ class HistorialContactoViewSet(CrmBitacoraMixin, viewsets.ModelViewSet):
     serializer_class = HistorialContactoSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['id_paciente', 'id_campana', 'canal']
-    search_fields = ['id_paciente__nombres', 'id_paciente__apellidos', 'resultado', 'observaciones']
+    search_fields = [
+        'id_paciente__nombres',
+        'id_paciente__apellidos',
+        'resultado',
+        'observaciones',
+    ]
     ordering_fields = ['fecha_contacto', 'created_at', 'updated_at']
     ordering = ['-fecha_contacto', '-created_at']
     tabla_bitacora = 'crm_historial_contactos'
@@ -128,11 +123,6 @@ class HistorialContactoViewSet(CrmBitacoraMixin, viewsets.ModelViewSet):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
             return [IsAuthenticated(), IsAdministrativoOrAdmin()]
         return [IsAuthenticated()]
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        tenant = getattr(self.request, 'tenant', None)
-        return qs.for_tenant(tenant)
 
     def perform_create(self, serializer):
         instance = serializer.save(contactado_por=self.request.user)

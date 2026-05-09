@@ -1,18 +1,6 @@
-"""
-apps/users/models.py
-Dominio exclusivo de autenticación y usuarios del sistema.
-  - Usuario (CustomUser): identidad y acceso al sistema.
-  - TokenRecuperacion: tokens de un solo uso para reset de contraseña.
-
-Roles y Permisos viven en sus propias apps:
-  → apps/roles/models.py    (Rol, UsuarioRol, RolPermiso)
-  → apps/permisos/models.py (Permiso)
-"""
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.utils import timezone
-
-from apps.tenant.utils import resolve_tenant_for_write
 
 from .managers import UsuarioManager
 
@@ -32,30 +20,22 @@ class EstadoUsuario(models.TextChoices):
 
 
 class Usuario(AbstractBaseUser, PermissionsMixin):
-    """
-    Usuarios del sistema: personal administrativo, médicos y pacientes.
-    Extiende AbstractBaseUser para control total de autenticación.
-    AbstractBaseUser ya provee: password, last_login.
-    PermissionsMixin agrega: is_superuser, groups, user_permissions.
-    """
     username = models.CharField(max_length=50, unique=True)
     email = models.EmailField(max_length=120, unique=True)
-    tenant = models.ForeignKey(
-        'tenant.Tenant',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        db_column='id_tenant',
-        related_name='usuarios',
-    )
+
     nombres = models.CharField(max_length=100)
     apellidos = models.CharField(max_length=100)
     telefono = models.CharField(max_length=30, blank=True, null=True)
     foto_perfil = models.ImageField(upload_to='perfiles/', blank=True, null=True)
+
     tipo_usuario = models.CharField(max_length=20, choices=TipoUsuario.choices)
+
     estado = models.CharField(
-        max_length=20, choices=EstadoUsuario.choices, default=EstadoUsuario.ACTIVO
+        max_length=20,
+        choices=EstadoUsuario.choices,
+        default=EstadoUsuario.ACTIVO,
     )
+
     ultimo_acceso = models.DateTimeField(null=True, blank=True)
     fecha_creacion = models.DateTimeField(default=timezone.now)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
@@ -83,19 +63,17 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
     def get_short_name(self):
         return self.nombres
 
-    def save(self, *args, **kwargs):
-        if self._state.adding and self.tenant_id is None:
-            self.tenant = resolve_tenant_for_write()
-        super().save(*args, **kwargs)
-
 
 class TokenRecuperacion(models.Model):
-    """Token de un solo uso para restablecimiento de contraseña (2h vigencia)."""
     id_token = models.BigAutoField(primary_key=True)
+
     id_usuario = models.ForeignKey(
-        Usuario, on_delete=models.CASCADE,
-        db_column='id_usuario', related_name='tokens_recuperacion',
+        Usuario,
+        on_delete=models.CASCADE,
+        db_column='id_usuario',
+        related_name='tokens_recuperacion',
     )
+
     token = models.TextField(unique=True)
     expira_en = models.DateTimeField()
     usado = models.BooleanField(default=False)

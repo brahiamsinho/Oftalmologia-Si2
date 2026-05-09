@@ -1,74 +1,88 @@
-"""
-config/settings.py
-============================
-Configuración única de Django — un solo archivo.
-Los valores específicos de entorno se controlan vía .env
-
-Para producción, sobreescribe via variables de entorno:
-  DJANGO_DEBUG=False
-  DJANGO_SECRET_KEY=tu-clave-segura
-  CORS_ALLOWED_ORIGINS=https://tudominio.com
-  (ver .env.example para la lista completa)
-"""
 import hashlib
 from datetime import timedelta
 from pathlib import Path
 
 from decouple import Csv, config
 
-# BASE_DIR apunta a la raíz /backend/
-# __file__ está en /backend/config/settings.py → .parent.parent
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# =============================================================================
-# SEGURIDAD
-# =============================================================================
 SECRET_KEY = config('DJANGO_SECRET_KEY', default='INSECURE-change-me-in-production')
 DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
 
 
 def _jwt_signing_key() -> str:
-    """HS256 exige clave HMAC ≥ 32 bytes; si SECRET_KEY es corta, se deriva SHA-256 hex (64 chars)."""
-    raw = SECRET_KEY
-    if len(raw.encode('utf-8')) >= 32:
-        return raw
-    return hashlib.sha256(raw.encode('utf-8')).hexdigest()
-# Obligatorio vía .env (ver .env.example). En DEBUG se añade '*' para IP LAN / móvil sin listar cada host.
-_csv_hosts = [h.strip() for h in config('DJANGO_ALLOWED_HOSTS', cast=Csv()) if h.strip()]
-ALLOWED_HOSTS = list(_csv_hosts)
+    if len(SECRET_KEY.encode('utf-8')) >= 32:
+        return SECRET_KEY
+    return hashlib.sha256(SECRET_KEY.encode('utf-8')).hexdigest()
+
+
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in config('DJANGO_ALLOWED_HOSTS', default='localhost,127.0.0.1,testserver', cast=Csv())
+    if host.strip()
+]
+
 if DEBUG and '*' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('*')
 
+
 # =============================================================================
-# APLICACIONES
+# DJANGO-TENANTS PURO
 # =============================================================================
-DJANGO_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
+
+TENANT_MODEL = 'tenant.Tenant'
+TENANT_DOMAIN_MODEL = 'tenant.Domain'
+
+PUBLIC_SCHEMA_NAME = 'public'
+TENANT_SUBFOLDER_PREFIX = 't'
+
+PUBLIC_SCHEMA_URLCONF = 'config.urls_public'
+
+SHARED_APPS = [
+    'django_tenants',
+
+    'apps.tenant',
+
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-]
 
-THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
+
+    'apps.core',
 ]
 
-LOCAL_APPS = [
-    'apps.core',
-    'apps.tenant',
+TENANT_APPS = [
+    # Auth por clínica.
+    'django.contrib.contenttypes',
+    'django.contrib.auth',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.admin',
+    'django.contrib.staticfiles',
+
+    # Blacklist JWT por clínica.
+    'rest_framework_simplejwt.token_blacklist',
+
+    # Usuarios, roles y permisos por clínica.
     'apps.usuarios.users',
     'apps.usuarios.permisos',
     'apps.usuarios.roles',
+
+    # Auditoría por clínica.
     'apps.bitacora',
+
+    # Módulo pacientes por clínica.
     'apps.pacientes.pacientes',
-    'apps.atencionClinica.especialistas',
     'apps.pacientes.historial_clinico',
+
+    # Atención clínica por clínica.
+    'apps.atencionClinica.especialistas',
     'apps.atencionClinica.antecedentes',
     'apps.atencionClinica.citas',
     'apps.atencionClinica.consultas',
@@ -77,45 +91,65 @@ LOCAL_APPS = [
     'apps.atencionClinica.preoperatorio',
     'apps.atencionClinica.cirugias',
     'apps.atencionClinica.postoperatorio',
+
+    # CRM por clínica.
     'apps.crm',
+
+    # Notificaciones por clínica.
     'apps.notificaciones',
     'apps.notificaciones.automatizaciones',
 ]
 
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
-# =============================================================================
-# FIREBASE CLOUD MESSAGING (credenciales de servicio para envío desde backend)
-# =============================================================================
-FIREBASE_CREDENTIALS_PATH = config(
-    'FIREBASE_CREDENTIALS_PATH',
-    default=str(BASE_DIR / 'firebase-credentials.json'),
+INSTALLED_APPS = list(SHARED_APPS) + [
+    app for app in TENANT_APPS if app not in SHARED_APPS
+]
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django_tenants.postgresql_backend',
+        'NAME': config('POSTGRES_DB', default='oftalmologia_db'),
+        'USER': config('POSTGRES_USER', default='oftalmologia_user'),
+        'PASSWORD': config('POSTGRES_PASSWORD', default='password'),
+        'HOST': config('POSTGRES_HOST', default='localhost' if DEBUG else 'db'),
+        'PORT': config('POSTGRES_PORT', default='5432'),
+        'OPTIONS': {
+            'connect_timeout': 10,
+        },
+    },
+}
+
+DATABASE_ROUTERS = (
+    'django_tenants.routers.TenantSyncRouter',
 )
 
-# =============================================================================
-# MIDDLEWARE
-# =============================================================================
+
 MIDDLEWARE = [
+    'django_tenants.middleware.TenantSubfolderMiddleware',
+
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'apps.core.tenant_middleware.TenantMiddleware',
+
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'config.urls'
 
-# =============================================================================
-# TEMPLATES
-# =============================================================================
+ROOT_URLCONF = 'config.urls'
+WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
+
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [
+            BASE_DIR / 'templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -128,34 +162,9 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
-ASGI_APPLICATION = 'config.asgi.application'
 
-# =============================================================================
-# BASE DE DATOS — PostgreSQL
-# =============================================================================
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('POSTGRES_DB', default='oftalmologia_db'),
-        'USER': config('POSTGRES_USER', default='oftalmologia_user'),
-        'PASSWORD': config('POSTGRES_PASSWORD', default='password'),
-        'HOST': config('POSTGRES_HOST', default='db'),
-        'PORT': config('POSTGRES_PORT', default='5432'),
-        'OPTIONS': {
-            'connect_timeout': 10,
-        },
-    }
-}
-
-# =============================================================================
-# MODELO DE USUARIO PERSONALIZADO
-# =============================================================================
 AUTH_USER_MODEL = 'users.Usuario'
 
-# =============================================================================
-# VALIDACIÓN DE CONTRASEÑAS
-# =============================================================================
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {
@@ -174,8 +183,6 @@ PASSWORD_HASHERS = [
 ]
 
 if DEBUG:
-    # Acelerar sustancialmente el inicio de sesión y creación de usuarios
-    # localmente al usar un algoritmo de hashing más rápido
     PASSWORD_HASHERS = [
         'django.contrib.auth.hashers.MD5PasswordHasher',
         'django.contrib.auth.hashers.Argon2PasswordHasher',
@@ -184,18 +191,12 @@ if DEBUG:
         'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
     ]
 
-# =============================================================================
-# INTERNACIONALIZACIÓN
-# =============================================================================
+
 LANGUAGE_CODE = 'es'
-# Bolivia (Santa Cruz de la Sierra — mismo huso que La Paz: UTC−4 sin DST)
 TIME_ZONE = 'America/La_Paz'
 USE_I18N = True
 USE_TZ = True
 
-# =============================================================================
-# ARCHIVOS ESTÁTICOS Y MULTIMEDIA
-# =============================================================================
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
@@ -205,13 +206,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# =============================================================================
-# DJANGO REST FRAMEWORK
-# =============================================================================
-_drf_renderer_classes = (
-    'rest_framework.renderers.JSONRenderer',
-    'rest_framework.renderers.BrowsableAPIRenderer',  # Solo se ve si DEBUG=True
-)
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -227,7 +221,10 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
-    'DEFAULT_RENDERER_CLASSES': _drf_renderer_classes,
+    'DEFAULT_RENDERER_CLASSES': (
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ),
     'DEFAULT_THROTTLE_CLASSES': (
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
@@ -239,15 +236,13 @@ REST_FRAMEWORK = {
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%S%z',
 }
 
-# =============================================================================
-# SIMPLE JWT
-# =============================================================================
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(
-        minutes=config('JWT_ACCESS_TOKEN_LIFETIME', default=30, cast=int)
+        minutes=config('JWT_ACCESS_TOKEN_LIFETIME', default=30, cast=int),
     ),
     'REFRESH_TOKEN_LIFETIME': timedelta(
-        days=config('JWT_REFRESH_TOKEN_LIFETIME', default=7, cast=int)
+        days=config('JWT_REFRESH_TOKEN_LIFETIME', default=7, cast=int),
     ),
     'SIGNING_KEY': _jwt_signing_key(),
     'ROTATE_REFRESH_TOKENS': True,
@@ -255,65 +250,54 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# =============================================================================
-# CORS
-# =============================================================================
+
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
     CORS_ALLOWED_ORIGINS = [
-        o.strip() for o in config('CORS_ALLOWED_ORIGINS', cast=Csv()) if o.strip()
+        origin.strip()
+        for origin in config('CORS_ALLOWED_ORIGINS', default='', cast=Csv())
+        if origin.strip()
     ]
     CORS_ALLOW_CREDENTIALS = True
 
-# =============================================================================
-# HEADERS DE SEGURIDAD
-# =============================================================================
+
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_BROWSER_XSS_FILTER = True
 
-# En producción (DEBUG=False) activar HTTPS headers:
 if not DEBUG:
     SECURE_SSL_REDIRECT = True
-    SECURE_HSTS_SECONDS = 31_536_000  # 1 año
+    SECURE_HSTS_SECONDS = 31_536_000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# =============================================================================
-# EMAIL (Mailhog en Docker dev | SMTP real en producción via .env)
-# =============================================================================
-EMAIL_BACKEND = config(
-    'EMAIL_BACKEND',
-    default='django.core.mail.backends.smtp.EmailBackend',
-)
+
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = config('EMAIL_HOST', default='mailhog')
 EMAIL_PORT = config('EMAIL_PORT', default=1025, cast=int)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@oftalmologia.local')
-FRONTEND_URL = config('FRONTEND_URL')
 
-# Texto de marca en correos de registro (evita hardcodear en templates Python).
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@oftalmologia.local')
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 SITE_DISPLAY_NAME = config('SITE_DISPLAY_NAME', default='Oftalmología Si2')
-# Pie opcional del correo de confirmación (p. ej. enlace a Mailhog en dev: http://localhost:8025).
 REGISTRATION_EMAIL_FOOTER_HINT = config('REGISTRATION_EMAIL_FOOTER_HINT', default='')
 
-# =============================================================================
-# LOGGING
-# =============================================================================
+FIREBASE_CREDENTIALS_PATH = config(
+    'FIREBASE_CREDENTIALS_PATH',
+    default=str(BASE_DIR / 'firebase-credentials.json'),
+)
+
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
         'simple': {
             'format': '{levelname} {asctime} {message}',
             'style': '{',
