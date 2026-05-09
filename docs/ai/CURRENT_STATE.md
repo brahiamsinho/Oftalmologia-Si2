@@ -1,5 +1,110 @@
 # CURRENT STATE
 
+## Actualizacion 2026-05-09 (backup tests green + hardening tenant-aware)
+- Se completó la estabilización de `apps.backup` con foco en pruebas automatizadas y compatibilidad con `django-tenants`.
+- Ajustes en código:
+  - `backend/apps/backup/views.py`: `BackupConfigViewSet.get_queryset()` ahora ordena por `id_config` para evitar warning de paginación inconsistente.
+- Ajustes en pruebas:
+  - `backend/apps/backup/tests.py` refactorizado para evitar dependencia de tablas tenant en schema público de test.
+  - Nuevas regresiones cubiertas:
+    - validación de límites usando ventana temporal (`timedelta`) en `validate_backup_limit`.
+    - restore con tenant explícito sin asumir `backup.tenant` FK.
+  - tests de concurrencia en restore ahora usan mock de queryset (`TenantBackup.objects.filter(...).exists()`).
+- Validación ejecutada:
+  - `docker compose exec backend python manage.py test apps.backup`
+  - Resultado: **OK (15 tests)**.
+- Cobertura adicional implementada para `tenant_context` en command scheduler:
+  - `BackupAutomaticoCommandTest.test_handle_uses_tenant_context_for_active_tenant`
+  - `BackupAutomaticoCommandTest.test_handle_tenant_slug_not_found_skips_tenant_context`
+
+## Actualizacion 2026-05-09 (hardening smoke test backup/restore)
+- Se completo smoke test real del flujo backup/restore en tenant `clinica-demo` con endpoints vigentes:
+  - `GET/PATCH /t/clinica-demo/api/backup-config/` (`PATCH` por id: `/backup-config/1/`)
+  - `GET/POST /t/clinica-demo/api/backup/`
+  - `POST /t/clinica-demo/api/backup/{id}/restore/`
+  - `GET /t/clinica-demo/api/backup/plan-info/`
+- Se validó upgrade de plan a `PLUS` con `POST /t/clinica-demo/api/organization/change-plan/` y creación/restauración de backup exitosas.
+- Se ejecutó scheduler forzado con éxito:
+  - `docker compose exec backend python manage.py backup_automatico --force --tenant-slug clinica-demo`
+- Fixes aplicados en backend backup:
+  - `backend/apps/backup/validators.py`: agregado `from datetime import timedelta` (evita `NameError` al validar límites por plan).
+  - `backend/apps/backup/services.py`: `restore_backup(..., tenant=None)` ahora resuelve schema desde tenant explícito (sin asumir FK `backup.tenant`).
+  - `backend/apps/backup/views.py`: `restore()` ahora pasa `tenant=request.tenant` a `BackupService.restore_backup(...)`.
+- Documentación operativa corregida a rutas reales:
+  - `README.md`
+  - `docs/api/backup.md`
+  - Se removieron rutas antiguas `/api/organization/backup*` para backup app.
+
+## Actualizacion 2026-05-09 (sistema completo de backup/restore multi-tenant)
+- **Nuevo app `apps.backup`** implementado con sistema completo de backup/restore por tenant.
+- **Modelos:**
+  - `TenantBackup`: registro de cada backup (archivo, tamaño, estado, fechas, usuario creador/restaurador, motivo restore)
+  - `TenantBackupConfig`: configuracion de backups automaticos (hora, frecuencia, retencion)
+- **Servicio `BackupService`:** usa `pg_dump --schema=<tenant_schema>` + gzip + Django storage para crear backups; restore con DROP/CREATE SCHEMA + psql import.
+- **REST API completa:**
+  - CRUD de backups por tenant
+  - Restore con confirmacion explicita + motivo
+  - Download de archivo `.sql.gz`
+  - Configuracion de backup automatico
+  - Informacion de limites por plan
+- **Management command `backup_automatico`:** ejecuta backups automaticos para cada tenant segun su config; usa `tenant_context` para cambiar schema; soporta `--force` y `--tenant-slug`.
+- **Validadores:** limites por plan (FREE=0, PLUS=5/semana, PRO=ilimitado), validacion de restore, concurrencia.
+- **Bitacora:** todas las operaciones de backup/restore se registran con IP y user-agent.
+- **Docker Compose:** agregado servicio `backup-scheduler` que ejecuta `backup_automatico` cada hora.
+- **Dockerfile:** agregado `postgresql-client` para `pg_dump` y `psql` en runtime.
+- **Settings:** agregadas variables `BACKUP_STORAGE_PATH`, `BACKUP_TIMEOUT_SECONDS`, `BACKUP_MAX_SIZE_MB`, `BACKUP_PLAN_LIMITS`.
+- **Documentacion:** `docs/api/backup.md` con ejemplos curl y especificacion completa.
+- **Tests:** unitarios para modelos, validadores y servicio (mock de subprocess y storage).
+- **README.md:** actualizado con seccion multi-tenant, comandos de backup, ejemplos de API.
+- **Migracion creada:** `apps/backup/migrations/0001_initial.py`.
+
+## Actualizacion 2026-05-09 (migracion completa a django-tenants con schemas)
+- **Backend migrado completamente a `django-tenants` con schema-per-tenant.** El enfoque anterior (header `X-Tenant-Slug` + FK nullable + scoping manual) fue reemplazado por aislamiento real via schemas de PostgreSQL.
+- **Configuracion en `settings.py`:**
+  - `TENANT_MODEL = 'tenant.Tenant'`, `TENANT_DOMAIN_MODEL = 'tenant.Domain'`
+  - `PUBLIC_SCHEMA_NAME = 'public'`, `TENANT_SUBFOLDER_PREFIX = 't'`
+  - `PUBLIC_SCHEMA_URLCONF = 'config.urls_public'`
+  - `DATABASES.default.ENGINE = 'django_tenants.postgresql_backend'`
+  - `DATABASE_ROUTERS = ('django_tenants.routers.TenantSyncRouter',)`
+  - Middleware: `django_tenants.middleware.TenantSubfolderMiddleware` (primero en la lista)
+- **SHARED_APPS (schema public):** `django_tenants`, `apps.tenant`, `django.contrib.*`, `rest_framework`, `rest_framework_simplejwt`, `corsheaders`, `django_filters`, `apps.core`
+- **TENANT_APPS (schema por clinica):** auth, sessions, admin, token_blacklist, `apps.usuarios.*`, `apps.bitacora`, `apps.pacientes.*`, `apps.atencionClinica.*` (todas las sub-apps), `apps.crm`, `apps.notificaciones.*`
+- **URLs separadas:**
+  - `config/urls.py` → URLs dentro de tenant scope: `/t/<slug>/api/...`
+  - `config/urls_public.py` → URLs en schema public: `/api/...` (health, tenant lookup, admin)
+- **Modelos en `apps.tenant`:**
+  - `Tenant` (hereda `TenantMixin`): slug, nombre, razon_social, nit, activo, auto_create_schema=True
+  - `Domain` (hereda `DomainMixin`): dominio por tenant
+  - `SubscriptionPlan`: FREE/PLUS/PRO con limites y features
+  - `TenantSubscription`: estado, trial, renovacion automatica
+  - `TenantUsage`: contadores por periodo
+  - `TenantSettings`: timezone, idioma, branding (nombre, colores, logo), flags
+- **Endpoints nuevos:**
+  - `GET /t/<slug>/api/organization/me/` → datos publicos del tenant actual
+  - `GET/PATCH/PUT /t/<slug>/api/organization/settings/` → config visual/funcional (ADMIN/ADMINISTRATIVO)
+  - `POST /t/<slug>/api/organization/change-plan/` → cambio de plan (ADMIN/ADMINISTRATIVO)
+  - `GET /api/tenants/<slug>/` → busqueda publica de tenant (antes de entrar al scope)
+  - `GET/POST /api/tenants/` → administracion central de tenants (superadmin)
+  - `POST /api/tenants/{id}/activar|suspender|cambiar-plan/` → acciones de superadmin
+- **Auth con tenant:**
+  - `GET /t/<slug>/api/auth/tenant/` → config publica del tenant antes del login
+  - `POST /t/<slug>/api/auth/login/` → respuesta incluye `usuario`, `tenant`, `access`, `refresh`
+  - JWT refresh token incluye claims: `tenant_id`, `tenant_schema`, `tenant_slug`
+  - `GET /api/auth/me/` → incluye `tenant` en la respuesta
+  - `POST /api/auth/register/` → registro con tenant info + FCM push
+- **Entrypoint completo (`entrypoint.sh`):**
+  1. Espera PostgreSQL
+  2. Asegura schema `public` existe
+  3. `migrate_schemas --shared --noinput`
+  4. Bootstrap: planes (FREE/PLUS/PRO), tenant public, tenant demo (`clinica_demo`)
+  5. `migrate_schemas --tenant --noinput`
+  6. Seeders: public (admin) + tenant demo (admin, permisos, roles, tipos_cita, demo_paciente)
+  7. `collectstatic`
+- **Variables de entorno nuevas:** `PUBLIC_DOMAIN`, `DEMO_TENANT_SCHEMA`, `DEMO_TENANT_SLUG`, `DEMO_TENANT_NAME`, `DEMO_TENANT_EMAIL`, `DEMO_TENANT_DOMAIN`, `BOOTSTRAP_PUBLIC_SCHEMA`, `RUN_MIGRATIONS`, `BOOTSTRAP_TENANTS`, `RUN_SEEDERS`, `RUN_COLLECTSTATIC`
+- **Tenant demo por defecto:** schema `clinica_demo`, slug `clinica-demo`, plan FREE con trial 14 dias
+- **Migraciones:** ahora se usa `migrate_schemas --shared` y `migrate_schemas --tenant` en lugar de `migrate` simple
+- **⚠️ GAP CRITICO:** Frontend (Next.js) y Mobile (Flutter) **NO han sido actualizados** para usar URLs con prefijo de tenant. Siguen usando `/api/...` directo. Esto requiere adaptacion urgente en ambos clientes.
+
 ## Actualizacion 2026-05-09 (push turnos: cierre backend recordatorios → FCM)
 - Se completo el faltante principal de push para turnos programados:
   - `backend/apps/notificaciones/automatizaciones/serializers.py` ahora usa `enviar_push_a_usuario(...)` dentro de `procesar_tarea_recordatorio(...)`.
@@ -330,20 +435,20 @@
 Ejecutar: `docker compose exec backend python manage.py seed --only demo_paciente` (requiere `tipos_cita` ya sembrados).
 
 ## Endpoints Clave (recordatorio)
-- Login: `POST /api/auth/login/` → `{ email, password }`
-- Citas (filtradas por rol): `GET /api/citas/?ordering=fecha_hora_inicio`
-- Health: `GET /api/health/`
-
-## Qué Falta (prioridad sugerida)
-- Agendar cita desde la app, detalle de cita, recuperación de contraseña en app.
-- Frontend web: más módulos sobre API (pacientes, citas, etc.).
-- Registro mobile conectado a `POST /auth/register/`.
-- Producción: `DEBUG=False`, `ALLOWED_HOSTS` explícitos, HTTPS, clave JWT larga en `.env`.
+- Tenant lookup publico: `GET /api/tenants/<slug>/` → datos basicos de clinica
+- Tenant actual (dentro de scope): `GET /t/<slug>/api/organization/me/`
+- Auth tenant (antes de login): `GET /t/<slug>/api/auth/tenant/`
+- Login: `POST /t/<slug>/api/auth/login/` → `{ email, password }` → `{ usuario, tenant, access, refresh }`
+- Citas (filtradas por rol y tenant): `GET /t/<slug>/api/citas/?ordering=fecha_hora_inicio`
+- Health: `GET /api/health/` (publico, sin tenant)
 
 ## Riesgos Conocidos
-- `numero_documento` UNIQUE en Paciente — registro auto puede dejar `PENDIENTE-{id}` hasta actualización.
-- Móvil en **dispositivo físico**: `API_BASE_URL` = IP LAN del PC (`ipconfig`), misma Wi‑Fi; no usar `10.0.2.2` fuera del emulador Android.
-- Tras cambiar `DJANGO_SECRET_KEY` corta por derivación JWT, tokens previos invalidan hasta nuevo login.
+- **Frontend y Mobile sin tenant URLs:** los clientes siguen apuntando a `/api/...` directo. Si el backend solo acepta rutas `/t/<slug>/api/...`, los clientes actuales no funcionaran.
+- `numero_documento` UNIQUE en Paciente — registro auto puede dejar `PENDIENTE-{id}` hasta actualizacion.
+- Movil en **dispositivo fisico**: `API_BASE_URL` = IP LAN del PC (`ipconfig`), misma Wi‑Fi; no usar `10.0.2.2` fuera del emulador Android.
+- Tras cambiar `DJANGO_SECRET_KEY` corta por derivacion JWT, tokens previos invalidan hasta nuevo login.
+- Con `django-tenants`, las migraciones deben ejecutarse con `migrate_schemas --shared` y `migrate_schemas --tenant`. Usar `migrate` simple puede crear tablas en el schema equivocado.
+- Si una app nueva se agrega en `SHARED_APPS` en lugar de `TENANT_APPS` (o viceversa), las tablas se crean en el schema incorrecto.
 
 ---
-*(Actualizado: 2026-05-04)*
+*(Actualizado: 2026-05-09)*

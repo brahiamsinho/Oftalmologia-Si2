@@ -10,6 +10,48 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+**Fecha:** 2026-05-09
+**Decision:** En restore de backups schema-local, el tenant objetivo se pasa explícitamente desde `request.tenant` al servicio en lugar de inferirlo desde `backup.tenant`.
+**Motivo:** `TenantBackup` y `TenantBackupConfig` viven en `TENANT_APPS` y no tienen FK `tenant`; asumir `backup.tenant` causa error en runtime bajo `django-tenants`.
+**Impacto:** `BackupService.restore_backup(...)` acepta `tenant` y valida `schema_name` antes de ejecutar `DROP/CREATE SCHEMA`; se alinea el servicio con aislamiento por schema y se evita dependencia inválida de modelo.
+
+---
+
+**Fecha:** 2026-05-09
+**Decision:** Sistema de backup/restore implementado como app Django propia (`apps.backup`) en lugar de usar librerias externas como `django-dbbackup` o contenedores como `prodrigestivill/postgres-backup-local`.
+**Motivo:** Las herramientas existentes no soportan multi-tenant schema-level con API REST, limites por plan, bitacora de auditoria, confirmacion explicita de restore, ni scheduling programable por tenant.
+**Impacto:** Se tiene control total sobre el flujo de backup/restore, validaciones de seguridad, limites por plan, y trazabilidad completa. Requiere mantener el codigo propio pero se integra nativamente con django-tenants y DRF.
+
+---
+
+**Fecha:** 2026-05-09
+**Decision:** Modelos `TenantBackup` y `TenantBackupConfig` viven en `TENANT_APPS` (schema por clinica) en lugar de `SHARED_APPS` (schema public).
+**Motivo:** Cada tenant debe tener sus propios registros de backup y configuracion aislados. Django-tenants maneja el aislamiento via schemas, no se necesita FK a Tenant.
+**Impacto:** Las tablas se crean en cada schema de tenant. El management command `backup_automatico` usa `tenant_context` para iterar schemas. No hay FK a Tenant en los modelos.
+
+---
+
+**Fecha:** 2026-05-09
+**Decision:** Restore de backup requiere confirmacion explicita (`{"confirmar": true}`) + motivo (recomendado para auditoria).
+**Motivo:** El restore es una operacion destructiva (DROP SCHEMA CASCADE). Se requiere trazabilidad completa y prevencion de ejecucion accidental.
+**Impacto:** El frontend debe mostrar modal de confirmacion con checkbox y campo de motivo antes de ejecutar restore. La bitacora registra el motivo.
+
+---
+
+**Fecha:** 2026-05-09
+**Decision:** Backups automaticos se ejecutan via Docker Compose servicio `backup-scheduler` que corre `python manage.py backup_automatico` cada hora, en lugar de Celery o cron del host.
+**Motivo:** Mantener simplicidad operativa sin introducir Celery todavia. El scheduler es un contenedor mas con las mismas variables de entorno y acceso a PostgreSQL.
+**Impacto:** Se puede migrar a Celery en el futuro si el volumen lo justifica. Por ahora, el scheduler ejecuta cada hora y filtra tenants por hora configurada.
+
+---
+
+**Fecha:** 2026-05-09
+**Decision:** Se agrego `postgresql-client` al Dockerfile del backend para disponer de `pg_dump` y `psql` en el contenedor runtime.
+**Motivo:** El servicio de backup usa `pg_dump` y `psql` nativos de PostgreSQL para backups eficientes a nivel schema.
+**Impacto:** La imagen del backend aumenta ligeramente de tamaño (~50MB). Requiere rebuild de la imagen tras el cambio.
+
+---
+
 **Fecha:** 2026-05-08
 **Decision:** Se agrega `/commit` como comando OpenCode seguro y no como alias directo de `git commit`.
 **Motivo:** Un commit automatico sin revision puede subir secretos, `.env`, claves privadas, archivos generados o cambios ajenos. El comando debe revisar `git status`, diffs, `.gitignore`, patrones sensibles y staged changes antes de commitear.

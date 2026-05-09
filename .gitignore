@@ -106,12 +106,11 @@ Thumbs.db
 *.exe
 *.dll
 *.pdb
-AGENTS.md
-.docs/
+
+
 
 venv/
 #AGENTS.md
-docs/
+
 BaseDeDatos.sql
 BaseDeDatos.sql
-skills-lock.json

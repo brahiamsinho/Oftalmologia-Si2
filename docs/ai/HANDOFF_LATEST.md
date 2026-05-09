@@ -1,6 +1,129 @@
 # HANDOFF LATEST
 
 ## Resumen
+**Fecha:** 2026-05-09 (continuacion: suite backup adaptada y verde)
+
+**Cambio mayor:** se implementó el plan de estabilización de pruebas para `apps.backup` y se dejó la suite del módulo en verde bajo Docker.
+
+**Cambios aplicados:**
+- `backend/apps/backup/views.py`
+  - orden explícito en `BackupConfigViewSet.get_queryset()` para evitar warning de paginación (`order_by('id_config')`).
+- `backend/apps/backup/tests.py`
+  - refactor de tests para contexto `django-tenants` sin depender de tablas tenant en schema público de test.
+  - regresión agregada para validación de límites con ventana temporal (`timedelta`).
+  - regresión agregada para restore con tenant explícito sin FK `backup.tenant`.
+  - pruebas de concurrencia migradas a mocks de queryset.
+
+**Validación ejecutada:**
+- `docker compose exec backend python manage.py test apps.backup`
+- Resultado: **OK (15 tests)**.
+
+**Cobertura nueva agregada:**
+- Tests del command `backup_automatico` para verificar uso de `tenant_context` y comportamiento cuando `--tenant-slug` no existe.
+
+**Pendiente inmediato:**
+1. Agregar integración tenant-schema real (opcional) con `tenant_context` para uno o dos tests E2E del módulo backup.
+2. Continuar con panel frontend de backups.
+
+Detalle de sesión: `docs/ai/sessions/2026-05-09-agent-backup-tests-green.md`
+
+---
+
+## Resumen
+**Fecha:** 2026-05-09 (continuacion: hardening + validacion backup/restore)
+
+**Cambio mayor:** se cerraron errores runtime restantes del flujo backup/restore multi-tenant y se validó E2E con tenant demo.
+
+**Fixes aplicados:**
+- `backend/apps/backup/validators.py`: import faltante `timedelta` (error 500 al crear backup manual).
+- `backend/apps/backup/services.py`: restore ya no depende de `backup.tenant` (modelo schema-local sin FK tenant); ahora recibe tenant explícito.
+- `backend/apps/backup/views.py`: `restore()` pasa `tenant=request.tenant` al servicio.
+
+**Validacion ejecutada:**
+- Login tenant: `POST /t/clinica-demo/api/auth/login/`
+- Plan info: `GET /t/clinica-demo/api/backup/plan-info/`
+- Cambio de plan: `POST /t/clinica-demo/api/organization/change-plan/` → `PLUS`
+- Backup manual: `POST /t/clinica-demo/api/backup/` ✅
+- Restore: `POST /t/clinica-demo/api/backup/{id}/restore/` ✅
+- Scheduler forzado: `python manage.py backup_automatico --force --tenant-slug clinica-demo` ✅
+
+**Docs corregidas:**
+- `README.md` y `docs/api/backup.md` actualizados a rutas reales `/t/<slug>/api/backup*` y `/t/<slug>/api/backup-config/`.
+
+**Pendiente inmediato:**
+1. Agregar/ajustar tests backend para cubrir los dos bugs corregidos (`timedelta` + restore sin `backup.tenant`).
+2. Resolver warning de paginación en `backup-config` (queryset sin ordering explícito).
+3. Implementar panel frontend para gestión de backups.
+
+Detalle de sesión: `docs/ai/sessions/2026-05-09-agent-backup-smoke-fixes.md`
+
+---
+
+## Resumen
+**Fecha:** 2026-05-09 (sistema completo de backup/restore multi-tenant)
+
+**Cambio mayor:** se implemento un sistema completo de backup/restore por tenant con API REST, backups automaticos programables, limites por plan y auditoria completa.
+
+**Archivos creados:**
+- `backend/apps/backup/` (app completa con modelos, servicios, vistas, serializers, URLs, admin, tests, management command)
+- `docs/api/backup.md` (documentacion completa de la API)
+
+**Archivos modificados:**
+- `backend/config/settings.py`: agregado `apps.backup` a TENANT_APPS + settings de backup
+- `backend/config/urls.py`: registradas URLs de backup
+- `backend/Dockerfile`: agregado `postgresql-client` para pg_dump/psql
+- `docker-compose.yml`: agregado servicio `backup-scheduler`
+- `README.md`: actualizado con seccion multi-tenant + comandos de backup
+
+**Verificacion:**
+- Modelos: `TenantBackup` (metadata) + `TenantBackupConfig` (config automatica)
+- Servicio: `BackupService` con `pg_dump --schema` + gzip + storage
+- REST API: CRUD + restore + download + config + plan-info
+- Management command: `backup_automatico` con `--force` y `--tenant-slug`
+- Validadores: limites por plan (FREE=0, PLUS=5/semana, PRO=ilimitado)
+- Bitacora: todas las operaciones registradas
+- Docker: scheduler corre cada hora
+
+**Pendiente inmediato:**
+1. Rebuild Docker backend: `docker compose build backend` (para incluir postgresql-client)
+2. Ejecutar migraciones: `docker compose run --rm backend python manage.py migrate`
+3. Implementar panel frontend para gestion de backups
+4. Actualizar seeders para crear `TenantBackupConfig` por defecto
+
+**Documentacion de referencia:** `docs/api/backup.md`, `README.md` (seccion Backup/Restore)
+
+Detalle: `docs/ai/sessions/2026-05-09-backup-restore-system.md`
+
+---
+
+## Resumen
+**Fecha:** 2026-05-09 (migracion completa a django-tenants con schemas)
+
+**Cambio mayor:** el backend migro completamente del enfoque anterior (header `X-Tenant-Slug` + FK nullable + scoping manual) a `django-tenants` con **schema-per-tenant** en PostgreSQL.
+
+**Verificacion completa:**
+- `settings.py`: `SHARED_APPS`, `TENANT_APPS`, `TenantSubfolderMiddleware`, `django_tenants.postgresql_backend`, `TenantSyncRouter`, `PUBLIC_SCHEMA_URLCONF`.
+- `config/urls.py`: URLs tenant-scoped (`/t/<slug>/api/...`).
+- `config/urls_public.py`: URLs publicas (`/api/...`, `/api/public/...`).
+- `apps/tenant/models.py`: `Tenant` (TenantMixin), `Domain` (DomainMixin), `SubscriptionPlan`, `TenantSubscription`, `TenantUsage`, `TenantSettings`.
+- `apps/tenant/views.py`: `TenantCurrentView`, `TenantSettingsCurrentView`, `TenantChangePlanView`, `PublicTenantLookupView`, `TenantManagementViewSet`.
+- `apps/tenant/urls.py`: rutas de organizacion y administracion central.
+- `apps/usuarios/users/views.py`: login/register/me incluyen `tenant` en respuesta; JWT refresh con claims de tenant.
+- `entrypoint.sh`: bootstrap completo (migrate_schemas --shared, planes, tenant public, tenant demo, migrate_schemas --tenant, seeders, collectstatic).
+
+**Estado de clientes:**
+- **Frontend (Next.js):** NO actualizado. Sigue usando `/api/...` sin prefijo de tenant.
+- **Mobile (Flutter):** NO actualizado. Sigue usando `/api/...` sin prefijo de tenant.
+
+**Gap critico:** los clientes deben migrar a URLs con prefijo `/t/<slug>/api/...` para funcionar con el nuevo esquema.
+
+**Documentacion de referencia:** `tenant.md` y `backend/tenant.md` describen el enfoque completo con ejemplos de endpoints y flujos.
+
+Detalle: `docs/ai/sessions/2026-05-09-agent-memoria-django-tenants.md`
+
+---
+
+## Resumen
 **Fecha:** 2026-05-09 (push turnos: recordatorios automaticos → FCM)
 
 **Verificacion:** la base de push ya estaba implementada en backend+mobile (registro de token FCM, listeners foreground/background, pantalla de notificaciones).
