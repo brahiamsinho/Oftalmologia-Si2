@@ -19,7 +19,7 @@ import MinimalIris from '@/components/MinimalIris';
 // de tenant no intente reescribir esta URL pública.
 async function lookupTenant(slug: string): Promise<TenantPublicData> {
   const { data } = await axios.get<TenantPublicData>(
-    `${resolveApiOrigin()}/api/tenants/${slug.trim().toLowerCase()}/`,
+    `${resolveApiOrigin()}/api/public/tenants/${slug.trim().toLowerCase()}/`,
     { timeout: 15_000 },
   );
   return data;
