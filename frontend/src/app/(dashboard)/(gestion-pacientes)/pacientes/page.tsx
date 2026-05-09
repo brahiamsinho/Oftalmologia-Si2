@@ -5,9 +5,10 @@ import { createPortal } from 'react-dom';
 import {
   Search, Plus, Phone, Mail, Calendar, Eye,
   SlidersHorizontal, Loader2, Pencil, Trash2,
-  X, ChevronDown, User,
+  X, ChevronDown, User, AlertTriangle, TrendingUp,
 } from 'lucide-react';
 import { pacientesService } from '@/lib/services';
+import { useTenant } from '@/context/TenantContext';
 import type { Paciente, PacienteCreate, EstadoPaciente, TipoDocumento, Sexo } from '@/lib/types';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
@@ -460,6 +461,9 @@ export default function PacientesPage() {
     open: false, paciente: null,
   });
 
+  // ── Plan + usage del tenant — TenantContext compartido ──
+  const { planInfo, usage } = useTenant();
+
   const fetchPacientes = useCallback(async () => {
     setLoading(true);
     try {
@@ -477,6 +481,13 @@ export default function PacientesPage() {
   }, [search, filter]);
 
   useEffect(() => { fetchPacientes(); }, [fetchPacientes]);
+
+  // ── Derivados del plan ──
+  // usageTotal: contador real del backend (sin filtros). total: tabla filtrada.
+  const usageTotal       = usage?.pacientes_actuales ?? total;
+  const maxPacientes     = planInfo?.max_pacientes ?? Infinity;
+  const atPatientLimit   = usageTotal >= maxPacientes;
+  const nearPatientLimit = !atPatientLimit && planInfo !== null && usageTotal >= maxPacientes - 5;
 
   const handleDelete = async (p: Paciente) => {
     if (!confirm(`¿Eliminar a ${p.nombres} ${p.apellidos}? Esta acción no se puede deshacer.`)) return;
@@ -497,13 +508,56 @@ export default function PacientesPage() {
           <h2 className="text-[22px] font-bold text-gray-900">Pacientes</h2>
           <p className="text-[12.5px] text-gray-400 mt-0.5">Gestión completa de pacientes de la clínica</p>
         </div>
-        <button
-          onClick={() => setModal({ open: true, paciente: null })}
-          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white
-            px-4 py-2 rounded-lg text-[13.5px] font-semibold transition-colors shadow-sm">
-          <Plus className="w-4 h-4" strokeWidth={2.5} /> Nuevo Paciente
-        </button>
+
+        <div className="relative group">
+          <button
+            onClick={() => !atPatientLimit && setModal({ open: true, paciente: null })}
+            disabled={atPatientLimit}
+            className={`flex items-center gap-1.5 text-white px-4 py-2 rounded-lg text-[13.5px] font-semibold transition-colors shadow-sm
+              ${atPatientLimit
+                ? 'bg-gray-300 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'}`}>
+            <Plus className="w-4 h-4" strokeWidth={2.5} /> Nuevo Paciente
+          </button>
+          {atPatientLimit && (
+            <div className="absolute right-0 top-full mt-1.5 z-20 w-60 bg-gray-900 text-white text-[11.5px] rounded-lg px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Límite del plan alcanzado ({total}/{maxPacientes} pacientes).
+              Mejorá el plan para registrar más.
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Banner límite alcanzado */}
+      {atPatientLimit && planInfo && (
+        <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3.5">
+          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[13.5px] font-semibold text-red-800">Límite de pacientes alcanzado</p>
+            <p className="text-[12.5px] text-red-700 mt-0.5">
+              Tu plan <strong>{planInfo.nombre}</strong> permite hasta{' '}
+              <strong>{planInfo.max_pacientes} pacientes</strong> y ya tenés{' '}
+              <strong>{usageTotal}</strong>. Mejorá la suscripción para continuar.
+            </p>
+          </div>
+          <a href="/planes"
+            className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-[12.5px] font-semibold px-3 py-1.5 rounded-lg transition-colors flex-shrink-0">
+            <TrendingUp className="w-3.5 h-3.5" /> Ver Planes
+          </a>
+        </div>
+      )}
+
+      {/* Banner advertencia preventiva */}
+      {nearPatientLimit && planInfo && (
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <p className="text-[12.5px] text-amber-800 flex-1">
+            Casi en el límite: <strong>{usageTotal} de {planInfo.max_pacientes}</strong> pacientes del plan{' '}
+            <strong>{planInfo.nombre}</strong>.{' '}
+            <a href="/planes" className="underline font-semibold hover:text-amber-900">Mejorar plan</a>.
+          </p>
+        </div>
+      )}
 
       {/* Filtros */}
       <div className="flex gap-3 items-center">
@@ -533,9 +587,17 @@ export default function PacientesPage() {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
           <p className="text-[14px] font-semibold text-gray-900">Lista de pacientes</p>
-          <span className="text-[12px] text-gray-400">
-            {loading ? '...' : `${total} paciente${total !== 1 ? 's' : ''}`}
-          </span>
+          <div className="flex items-center gap-2">
+            {planInfo && (
+              <span className={`text-[11.5px] font-semibold px-2 py-0.5 rounded-full
+                ${atPatientLimit ? 'bg-red-100 text-red-700' : nearPatientLimit ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+                {usageTotal}/{planInfo.max_pacientes}
+              </span>
+            )}
+            <span className="text-[12px] text-gray-400">
+              {loading ? '...' : `${total} paciente${total !== 1 ? 's' : ''}`}
+            </span>
+          </div>
         </div>
 
         {loading ? (

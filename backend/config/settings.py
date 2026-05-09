@@ -94,6 +94,7 @@ TENANT_APPS = [
 
     # CRM por clínica.
     'apps.crm',
+    'apps.crm.reportes',
 
     # Notificaciones por clínica.
     'apps.notificaciones',

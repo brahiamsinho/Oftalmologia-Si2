@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   ClipboardList, Search, FileText,
-  Loader2, X, AlertCircle, Hash,
-  ChevronRight, Plus, Eye, Edit2, Shield, Calendar, User, AlignLeft
+  Loader2, X, AlertCircle,
+  Plus, Eye, Edit2, Calendar, AlignLeft
 } from 'lucide-react';
 import axios from 'axios';
 import { fetchAll } from '@/lib/api';
