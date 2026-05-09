@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../config/theme.dart';
+
 /// Pantalla de Login — placeholder para autenticación.
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -25,7 +27,7 @@ class LoginScreen extends StatelessWidget {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(AppTheme.space6),
               child: Card(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
@@ -37,14 +39,14 @@ class LoginScreen extends StatelessWidget {
                     children: [
                       // Logo
                       const Text('👁️', style: TextStyle(fontSize: 48)),
-                      const SizedBox(height: 12),
+                      SizedBox(height: AppTheme.space3),
                       Text(
                         'Oftalmología Si2',
                         style: theme.textTheme.headlineMedium?.copyWith(
                           color: const Color(0xFF0F766E),
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: AppTheme.space1),
                       Text(
                         'Sistema de Gestión Clínica',
                         style: theme.textTheme.bodyMedium?.copyWith(
@@ -54,46 +56,59 @@ class LoginScreen extends StatelessWidget {
                       const SizedBox(height: 32),
 
                       // Email field
-                      const TextField(
-                        decoration: InputDecoration(
-                          labelText: 'Correo electrónico',
-                          hintText: 'doctor@clinica.com',
-                          prefixIcon: Icon(Icons.email_outlined),
+                      Semantics(
+                        label: 'Campo de correo electrónico para iniciar sesión',
+                        child: const TextField(
+                          decoration: InputDecoration(
+                            labelText: 'Correo electrónico',
+                            hintText: 'doctor@clinica.com',
+                            prefixIcon: Icon(Icons.email_outlined),
+                          ),
+                          keyboardType: TextInputType.emailAddress,
                         ),
-                        keyboardType: TextInputType.emailAddress,
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: AppTheme.space4),
 
                       // Password field
-                      const TextField(
-                        decoration: InputDecoration(
-                          labelText: 'Contraseña',
-                          hintText: '••••••••',
-                          prefixIcon: Icon(Icons.lock_outline),
+                      Semantics(
+                        label: 'Campo de contraseña',
+                        child: const TextField(
+                          decoration: InputDecoration(
+                            labelText: 'Contraseña',
+                            hintText: '••••••••',
+                            prefixIcon: Icon(Icons.lock_outline),
+                          ),
+                          obscureText: true,
                         ),
-                        obscureText: true,
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: AppTheme.space6),
 
                       // Login button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // TODO: Implementar autenticación
-                            context.go('/home');
-                          },
-                          child: const Text('Iniciar Sesión'),
+                      Semantics(
+                        label: 'Botón para iniciar sesión en la aplicación',
+                        button: true,
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              // TODO: Implementar autenticación
+                              context.go('/home');
+                            },
+                            child: const Text('Iniciar Sesión'),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: AppTheme.space4),
 
                       // Forgot password
-                      TextButton(
-                        onPressed: () {
-                          // TODO: Recuperar contraseña
-                        },
-                        child: const Text('¿Olvidaste tu contraseña?'),
+                      Semantics(
+                        label: 'Opción para recuperar contraseña olvidada',
+                        child: TextButton(
+                          onPressed: () {
+                            // TODO: Recuperar contraseña
+                          },
+                          child: const Text('¿Olvidaste tu contraseña?'),
+                        ),
                       ),
                     ],
                   ),

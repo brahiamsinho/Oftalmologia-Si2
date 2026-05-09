@@ -14,7 +14,8 @@ export interface LoginCredentials {
 export interface LoginResponse {
   access: string;
   refresh: string;
-  usuario: Usuario;   // el backend devuelve 'usuario', no 'user'
+  usuario: Usuario;       // el backend devuelve 'usuario', no 'user'
+  tenant?: import('@/lib/api').TenantPublicData; // incluido en la respuesta del login multi-tenant
 }
 
 // ── Usuario ───────────────────────────────────────────────────────────────────
@@ -144,3 +145,16 @@ export interface PaginatedResponse<T> {
   previous: string | null;
   results: T[];
 }
+
+// ── Tenant / Multi-tenant ─────────────────────────────────────────────────────
+// Re-exportados desde lib/api.ts para que el resto del proyecto los importe
+// desde un único lugar (lib/types.ts).
+export type {
+  TenantBranding,
+  TenantSubscriptionPlan,
+  TenantPublicData,
+  TenantOrgData,
+  TenantOrgSettings,
+  TenantFlags,
+  TenantSubscriptionEstado,
+} from '@/lib/api';
