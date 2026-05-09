@@ -35,6 +35,8 @@ from apps.bitacora.models import AccionBitacora
 from apps.core.permissions import IsAdministrativoOrAdmin
 from apps.core.utils import get_client_ip, registrar_bitacora
 from apps.notificaciones.services import enviar_push_a_usuario, registrar_dispositivo_fcm
+from django.conf import settings
+from django.db import connection
 
 from .emails import enviar_confirmacion_registro, enviar_recuperacion_password
 from .models import TipoUsuario, Usuario
@@ -53,19 +55,168 @@ from .tokens import crear_token_recuperacion, validar_token_recuperacion
 logger = logging.getLogger('apps')
 
 
-def _jwt_response(usuario):
-    """Genera respuesta estándar con tokens JWT + datos del usuario."""
+def _first_attr(obj, *names, default=None):
+    """
+    Devuelve el primer atributo existente y no vacío.
+    Sirve para soportar distintos nombres de campos del modelo Tenant.
+    """
+    for name in names:
+        value = getattr(obj, name, None)
+        if value not in (None, ''):
+            return value
+    return default
+
+
+def _build_file_url(request, value):
+    """
+    Convierte un FileField/ImageField o string en URL absoluta.
+    """
+    if not value:
+        return None
+
+    url = getattr(value, 'url', None)
+
+    if not url and isinstance(value, str):
+        url = value
+
+    if not url:
+        return None
+
+    if url.startswith('http://') or url.startswith('https://'):
+        return url
+
+    return request.build_absolute_uri(url)
+
+
+def _tenant_payload(request):
+    """
+    Devuelve información pública del tenant actual.
+
+    En django-tenants, request.tenant lo resuelve:
+    - TenantSubfolderMiddleware si usas /t/<slug>/
+    - TenantMainMiddleware si usas subdominios/dominios
+    """
+    tenant = getattr(request, 'tenant', None)
+
+    schema_name = getattr(
+        tenant,
+        'schema_name',
+        getattr(connection, 'schema_name', settings.PUBLIC_SCHEMA_NAME),
+    )
+
+    is_public = schema_name == getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public')
+
+    if tenant is None or is_public:
+        return {
+            'id': None,
+            'schema_name': schema_name,
+            'slug': None,
+            'nombre': 'Sistema',
+            'is_public': True,
+            'branding': {
+                'logo_url': None,
+                'color_primario': None,
+                'color_secundario': None,
+            },
+            'config': {},
+        }
+
+    logo = _first_attr(
+        tenant,
+        'logo',
+        'logo_url',
+        'imagen_logo',
+        'logo_clinica',
+        default=None,
+    )
+
+    config = _first_attr(
+        tenant,
+        'config',
+        'configuracion',
+        'settings',
+        default={},
+    )
+
+    return {
+        'id': getattr(tenant, 'id', None),
+        'schema_name': schema_name,
+        'slug': _first_attr(tenant, 'slug', 'codigo', default=schema_name),
+        'nombre': _first_attr(
+            tenant,
+            'nombre',
+            'name',
+            'razon_social',
+            'nombre_comercial',
+            default=schema_name,
+        ),
+        'dominio': _first_attr(
+            tenant,
+            'domain_url',
+            'dominio',
+            'dominio_principal',
+            default=None,
+        ),
+        'is_public': False,
+        'branding': {
+            'logo_url': _build_file_url(request, logo),
+            'color_primario': _first_attr(
+                tenant,
+                'color_primario',
+                'primary_color',
+                'color_principal',
+                default='#2563eb',
+            ),
+            'color_secundario': _first_attr(
+                tenant,
+                'color_secundario',
+                'secondary_color',
+                default='#0f172a',
+            ),
+        },
+        'config': config if isinstance(config, dict) else {},
+    }
+
+
+def _jwt_response(usuario, request=None):
+    """
+    Genera respuesta estándar con tokens JWT + datos del usuario + tenant actual.
+    """
     refresh = RefreshToken.for_user(usuario)
+
+    tenant_data = _tenant_payload(request) if request is not None else None
+
+    # Claims útiles para debug/cliente.
+    # No pongas aquí datos sensibles ni configuración grande.
+    if tenant_data:
+        refresh['tenant_schema'] = tenant_data.get('schema_name')
+        refresh['tenant_slug'] = tenant_data.get('slug')
+
     return {
         'usuario': UsuarioSerializer(usuario).data,
+        'tenant': tenant_data,
         'access': str(refresh.access_token),
         'refresh': str(refresh),
     }
 
-
 # ---------------------------------------------------------------------------
 # Auth Views
 # ---------------------------------------------------------------------------
+
+class TenantActualView(APIView):
+    """
+    GET /api/auth/tenant/
+
+    Devuelve la configuración pública del tenant actual.
+    Sirve para que el frontend pinte la pantalla de login según la organización.
+    """
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        return Response({
+            'tenant': _tenant_payload(request),
+        })
 
 class RegisterView(APIView):
     """
@@ -112,7 +263,7 @@ class RegisterView(APIView):
         )
         if not fcm_token:
             logger.info('[register] Sin FCM token en el request → push solo en BD (usuario_id=%s)', usuario.id)
-        payload = _jwt_response(usuario)
+        payload = _jwt_response(usuario, request=request)
         payload['email_confirmacion_enviada'] = email_ok
         return Response(payload, status=status.HTTP_201_CREATED)
 
@@ -184,7 +335,7 @@ class LoginView(APIView):
         )
         if not fcm_token:
             logger.info('[login] Sin FCM token en el request → push solo en BD (usuario_id=%s)', usuario.id)
-        return Response(_jwt_response(usuario))
+        return Response(_jwt_response(usuario, request=request))
 
 
 class LogoutView(APIView):
@@ -226,15 +377,23 @@ class MeView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         return self.request.user
 
+    def retrieve(self, request, *args, **kwargs):
+        usuario = self.get_object()
+        data = self.get_serializer(usuario).data
+        data['tenant'] = _tenant_payload(request)
+        return Response(data)
+
     def perform_update(self, serializer):
         serializer.save()
         registrar_bitacora(
-            usuario=self.request.user, modulo='auth', accion=AccionBitacora.EDITAR,
+            usuario=self.request.user,
+            modulo='auth',
+            accion=AccionBitacora.EDITAR,
             descripcion=f'Perfil actualizado: {self.request.user.username}',
-            tabla_afectada='usuarios', id_registro_afectado=self.request.user.id,
+            tabla_afectada='usuarios',
+            id_registro_afectado=self.request.user.id,
             ip_origen=get_client_ip(self.request),
         )
-
 
 class ChangePasswordView(APIView):
     """POST /api/auth/change-password/"""
