@@ -74,6 +74,34 @@ services:
     networks:
       - oftalmologia_net
 
+  # ---- Backup Scheduler (Backups automáticos) ----
+  backup-scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      RUN_MIGRATIONS: "0"
+      BOOTSTRAP_PUBLIC_SCHEMA: "0"
+      BOOTSTRAP_TENANTS: "0"
+      RUN_SEEDERS: "0"
+      RUN_COLLECTSTATIC: "0"
+    volumes:
+      - ./backend:/app
+      - backend_media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - oftalmologia_net
+    command: >
+      sh -c "while true; do
+        python manage.py backup_automatico;
+        sleep 3600;
+      done"
+
 volumes:
   postgres_data:
   backend_static:

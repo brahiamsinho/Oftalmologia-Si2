@@ -44,6 +44,7 @@ WORKDIR /app
 # Dependencias runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
+    postgresql-client \
     netcat-openbsd \
     util-linux \
     && rm -rf /var/lib/apt/lists/*
