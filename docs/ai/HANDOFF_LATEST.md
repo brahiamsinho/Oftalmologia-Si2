@@ -1,6 +1,189 @@
 # HANDOFF LATEST
 
 ## Resumen
+**Fecha:** 2026-05-09 (push turnos: recordatorios automaticos → FCM)
+
+**Verificacion:** la base de push ya estaba implementada en backend+mobile (registro de token FCM, listeners foreground/background, pantalla de notificaciones).
+
+**Faltante detectado y cerrado:** en el procesamiento de recordatorios automaticos (CU17), la tarea solo creaba `Notificacion` en BD y no enviaba push real.
+
+**Cambio aplicado:**
+- Archivo: `backend/apps/notificaciones/automatizaciones/serializers.py`
+- Metodo: `procesar_tarea_recordatorio(...)`
+- Antes: `Notificacion.objects.create(...)`
+- Ahora: `enviar_push_a_usuario(...)` con payload (`tipo`, `postoperatorio_id`, `tarea_id`)
+
+**Resultado:**
+- Se mantiene historial interno de notificaciones.
+- Si Firebase esta configurado y el usuario tiene dispositivos registrados, se envia push FCM real.
+- Si Firebase no esta configurado, el flujo no falla (warning + notificacion en BD).
+
+**Pendiente operativo (no de codigo):** para iOS falta `GoogleService-Info.plist` en `mobile/ios/Runner/` si se quiere soporte push en iPhone.
+
+Detalle: `docs/ai/sessions/2026-05-09-agent-push-turnos-fcm.md`
+
+---
+
+## Resumen
+**Fecha:** 2026-05-08 (mobile: agendar cita)
+
+**Agendar cita:** se implemento flujo completo para agendar citas desde la app paciente:
+- **Backend**: `GET /api/especialistas-disponibles/` (solo lectura, especialistas activos).
+- **CitasRepository**: `scheduleAppointment()`, `getAvailableSpecialists()`, `getAppointmentTypes()`.
+- **ScheduleAppointmentScreen**: 3 pasos (especialista → fecha/hora → confirmar).
+- **Ruta**: `/schedule-appointment` en `routes.dart`.
+- **Home**: boton "Agendar cita >" en tarjeta de proxima cita.
+
+**Validacion:** `flutter analyze` sin errores.
+
+Detalle: `docs/ai/sessions/2026-05-08-agent-mobile-schedule-appointment.md`
+
+---
+
+## Resumen
+**Fecha:** 2026-05-08 (mobile: recuperacion de contraseña)
+
+**Reset password:** se implemento flujo completo de recuperacion de contraseña en mobile:
+- `AuthRepository`: metodos `requestPasswordReset()` y `confirmPasswordReset()`.
+- `ForgotPasswordScreen`: solicita email, envia solicitud al backend, muestra exito generico.
+- `ResetPasswordScreen`: ingresa token (de Mailhog) + nueva contraseña, confirma reset.
+- Rutas `/forgot-password` y `/reset-password` en `routes.dart`.
+- Boton en login conectado al flujo.
+
+**Backend:** endpoints ya existian (`POST /auth/reset-password/`, `POST /auth/reset-password/confirm/`). Token expira en 2h. En dev se usa Mailhog.
+
+**Validacion:** `flutter analyze` sin errores.
+
+Detalle: `docs/ai/sessions/2026-05-08-agent-mobile-reset-password.md`
+
+---
+
+## Resumen
+**Fecha:** 2026-05-08 (mobile UI/UX UX-05: accesibilidad)
+
+**Accesibilidad (UX-05):** se aplicaron mejoras de accesibilidad en 7 archivos de la app paciente:
+- **Semantics labels** en todos los elementos interactivos (avatar, notificaciones, fecha, accesos rapidos, tabs, citas, consultas, estudios, botones).
+- **Touch targets minimos 44x44** en `_TabChip`, `_QuickTile` y `FilledButton` usando `ConstrainedBox` y `minimumSize`.
+- **Feedback visual** consistente con `InkWell` + `borderRadius`.
+- **Labels descriptivos** para lectores de pantalla con contexto completo.
+
+**Validacion:** `flutter analyze` sin errores.
+
+Detalle: `docs/ai/sessions/2026-05-08-agent-mobile-uiux-ux05-accesibilidad.md`
+
+---
+
+## Resumen
+**Fecha:** 2026-05-08 (mobile UI/UX iteracion 3: tokenizacion completa)
+
+**Tokenizacion Batch A+B+C:** se reemplazaron valores hardcodeados de spacing/motion por tokens `AppTheme.space*` y `AppTheme.motion*` en toda la app paciente:
+- **Batch A:** `patient_home_screen.dart`, `patient_appointments_section.dart`, `patient_next_appointment_card.dart`
+- **Batch B:** `patient_clinical_screen.dart`, `login_screen.dart`, `register_screen.dart`
+- **Batch C:** `patient_home_header.dart`, `patient_quick_access_row.dart`
+
+**Resultado:** spacing y motion centralizados en `theme.dart`, facil ajuste global, consistencia visual en toda la app.
+
+**Validacion:** `flutter analyze` sin errores (solo info warnings de `prefer_const_constructors`).
+
+Detalle: `docs/ai/sessions/2026-05-08-agent-mobile-uiux-iteracion3.md`
+
+---
+
+## Resumen
+**Fecha:** 2026-05-08 (mobile UI/UX iteracion 2)
+
+**Tokens:** se agregaron motion tokens (`motionFast/Normal/Slow`) y spacing scale (`space1`–`space6`) en `config/theme.dart`.
+
+**Shared widgets:** se agrego `AppShimmerCard` para loading de cards hero.
+
+**Refactor:**
+- `PatientNextAppointmentCard` usa estados compartidos + `AnimatedSwitcher`.
+- `_ProfileTab` envuelto en `AppFadeSlideIn` con `_ProfileCard` mejorado.
+
+**Resultado UX:** consistencia total en estados async (loading/empty/error) en Home, Citas, Historial y Next Appointment. Perfil con entrada animada y jerarquia clara.
+
+**Validacion:** `flutter analyze` sin errores.
+
+Detalle: `docs/ai/sessions/2026-05-08-agent-mobile-uiux-iteracion2.md`
+
+---
+
+## Resumen
+**Fecha:** 2026-05-08 (mobile UI/UX iteracion 1)
+
+**Mobile:** se agrego capa UI compartida en `mobile/lib/core/ui/widgets/app_async_states.dart` para estados `loading/empty/error` y animacion `fade+slide`.
+
+**Refactor:**
+- `patient_appointments_section.dart` usa componentes compartidos + `AnimatedSwitcher`.
+- `patient_clinical_screen.dart` usa mismos patrones UX en tabs de Consultas/Estudios.
+
+**Resultado UX:** feedback consistente, menor duplicacion, microinteracciones suaves, base reusable para siguientes pantallas.
+
+**Validacion:** `flutter analyze` de archivos modificados sin warnings/errores.
+
+Detalle: `docs/ai/sessions/2026-05-08-agent-mobile-uiux-iteracion1.md`
+
+---
+
+## Resumen
+**Fecha:** 2026-05-08 (rollback Sleek command + DESING.md)
+
+**Rollback:** se eliminó el comando `/sleek-design` (`.opencode/commands/sleek-design.md`) y sus referencias en `.opencode/README.md` y `docs/ai/PROMPTS_LIBRARY.md`.
+
+**Ajuste de registro:** se removió en `docs/ai/SKILLS_REGISTRY.md` la entrada agregada para `sleek-design-mobile-apps` dentro de tabla de skills workspace.
+
+**Nuevo artefacto:** se creó `docs/ai/DESING.md` para guardar diseño actual del proyecto (foco mobile paciente), principios UX, backlog y convención de evidencia por iteración.
+
+Detalle: `docs/ai/sessions/2026-05-08-agent-desing-md-rollover.md`
+
+---
+
+## Resumen
+**Fecha:** 2026-05-08 (workflow Sleek diseno mobile)
+
+**Comando:** se agrego `.opencode/commands/sleek-design.md` para operar Sleek API end-to-end en tareas de UI mobile: proyecto, chat run async, polling, screenshots por `componentId` y export de HTML para implementacion.
+
+**Seguridad:** reglas explicitas para no exponer `SLEEK_API_KEY`, no leer `.env` real, usar solo `https://sleek.design`, `imageUrls` HTTPS y manejo de errores `401/403/404/409` + run-level (`out_of_credits`, `execution_failed`).
+
+**Docs:** se actualizaron `.opencode/README.md`, `docs/ai/PROMPTS_LIBRARY.md`, `docs/ai/SKILLS_REGISTRY.md`, `CURRENT_STATE.md`, `NEXT_STEPS.md` y sesion nueva.
+
+Detalle: `docs/ai/sessions/2026-05-08-agent-sleek-design-workflow.md`
+
+---
+
+## Resumen
+**Fecha:** 2026-05-08 (workflows OpenCode: commands, skills, plugin y todo-list)
+
+**Comandos:** se agrego `.opencode/commands/` con `/check-project`, `/commit`, `/update-memory`, `/review-security`, `/validate-stack`, `/puds-status`, `/handoff` y `/todo-start`. `/commit` exige revision de secretos, `.gitignore`, staged/unstaged changes y mensaje antes de commitear.
+
+**Skills:** se agregaron skills locales en `.opencode/skills/`: `project-memory`, `puds-traceability`, `security-review`, `docker-debug`, `clinical-ux-review` y `todo-workflow`.
+
+**Plugin:** se agrego `.opencode/plugins/env-protection.js` para bloquear acceso a `.env` reales y permitir archivos plantilla como `.env.example`.
+
+**Agentes:** los agentes de `.opencode/agents/` ahora recomiendan todo-list para trabajo multi-paso y permiten skills. El `orchestrator` enruta skills segun tipo de tarea.
+
+**Docs:** se actualizaron `.opencode/README.md`, `.opencode/skills/README.md`, `docs/ai/SKILLS_REGISTRY.md`, `docs/ai/PROMPTS_LIBRARY.md`, `CURRENT_STATE.md`, `NEXT_STEPS.md`, `DECISIONS_LOG.md` y esta sesion.
+
+Detalle: `docs/ai/sessions/2026-05-08-agent-opencode-workflows.md`
+
+---
+
+## Resumen
+**Fecha:** 2026-05-08 (sistema multi-agente OpenCode local)
+
+**Agentes:** se agrego `.opencode/agents/` con agentes en formato hibrido OpenCode-compatible: `orchestrator`, `backend`, `frontend`, `mobile`, `ui-ux`, `architecture`, `architect-planner`, `code-review`, `qa-testing`, `devops` e `infra`.
+
+**Routing:** `orchestrator` queda como agente `primary`; los especialistas quedan como `subagent`. Clasifica intencion, delega por dominio, divide tareas mixtas y consolida resultados. Ahora enruta tambien mobile, UI/UX y DevOps.
+
+**Skills:** se creo `.opencode/skills/` como ubicacion local OpenCode. No habia skills OpenCode locales alli; adicionalmente existen skills de workspace en `.agents/skills/`: `caveman` y `find-skills`.
+
+**Compatibilidad:** se corrigio la version inicial basada en `.agents/`; OpenCode oficialmente carga agentes desde `.opencode/agents/` y hereda modelo omitiendo `model`.
+
+Detalle: `docs/ai/sessions/2026-05-08-agent-multi-agent-system.md`
+
+---
+
+## Resumen
 **Fecha:** 2026-05-05 (Fase 1b multi-tenant segunda ola, parcial)
 
 **Backend:** se reforzó el tenant-aware scoping en citas, consultas, CRM y automatizaciones con FK a `Tenant`, backfill `legacy` y serializers que bloquean tenant/relaciones cruzadas desde el cliente.
