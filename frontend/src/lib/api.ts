@@ -148,6 +148,58 @@ export interface TenantSubscriptionPlan {
   permite_soporte_prioritario: boolean;
 }
 
+/** Flags de visibilidad de módulos — vienen en TenantSettings.flags */
+export interface TenantFlags {
+  permite_reserva_online: boolean;
+  mostrar_modulo_crm: boolean;
+  mostrar_notificaciones: boolean;
+  [key: string]: boolean;
+}
+
+/** Settings de organización — vienen de GET /t/<slug>/api/organization/settings/ */
+export interface TenantOrgSettings {
+  id_tenant_settings?: number;
+  timezone: string;
+  idioma: string;
+  branding_nombre: string;
+  branding_color_primario: string;
+  branding_color_secundario: string;
+  branding_logo_url: string | null;
+  flags: TenantFlags;
+}
+
+/** Tipo de suscripción (estado) */
+export type TenantSubscriptionEstado = 'ACTIVA' | 'TRIAL' | 'SUSPENDIDA' | 'CANCELADA' | string;
+
+/** Datos completos del tenant autenticado — GET /t/<slug>/api/organization/me/ */
+export interface TenantOrgData {
+  id: number;
+  id_tenant?: number;
+  schema_name?: string;
+  slug: string;
+  nombre: string;
+  activo: boolean;
+  branding: TenantBranding;
+  /** config puede contener flags como { mostrar_modulo_crm: true } */
+  config: Partial<TenantFlags> & Record<string, unknown>;
+  settings: Partial<TenantOrgSettings> & Record<string, unknown>;
+  subscription: {
+    plan: TenantSubscriptionPlan;
+    estado: TenantSubscriptionEstado;
+    esta_activa: boolean;
+    fecha_inicio?: string;
+    fecha_vencimiento?: string;
+    renovar_automaticamente?: boolean;
+  } | null;
+  usage?: {
+    usuarios_actuales: number;
+    pacientes_actuales: number;
+    citas_mes_actual: number;
+    almacenamiento_usado_mb: number;
+  };
+}
+
+/** Datos públicos del tenant — GET /api/tenants/<slug>/ (sin autenticación) */
 export interface TenantPublicData {
   id: number;
   slug: string;
@@ -155,7 +207,7 @@ export interface TenantPublicData {
   branding: TenantBranding;
   subscription: {
     plan: TenantSubscriptionPlan;
-    estado: string;
+    estado: TenantSubscriptionEstado;
     esta_activa: boolean;
   } | null;
 }

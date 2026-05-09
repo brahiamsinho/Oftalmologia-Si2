@@ -9,9 +9,9 @@ import {
 import {
   citasService, pacientesService, especialistasService
 } from '@/lib/services';
-import api from '@/lib/api';
+import { useTenant } from '@/context/TenantContext';
 import type { Cita, CitaCreate, TipoCita } from '@/lib/services/citas';
-import type { Paciente, TenantSubscriptionPlan } from '@/lib/types';
+import type { Paciente } from '@/lib/types';
 import type { Especialista } from '@/lib/services/especialistas';
 
 // ── Helpers de fecha ──────────────────────────────────────────────────────────
@@ -261,9 +261,12 @@ export default function CitasAgendaPage() {
   const [editModal, setEditModal] = useState<Cita | null>(null);
   const [createModal, setCreateModal] = useState(false);
 
-  // ── Plan de suscripción + conteo mensual ──
-  const [planInfo,       setPlanInfo]       = useState<TenantSubscriptionPlan | null>(null);
-  const [citasMesCount,  setCitasMesCount]  = useState<number | null>(null);
+  // ── Plan + usage del tenant — TenantContext compartido, sin llamadas extra ──
+  const { planInfo, usage } = useTenant();
+
+  // Conteo mensual: viene del usage del backend. Fallback: fetch propio si el
+  // backend aún no expone usage en organization/me/.
+  const [citasMesFallback, setCitasMesFallback] = useState<number | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -283,30 +286,30 @@ export default function CitasAgendaPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Carga plan + conteo de citas del mes actual al montar
+  // Si el backend no expone usage.citas_mes_actual todavía, hacemos fallback con un fetch mensual.
   useEffect(() => {
-    api.get<{ subscription?: { plan?: TenantSubscriptionPlan } }>('organization/me/')
-      .then(res => setPlanInfo(res.data.subscription?.plan ?? null))
-      .catch(() => setPlanInfo(null));
-
+    if (usage !== null) return; // el backend ya dio el dato, no necesitamos el extra fetch
     const { fecha_desde, fecha_hasta } = getMesActualRange();
     citasService.list({ fecha_desde, fecha_hasta, page: 1 })
-      .then(res => setCitasMesCount(res.count))
-      .catch(() => setCitasMesCount(null));
-  }, []);
+      .then(res => setCitasMesFallback(res.count))
+      .catch(() => setCitasMesFallback(null));
+  }, [usage]);
 
-  // Recalcular conteo mensual cada vez que se crea o elimina una cita
+  // Recalcular fallback mensual cada vez que se crea o elimina una cita
   const refreshCitasMes = useCallback(() => {
+    if (usage !== null) return; // el backend ya lo actualiza en organization/me/
     const { fecha_desde, fecha_hasta } = getMesActualRange();
     citasService.list({ fecha_desde, fecha_hasta, page: 1 })
-      .then(res => setCitasMesCount(res.count))
+      .then(res => setCitasMesFallback(res.count))
       .catch(() => {});
-  }, []);
+  }, [usage]);
 
   // ── Derivados del plan ──
-  const maxCitasMes   = planInfo?.max_citas_mes ?? Infinity;
-  const countMes      = citasMesCount ?? 0;
-  const atCitasLimit  = planInfo !== null && citasMesCount !== null && countMes >= maxCitasMes;
+  // Preferimos usage.citas_mes_actual (1 request vs 2). Si no está disponible, fallback.
+  const citasMesCount  = usage?.citas_mes_actual ?? citasMesFallback;
+  const maxCitasMes    = planInfo?.max_citas_mes ?? Infinity;
+  const countMes       = citasMesCount ?? 0;
+  const atCitasLimit   = planInfo !== null && citasMesCount !== null && countMes >= maxCitasMes;
   const nearCitasLimit = !atCitasLimit && planInfo !== null && citasMesCount !== null && countMes >= maxCitasMes - 5;
 
   const handleDelete = async (id: number) => {

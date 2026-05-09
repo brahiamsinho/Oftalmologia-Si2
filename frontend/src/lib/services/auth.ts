@@ -14,10 +14,16 @@ import api, { TokenStorage, TenantStorage } from '@/lib/api';
 import type { LoginCredentials, LoginResponse, Usuario } from '@/lib/types';
 
 export const authService = {
-  /** Inicia sesión y guarda los tokens */
+  /** Inicia sesión y guarda los tokens + datos del tenant (si el backend los devuelve) */
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     const { data } = await api.post<LoginResponse>('/auth/login/', credentials);
     TokenStorage.setTokens(data.access, data.refresh);
+    // El login multi-tenant devuelve { usuario, tenant, access, refresh }.
+    // Actualizamos TenantStorage con los datos frescos del tenant.
+    if (data.tenant) {
+      TenantStorage.setTenantData(data.tenant);
+      if (data.tenant.slug) TenantStorage.setSlug(data.tenant.slug);
+    }
     return data;
   },
 
