@@ -29,7 +29,6 @@ if [ "${BOOTSTRAP_PUBLIC_SCHEMA:-1}" = "1" ]; then
 
   python manage.py shell <<'PY'
 from django.db import connection
-z
 with connection.cursor() as cursor:
     cursor.execute("CREATE SCHEMA IF NOT EXISTS public;")
     cursor.execute("GRANT USAGE, CREATE ON SCHEMA public TO CURRENT_USER;")
@@ -310,9 +309,11 @@ def run_seed(module_path):
         print(f"✅ {module_path}: executed.")
 
 
-public_seeders = [
-    "seeders.seed_admin",
-]
+# IMPORTANTE:
+# El schema public NO tiene la app users (esta en TENANT_APPS),
+# por lo tanto no existe la tabla "usuarios" en public.
+# No ejecutar seed_admin en public para evitar ProgrammingError.
+public_seeders = []
 
 tenant_seeders = [
     "seeders.seed_admin",

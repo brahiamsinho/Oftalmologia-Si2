@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../config/theme.dart';
+import '../../../../core/ui/widgets/app_async_states.dart';
 import '../../../auth/domain/auth_user.dart';
 import '../../../auth/presentation/providers/session_notifier.dart';
 import '../../../notificaciones/presentation/providers/notificaciones_provider.dart';
@@ -205,39 +207,80 @@ class _ProfileTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          Text(
-            'Perfil',
-            style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-          const SizedBox(height: 20),
-          ListTile(
-            leading: CircleAvatar(
-              child: Text(
-                user.nombres != null && user.nombres!.isNotEmpty
-                    ? user.nombres![0].toUpperCase()
-                    : '?',
+      child: AppFadeSlideIn(
+        child: ListView(
+          padding: EdgeInsets.all(AppTheme.space6),
+          children: [
+            Text(
+              'Perfil',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
               ),
             ),
-            title: Text(user.displayName),
-            subtitle: Text(user.email),
-          ),
-          ListTile(
-            leading: const Icon(Icons.badge_outlined),
-            title: const Text('Tipo de usuario'),
-            subtitle: Text(user.tipoUsuario.replaceAll('_', ' ')),
-          ),
-          const SizedBox(height: 16),
-          ListTile(
-            leading: const Icon(Icons.logout_rounded),
-            title: const Text('Cerrar sesión'),
-            onTap: onLogout,
+            SizedBox(height: AppTheme.space5),
+            _ProfileCard(user: user),
+            SizedBox(height: AppTheme.space4),
+            ListTile(
+              leading: const Icon(Icons.badge_outlined),
+              title: const Text('Tipo de usuario'),
+              subtitle: Text(user.tipoUsuario.replaceAll('_', ' ')),
+            ),
+            SizedBox(height: AppTheme.space4),
+            ListTile(
+              leading: const Icon(Icons.logout_rounded),
+              title: const Text('Cerrar sesión'),
+              onTap: onLogout,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({required this.user});
+
+  final AuthUser user;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(AppTheme.space4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A0F172A),
+            blurRadius: 8,
+            offset: Offset(0, 2),
           ),
         ],
+      ),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: const Color(0xFFDBEAFE),
+          child: Text(
+            user.nombres != null && user.nombres!.isNotEmpty
+                ? user.nombres![0].toUpperCase()
+                : '?',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: AppTheme.primaryDark,
+            ),
+          ),
+        ),
+        title: Text(user.displayName),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: AppTheme.space1),
+            Text(user.email),
+          ],
+        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: AppTheme.space3, vertical: AppTheme.space2),
       ),
     );
   }
