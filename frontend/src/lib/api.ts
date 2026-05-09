@@ -199,7 +199,7 @@ export interface TenantOrgData {
   };
 }
 
-/** Datos públicos del tenant — GET /api/tenants/<slug>/ (sin autenticación) */
+/** Datos públicos del tenant — GET /api/public/tenants/<slug>/ (sin autenticación) */
 export interface TenantPublicData {
   id: number;
   slug: string;

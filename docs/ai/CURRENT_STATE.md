@@ -1,5 +1,10 @@
 # CURRENT STATE
 
+## Actualizacion 2026-05-09 (fix login paso 1 — lookup tenant)
+- **Bug:** El login web (paso 1 workspace) llamaba `GET /api/tenants/<slug>/` pero las rutas públicas del backend viven bajo `config/urls_public.py` → prefijo **`/api/public/`**.
+- **Fix:** `frontend/src/app/(auth)/login/page.tsx` ahora usa `GET /api/public/tenants/<slug>/`. Comentario alineado en `frontend/src/lib/api.ts`.
+- **Uso:** Workspace `clinica-demo` + `admin@oftalmologia.local` / `admin123` (tras seed en tenant).
+
 ## Actualizacion 2026-05-09 (backup tests green + hardening tenant-aware)
 - Se completó la estabilización de `apps.backup` con foco en pruebas automatizadas y compatibilidad con `django-tenants`.
 - Ajustes en código:

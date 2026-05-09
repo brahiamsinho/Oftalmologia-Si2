@@ -5,7 +5,7 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 ## Corto Plazo
 - [x] Migracion completa a django-tenants con schema-per-tenant (backend).
 - [x] Sistema completo de backup/restore multi-tenant (modelos, API, servicio, scheduler, documentacion, tests).
-- [ ] **URGENTE: Frontend Next.js con URLs de tenant** — adaptar axios client para usar `/t/<tenantSlug>/api/...`, crear flujo de seleccion de clinica, consumir `GET /api/tenants/<slug>/` y `GET /t/<slug>/api/auth/tenant/` antes del login.
+- [ ] **URGENTE: Frontend Next.js con URLs de tenant** — adaptar axios client para usar `/t/<tenantSlug>/api/...`, crear flujo de seleccion de clinica, consumir `GET /api/public/tenants/<slug>/` (lookup público) y `GET /t/<slug>/api/auth/tenant/` antes del login. *(2026-05-09: lookup en login ya apunta a `/api/public/tenants/<slug>/`.)*
 - [ ] **URGENTE: Mobile Flutter con URLs de tenant** — adaptar Dio client para usar `/t/<tenantSlug>/api/...`, crear flujo de seleccion de clinica, consumir endpoints de tenant antes del login.
 - [x] OpenCode workflows: crear comandos reutilizables (`/check-project`, `/commit`, `/update-memory`, `/review-security`, `/validate-stack`, `/puds-status`, `/handoff`, `/todo-start`).
 - [x] OpenCode workflows: crear comandos reutilizables (`/check-project`, `/commit`, `/update-memory`, `/review-security`, `/validate-stack`, `/puds-status`, `/handoff`, `/todo-start`).

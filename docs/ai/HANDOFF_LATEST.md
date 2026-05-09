@@ -2,6 +2,8 @@
 
 ## Resumen
 
+**Fecha:** 2026-05-09 — Fix login web: lookup tenant usa `GET /api/public/tenants/<slug>/` (antes `/api/tenants/...` → 404). Archivos: `frontend/src/app/(auth)/login/page.tsx`, `frontend/src/lib/api.ts`.
+
 **Fecha:** 2026-05-09 (Multi-Tenant Frontend ? segunda parte, completo)
 
 **Frontend Web (implementado hoy, segunda ronda):**
