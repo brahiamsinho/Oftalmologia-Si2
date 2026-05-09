@@ -1,7 +1,7 @@
 """
 seeders/seed_tipos_cita.py
+
 Pobla la tabla tipos_cita con los 4 tipos definidos en TipoCitaNombre.
-Idempotente: usa get_or_create, puede ejecutarse múltiples veces sin duplicar.
 """
 from apps.atencionClinica.citas.models import TipoCita, TipoCitaNombre
 
@@ -28,17 +28,20 @@ TIPOS_CITA = [
 
 def run():
     """
-    Crea los tipos de cita si no existen.
+    Crea o actualiza los tipos de cita en el schema actual.
     Retorna (creados, existentes).
     """
     creados = 0
     existentes = 0
 
     for data in TIPOS_CITA:
-        _, created = TipoCita.objects.get_or_create(
+        _, created = TipoCita.objects.update_or_create(
             nombre=data['nombre'],
-            defaults={'descripcion': data['descripcion']},
+            defaults={
+                'descripcion': data['descripcion'],
+            },
         )
+
         if created:
             creados += 1
         else:

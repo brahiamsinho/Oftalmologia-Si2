@@ -1,59 +1,77 @@
 """
 apps/core/management/commands/seed.py
+
 Comando de management Django que ejecuta todos los seeders del proyecto.
 
-Uso:
-    # Todos los seeders (admin + datos base)
-    python manage.py seed
+Con django-tenants:
+    # Poblar un tenant por slug
+    python manage.py seed --tenant clinica-demo
 
-    # Solo un seeder específico
-    python manage.py seed --only admin       # superusuario
-    python manage.py seed --only tipos_cita  # tipos de cita
-    python manage.py seed --only roles       # roles del sistema
-    python manage.py seed --only permisos    # permisos granulares
-    python manage.py seed --only demo_paciente  # paciente + médicos + citas (dev)
+    # Poblar un tenant por schema
+    python manage.py seed --schema clinica_demo
 
-    # Dentro de Docker
-    docker-compose exec backend python manage.py seed
-
-Variables de entorno para el admin (opcionales, con defaults seguros para dev):
-    ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NOMBRES, ADMIN_APELLIDOS
+    # Poblar solo un seeder dentro de un tenant
+    python manage.py seed --tenant clinica-demo --only admin
+    python manage.py seed --tenant clinica-demo --only tipos_cita
+    python manage.py seed --tenant clinica-demo --only roles
+    python manage.py seed --tenant clinica-demo --only permisos
+    python manage.py seed --tenant clinica-demo --only demo_paciente
 """
-import sys
+import importlib
 import os
+import sys
 
-from django.core.management.base import BaseCommand
+from django.apps import apps
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
+from django.db import connection
+from django_tenants.utils import get_public_schema_name, schema_context
 
-# Asegura que el directorio raíz del proyecto esté en sys.path
-# para poder importar desde /backend/seeders/
+
 ROOT_DIR = os.path.dirname(
-    os.path.dirname(  # commands/
-        os.path.dirname(  # management/
-            os.path.dirname(  # core/
-                os.path.dirname(  # apps/
+    os.path.dirname(
+        os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(
                     os.path.abspath(__file__)
                 )
             )
         )
     )
 )
+
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 
 SEEDERS = {
-    'admin':         ('seeders.seed_admin',           'Superusuario Administrador'),
-    'tipos_cita':    ('seeders.seed_tipos_cita',       'Tipos de Cita'),
-    'roles':         ('seeders.seed_roles',            'Roles del Sistema'),
-    'permisos':      ('seeders.seed_permisos',         'Permisos Granulares'),
-    'demo_paciente': ('seeders.seed_demo_paciente',    'Demo paciente + citas (dev)'),
+    'admin': (
+        'seeders.seed_admin',
+        'Superusuario Administrador',
+    ),
+    'tipos_cita': (
+        'seeders.seed_tipos_cita',
+        'Tipos de Cita',
+    ),
+    'roles': (
+        'seeders.seed_roles',
+        'Roles del Sistema',
+    ),
+    'permisos': (
+        'seeders.seed_permisos',
+        'Permisos Granulares',
+    ),
+    'demo_paciente': (
+        'seeders.seed_demo_paciente',
+        'Demo paciente + citas',
+    ),
 }
 
 
 class Command(BaseCommand):
     help = (
-        'Ejecuta los seeders de datos iniciales. '
-        'Usa --only <nombre> para ejecutar solo uno.'
+        'Ejecuta los seeders de datos iniciales dentro del schema actual '
+        'o dentro del tenant indicado con --tenant/--schema.'
     )
 
     def add_arguments(self, parser):
@@ -61,37 +79,131 @@ class Command(BaseCommand):
             '--only',
             type=str,
             choices=list(SEEDERS.keys()),
-            help=f'Ejecuta solo el seeder indicado. Opciones: {", ".join(SEEDERS.keys())}',
+            help=f'Ejecuta solo un seeder. Opciones: {", ".join(SEEDERS.keys())}',
+        )
+        parser.add_argument(
+            '--tenant',
+            type=str,
+            help='Slug del tenant. Ej: clinica-demo',
+        )
+        parser.add_argument(
+            '--schema',
+            type=str,
+            help='Nombre del schema. Ej: clinica_demo',
         )
 
-    def handle(self, *args, **options):
-        only = options.get('only')
-        targets = {only: SEEDERS[only]} if only else SEEDERS
+    def _get_tenant_model(self):
+        app_label, model_name = settings.TENANT_MODEL.split('.')
+        return apps.get_model(app_label, model_name)
 
-        self.stdout.write(self.style.MIGRATE_HEADING('\n🌱 Iniciando seeders...\n'))
+    def _resolve_schema(self, tenant_slug=None, schema_name=None):
+        if tenant_slug and schema_name:
+            raise CommandError('Usa solo --tenant o solo --schema, no ambos.')
 
+        if schema_name:
+            return schema_name.strip()
+
+        if tenant_slug:
+            tenant_slug = tenant_slug.strip()
+
+            Tenant = self._get_tenant_model()
+
+            with schema_context(get_public_schema_name()):
+                tenant = Tenant.objects.filter(slug=tenant_slug).first()
+
+            if tenant is None:
+                raise CommandError(f'No existe un tenant con slug "{tenant_slug}".')
+
+            return tenant.schema_name
+
+        return None
+
+    def _get_targets(self, only):
+        if only:
+            return {only: SEEDERS[only]}
+        return SEEDERS
+
+    def _run_seeders(self, targets):
         total_creados = 0
         total_existentes = 0
 
+        schema_actual = getattr(
+            connection,
+            'schema_name',
+            get_public_schema_name(),
+        )
+
+        self.stdout.write(
+            self.style.MIGRATE_HEADING(
+                f'\n🌱 Ejecutando seeders en schema: {schema_actual}\n'
+            )
+        )
+
         for key, (module_path, label) in targets.items():
             self.stdout.write(f'  → {label}... ', ending='')
+
             try:
-                import importlib
                 module = importlib.import_module(module_path)
                 creados, existentes = module.run()
+
                 total_creados += creados
                 total_existentes += existentes
+
                 self.stdout.write(
-                    self.style.SUCCESS(f'✓ {creados} creados, {existentes} ya existían')
+                    self.style.SUCCESS(
+                        f'✓ {creados} creados, {existentes} ya existían'
+                    )
                 )
+
             except Exception as exc:
                 self.stdout.write(self.style.ERROR(f'✗ ERROR: {exc}'))
                 raise
 
         self.stdout.write(
             self.style.SUCCESS(
-                f'\n✅ Seeding completado: '
+                f'\n✅ Seeding completado en schema "{schema_actual}": '
                 f'{total_creados} registros creados, '
                 f'{total_existentes} ya existían.\n'
             )
         )
+
+    def handle(self, *args, **options):
+        only = options.get('only')
+        tenant_slug = options.get('tenant')
+        schema_name = options.get('schema')
+
+        targets = self._get_targets(only)
+        resolved_schema = self._resolve_schema(
+            tenant_slug=tenant_slug,
+            schema_name=schema_name,
+        )
+
+        if resolved_schema:
+            if resolved_schema == get_public_schema_name():
+                self.stdout.write(
+                    self.style.WARNING(
+                        '⚠️ Estás ejecutando seeders sobre el schema public. '
+                        'Para datos de una clínica usa --tenant o --schema de una organización.'
+                    )
+                )
+
+            with schema_context(resolved_schema):
+                self._run_seeders(targets)
+            return
+
+        schema_actual = getattr(
+            connection,
+            'schema_name',
+            get_public_schema_name(),
+        )
+
+        self.stdout.write(
+            self.style.WARNING(
+                f'⚠️ No se indicó --tenant ni --schema. '
+                f'Los seeders correrán en el schema actual: "{schema_actual}". '
+                f'En django-tenants normalmente debes usar: '
+                f'python manage.py seed --tenant <slug>'
+            )
+        )
+
+        self._run_seeders(targets)
