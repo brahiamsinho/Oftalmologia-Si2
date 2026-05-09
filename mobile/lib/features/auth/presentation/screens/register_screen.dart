@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../config/app_config.dart';
+import '../../../../config/theme.dart';
 import '../../../../core/notifications/push_notifications.dart';
 import '../../data/auth_repository.dart';
 import '../providers/session_notifier.dart';
@@ -148,12 +149,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           '(revisá Mailhog/SMTP en el servidor).',
                 ),
                 if (result.emailConfirmationSent) ...[
-                  const SizedBox(height: 10),
+                  SizedBox(height: AppTheme.space2),
                   SelectableText(
                     email,
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: AppTheme.space3),
                   Text(
                     mailhog != null
                         ? 'Con Docker + Mailhog, el mensaje aparece en la interfaz web de Mailhog (no en un buzón real).'
@@ -212,7 +213,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ),
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+            padding: EdgeInsets.fromLTRB(AppTheme.space5, AppTheme.space4, AppTheme.space5, 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -228,7 +229,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: AppTheme.space2),
                 Text(
                   'Crear cuenta',
                   style: theme.textTheme.headlineMedium?.copyWith(
@@ -236,7 +237,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     color: const Color(0xFF0F172A),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: AppTheme.space2),
                 Text(
                   'Registro solo para pacientes. Los datos van al servidor de API_BASE_URL. '
                   'El correo de confirmación lo envía el backend (en desarrollo suele usar Mailhog).',
@@ -245,10 +246,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     height: 1.4,
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: AppTheme.space3),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(14),
+                  padding: EdgeInsets.all(AppTheme.space3),
                   decoration: BoxDecoration(
                     color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(14),
@@ -258,7 +259,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(Icons.mark_email_read_outlined, color: Colors.blue.shade700, size: 22),
-                      const SizedBox(width: 10),
+                      SizedBox(width: AppTheme.space2),
                       Expanded(
                         child: Text(
                           'Mailhog (solo UI): MAILHOG_WEB_URL o MAILHOG_INFER_FROM_API=true '
@@ -273,12 +274,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: AppTheme.space5),
                 if (_errorMessage != null)
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: EdgeInsets.all(AppTheme.space3),
+                    margin: EdgeInsets.only(bottom: AppTheme.space4),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFEF2F2),
                       borderRadius: BorderRadius.circular(14),
@@ -298,7 +299,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   controller: _usernameController,
                   icon: Icons.alternate_email_outlined,
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: AppTheme.space3),
                 _Field(
                   label: 'Correo *',
                   hint: 'nombre@correo.com',
@@ -307,26 +308,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   keyboardType: TextInputType.emailAddress,
                   onEditingComplete: _suggestUsernameFromEmail,
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: AppTheme.space3),
                 _Field(
                   label: 'Nombres *',
                   controller: _nombresController,
                   icon: Icons.person_outline_rounded,
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: AppTheme.space3),
                 _Field(
                   label: 'Apellidos *',
                   controller: _apellidosController,
                   icon: Icons.person_outline_rounded,
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: AppTheme.space3),
                 _Field(
                   label: 'Teléfono',
                   controller: _telefonoController,
                   icon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: AppTheme.space3),
                 Text(
                   'Documento (opcional)',
                   style: theme.textTheme.bodyMedium?.copyWith(
@@ -334,7 +335,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     color: const Color(0xFF374151),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: AppTheme.space2),
                 DropdownButtonFormField<String>(
                   key: ValueKey(_tipoDocumento),
                   initialValue: _tipoDocumento,
@@ -352,13 +353,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     setState(() => _tipoDocumento = v);
                   },
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: AppTheme.space2),
                 _Field(
                   label: 'Número de documento',
                   controller: _numDocController,
                   icon: Icons.numbers_outlined,
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: AppTheme.space3),
                 _Field(
                   label: 'Contraseña *',
                   controller: _passwordController,
@@ -372,7 +373,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: AppTheme.space3),
                 _Field(
                   label: 'Confirmar contraseña *',
                   controller: _confirmPasswordController,
@@ -389,26 +390,34 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: _isSaving ? null : _submit,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 52),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                SizedBox(height: AppTheme.space6),
+                Semantics(
+                  label: 'Botón para registrar una nueva cuenta de paciente',
+                  button: true,
+                  child: FilledButton(
+                    onPressed: _isSaving ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 52),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: Text(_isSaving ? 'Registrando…' : 'Registrarme'),
                   ),
-                  child: Text(_isSaving ? 'Registrando…' : 'Registrarme'),
                 ),
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: _isSaving ? null : () => context.pop(),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 52),
-                    side: const BorderSide(color: Color(0xFFD1D5DB)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: Text(
-                    'Ya tengo cuenta',
-                    style: theme.textTheme.labelLarge?.copyWith(color: const Color(0xFF374151)),
+                SizedBox(height: AppTheme.space3),
+                Semantics(
+                  label: 'Botón para volver al inicio de sesión',
+                  button: true,
+                  child: OutlinedButton(
+                    onPressed: _isSaving ? null : () => context.pop(),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 52),
+                      side: const BorderSide(color: Color(0xFFD1D5DB)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: Text(
+                      'Ya tengo cuenta',
+                      style: theme.textTheme.labelLarge?.copyWith(color: const Color(0xFF374151)),
+                    ),
                   ),
                 ),
               ],
@@ -454,7 +463,7 @@ class _Field extends StatelessWidget {
             color: const Color(0xFF374151),
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: AppTheme.space2),
         TextField(
           controller: controller,
           keyboardType: keyboardType,

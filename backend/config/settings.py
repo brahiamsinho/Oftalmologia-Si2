@@ -94,10 +94,14 @@ TENANT_APPS = [
 
     # CRM por clínica.
     'apps.crm',
+    'apps.crm.reportes',
 
     # Notificaciones por clínica.
     'apps.notificaciones',
     'apps.notificaciones.automatizaciones',
+
+    # Backup y restore por clínica.
+    'apps.backup',
 ]
 
 
@@ -329,5 +333,36 @@ LOGGING = {
             'level': 'DEBUG' if DEBUG else 'INFO',
             'propagate': False,
         },
+    },
+}
+
+
+# =============================================================================
+# BACKUP SETTINGS
+# =============================================================================
+
+BACKUP_STORAGE_PATH = config('BACKUP_STORAGE_PATH', default='backups')
+BACKUP_TIMEOUT_SECONDS = config('BACKUP_TIMEOUT_SECONDS', default=600, cast=int)
+BACKUP_MAX_SIZE_MB = config('BACKUP_MAX_SIZE_MB', default=500, cast=int)
+
+# Límites de backups por plan
+BACKUP_PLAN_LIMITS = {
+    'FREE': {
+        'max_backups': 0,
+        'retencion_dias': 0,
+        'permite_restore': False,
+        'permite_automatico': False,
+    },
+    'PLUS': {
+        'max_backups': 5,
+        'retencion_dias': 30,
+        'permite_restore': True,
+        'permite_automatico': True,
+    },
+    'PRO': {
+        'max_backups': -1,  # ilimitado
+        'retencion_dias': 90,
+        'permite_restore': True,
+        'permite_automatico': True,
     },
 }

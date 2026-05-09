@@ -105,6 +105,47 @@ class AuthRepository {
     await SecureStorageService.clearTokens();
   }
 
+  /// POST `/auth/reset-password/` — solicita envío de email con token de recuperación.
+  /// Siempre responde 200 (no revela si el email existe en el sistema).
+  Future<String> requestPasswordReset(String email) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        'auth/reset-password/',
+        data: {'email': email.trim()},
+      );
+      final data = response.data;
+      if (data == null) {
+        throw Exception('Respuesta vacía del servidor.');
+      }
+      return data['mensaje'] as String? ?? 'Instrucciones enviadas a tu correo.';
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
+  /// POST `/auth/reset-password/confirm/` — restablece contraseña con token.
+  Future<String> confirmPasswordReset({
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        'auth/reset-password/confirm/',
+        data: {
+          'token': token.trim(),
+          'password_nuevo': newPassword,
+        },
+      );
+      final data = response.data;
+      if (data == null) {
+        throw Exception('Respuesta vacía del servidor.');
+      }
+      return data['mensaje'] as String? ?? 'Contraseña restablecida correctamente.';
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e));
+    }
+  }
+
   static String _messageFromDio(DioException e) {
     switch (e.type) {
       case DioExceptionType.connectionTimeout:

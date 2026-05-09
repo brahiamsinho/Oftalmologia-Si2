@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/ui/widgets/app_async_states.dart';
 import '../../../../config/theme.dart';
 import '../providers/patient_citas_provider.dart';
 
@@ -28,7 +29,8 @@ class _PatientAppointmentsSectionState
   bool _upcomingTab = true;
 
   String _initials(String nombre) {
-    final parts = nombre.trim().split(RegExp(r'\s+')).where((e) => e.isNotEmpty);
+    final parts =
+        nombre.trim().split(RegExp(r'\s+')).where((e) => e.isNotEmpty);
     final buf = StringBuffer();
     for (final p in parts.take(2)) {
       buf.write(p[0].toUpperCase());
@@ -50,7 +52,7 @@ class _PatientAppointmentsSectionState
     final async = ref.watch(patientCitasProvider);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+      padding: EdgeInsets.fromLTRB(AppTheme.space5, AppTheme.space6, AppTheme.space5, 100),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -81,9 +83,9 @@ class _PatientAppointmentsSectionState
               ],
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: AppTheme.space3),
           Container(
-            padding: const EdgeInsets.all(4),
+            padding: EdgeInsets.all(AppTheme.space1),
             decoration: BoxDecoration(
               color: const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(14),
@@ -111,49 +113,72 @@ class _PatientAppointmentsSectionState
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          async.when(
-            data: (list) {
-              final items = _upcomingTab
-                  ? upcomingCitas(list)
-                  : historyCitas(list);
-              if (items.isEmpty) {
-                return _EmptyList(upcoming: _upcomingTab);
-              }
-              return Column(
-                children: items
-                    .map(
-                      (c) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _CitaTile(
-                          initials: _initials(c.especialistaNombre),
-                          doctor: _doctorShort(c.especialistaNombre),
-                          motivo: c.motivoDisplay,
-                          timeStr: '${DateFormat('HH:mm').format(c.fechaHoraInicio.toLocal())} hs',
-                          dateStr: DateFormat("EEE d 'de' MMM", 'es')
-                              .format(c.fechaHoraInicio.toLocal()),
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Cita #${c.idCita}')),
-                            );
-                          },
-                        ),
-                      ),
-                    )
-                    .toList(),
-              );
-            },
-            loading: () => Column(
-              children: List.generate(
-                3,
-                (_) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _SkeletonTile(),
+          SizedBox(height: AppTheme.space4),
+          AnimatedSwitcher(
+            duration: AppTheme.motionNormal,
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            child: async.when(
+              data: (list) {
+                final items =
+                    _upcomingTab ? upcomingCitas(list) : historyCitas(list);
+                if (items.isEmpty) {
+                  return AppFadeSlideIn(
+                    key: ValueKey('empty-$_upcomingTab'),
+                    child: AppEmptyStateCard(
+                      icon: Icons.calendar_month_outlined,
+                      title: _upcomingTab
+                          ? 'Sin turnos próximos'
+                          : 'Sin historial aún',
+                      subtitle: _upcomingTab
+                          ? 'Cuando agendes una cita, aparecerá aquí.'
+                          : 'Las citas pasadas se listarán aquí.',
+                    ),
+                  );
+                }
+                return AppFadeSlideIn(
+                  key: ValueKey('data-$_upcomingTab-${items.length}'),
+                  child: Column(
+                    children: items
+                        .map(
+                          (c) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _CitaTile(
+                              initials: _initials(c.especialistaNombre),
+                              doctor: _doctorShort(c.especialistaNombre),
+                              motivo: c.motivoDisplay,
+                              timeStr:
+                                  '${DateFormat('HH:mm').format(c.fechaHoraInicio.toLocal())} hs',
+                              dateStr: DateFormat("EEE d 'de' MMM", 'es')
+                                  .format(c.fechaHoraInicio.toLocal()),
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Cita #${c.idCita}')),
+                                );
+                              },
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                );
+              },
+              loading: () => Column(
+                key: const ValueKey('loading-citas'),
+                children: List.generate(
+                  3,
+                  (_) => const Padding(
+                    padding: EdgeInsets.only(bottom: 10),
+                    child: AppSkeletonTile(),
+                  ),
                 ),
               ),
-            ),
-            error: (_, __) => _ListError(
-              onRetry: () => ref.read(patientCitasProvider.notifier).refresh(),
+              error: (_, __) => AppErrorStateCard(
+                key: const ValueKey('error-citas'),
+                message: 'No pudimos cargar. Verificá tu conexión a internet.',
+                onRetry: () =>
+                    ref.read(patientCitasProvider.notifier).refresh(),
+              ),
             ),
           ),
         ],
@@ -179,46 +204,52 @@ class _TabChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Material(
-      color: selected ? Colors.white : Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
-      elevation: selected ? 2 : 0,
-      shadowColor: const Color(0x140F172A),
-      child: InkWell(
-        onTap: onTap,
+    return Semantics(
+      label: 'Pestaña $label${selected ? ' (seleccionada)' : ''}${badge != null && badge! > 0 ? ', $badge turnos' : ''}',
+      selected: selected,
+      child: Material(
+        color: selected ? Colors.white : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                label,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: selected
-                      ? AppTheme.primaryColor
-                      : AppTheme.textMuted,
-                ),
-              ),
-              if (badge != null && badge! > 0 && selected) ...[
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor,
-                    borderRadius: BorderRadius.circular(10),
+        elevation: selected ? 2 : 0,
+        shadowColor: const Color(0x140F172A),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: selected ? AppTheme.primaryColor : AppTheme.textMuted,
                   ),
-                  child: Text(
-                    '$badge',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
+                ),
+                if (badge != null && badge! > 0 && selected) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$badge',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
-            ],
+            ),
+          ),
           ),
         ),
       ),
@@ -247,15 +278,18 @@ class _CitaTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
+    return Semantics(
+      label: 'Cita con $doctor. $motivo. $timeStr, $dateStr.',
+      button: true,
+      child: Material(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Ink(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: const Border(
               left: BorderSide(color: Color(0xFF2563EB), width: 3),
@@ -290,7 +324,7 @@ class _CitaTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppTheme.space3),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,12 +351,14 @@ class _CitaTile extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+                  const Icon(Icons.chevron_right_rounded,
+                      color: Color(0xFF94A3B8)),
                 ],
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: AppTheme.space2),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(10),
@@ -330,7 +366,7 @@ class _CitaTile extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.calendar_today_outlined,
                       size: 14,
                       color: AppTheme.primaryColor,
@@ -350,166 +386,12 @@ class _CitaTile extends StatelessWidget {
           ),
         ),
       ),
+      ),
     );
   }
 
   static String _capitalize(String s) {
     if (s.isEmpty) return s;
     return s[0].toUpperCase() + s.substring(1);
-  }
-}
-
-class _SkeletonTile extends StatelessWidget {
-  const _SkeletonTile();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 96,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE2E8F0),
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  height: 12,
-                  width: 160,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  height: 10,
-                  width: 120,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyList extends StatelessWidget {
-  const _EmptyList({required this.upcoming});
-
-  final bool upcoming;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.calendar_month_outlined,
-            size: 48,
-            color: AppTheme.textMuted.withValues(alpha: 0.6),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            upcoming ? 'Sin turnos próximos' : 'Sin historial aún',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            upcoming
-                ? 'Cuando agendes una cita, aparecerá aquí.'
-                : 'Las citas pasadas se listarán aquí.',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: AppTheme.textMuted,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ListError extends StatelessWidget {
-  const _ListError({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFFECACA)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'No pudimos cargar. Verificá tu conexión a internet.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFFB91C1C),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton(
-              onPressed: onRetry,
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFDC2626),
-              ),
-              child: const Text('Reintentar'),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

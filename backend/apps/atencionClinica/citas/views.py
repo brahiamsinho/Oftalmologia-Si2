@@ -67,18 +67,25 @@ class CitaViewSet(viewsets.ModelViewSet):
             paciente = Paciente.objects.filter(usuario=user).first()
             if not paciente:
                 return Cita.objects.none()
-            return queryset.filter(id_paciente=paciente)
-
-        if tipo in ('MEDICO', 'ESPECIALISTA'):
+            queryset = queryset.filter(id_paciente=paciente)
+        elif tipo in ('MEDICO', 'ESPECIALISTA'):
             especialista = Especialista.objects.filter(usuario=user).first()
             if not especialista:
                 return Cita.objects.none()
-            return queryset.filter(id_especialista=especialista)
+            queryset = queryset.filter(id_especialista=especialista)
+        elif tipo not in ('ADMIN', 'ADMINISTRATIVO'):
+            return Cita.objects.none()
 
-        if tipo in ('ADMIN', 'ADMINISTRATIVO'):
-            return queryset
+        # Filtros de rango de fecha para el conteo mensual de citas
+        # Usados por el frontend para calcular citas del mes actual vs max_citas_mes del plan.
+        fecha_desde = self.request.query_params.get('fecha_desde')
+        fecha_hasta = self.request.query_params.get('fecha_hasta')
+        if fecha_desde:
+            queryset = queryset.filter(fecha_hora_inicio__date__gte=fecha_desde)
+        if fecha_hasta:
+            queryset = queryset.filter(fecha_hora_inicio__date__lte=fecha_hasta)
 
-        return Cita.objects.none()
+        return queryset
 
     def perform_create(self, serializer):
         cita = serializer.save(creado_por=self.request.user)

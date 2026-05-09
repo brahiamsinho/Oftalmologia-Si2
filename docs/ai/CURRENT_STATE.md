@@ -1,5 +1,229 @@
 # CURRENT STATE
 
+## Actualizacion 2026-05-09 (fix login paso 1 — lookup tenant)
+- **Bug:** El login web (paso 1 workspace) llamaba `GET /api/tenants/<slug>/` pero las rutas públicas del backend viven bajo `config/urls_public.py` → prefijo **`/api/public/`**.
+- **Fix:** `frontend/src/app/(auth)/login/page.tsx` ahora usa `GET /api/public/tenants/<slug>/`. Comentario alineado en `frontend/src/lib/api.ts`.
+- **Uso:** Workspace `clinica-demo` + `admin@oftalmologia.local` / `admin123` (tras seed en tenant).
+
+## Actualizacion 2026-05-09 (backup tests green + hardening tenant-aware)
+- Se completó la estabilización de `apps.backup` con foco en pruebas automatizadas y compatibilidad con `django-tenants`.
+- Ajustes en código:
+  - `backend/apps/backup/views.py`: `BackupConfigViewSet.get_queryset()` ahora ordena por `id_config` para evitar warning de paginación inconsistente.
+- Ajustes en pruebas:
+  - `backend/apps/backup/tests.py` refactorizado para evitar dependencia de tablas tenant en schema público de test.
+  - Nuevas regresiones cubiertas:
+    - validación de límites usando ventana temporal (`timedelta`) en `validate_backup_limit`.
+    - restore con tenant explícito sin asumir `backup.tenant` FK.
+  - tests de concurrencia en restore ahora usan mock de queryset (`TenantBackup.objects.filter(...).exists()`).
+- Validación ejecutada:
+  - `docker compose exec backend python manage.py test apps.backup`
+  - Resultado: **OK (15 tests)**.
+- Cobertura adicional implementada para `tenant_context` en command scheduler:
+  - `BackupAutomaticoCommandTest.test_handle_uses_tenant_context_for_active_tenant`
+  - `BackupAutomaticoCommandTest.test_handle_tenant_slug_not_found_skips_tenant_context`
+
+## Actualizacion 2026-05-09 (hardening smoke test backup/restore)
+- Se completo smoke test real del flujo backup/restore en tenant `clinica-demo` con endpoints vigentes:
+  - `GET/PATCH /t/clinica-demo/api/backup-config/` (`PATCH` por id: `/backup-config/1/`)
+  - `GET/POST /t/clinica-demo/api/backup/`
+  - `POST /t/clinica-demo/api/backup/{id}/restore/`
+  - `GET /t/clinica-demo/api/backup/plan-info/`
+- Se validó upgrade de plan a `PLUS` con `POST /t/clinica-demo/api/organization/change-plan/` y creación/restauración de backup exitosas.
+- Se ejecutó scheduler forzado con éxito:
+  - `docker compose exec backend python manage.py backup_automatico --force --tenant-slug clinica-demo`
+- Fixes aplicados en backend backup:
+  - `backend/apps/backup/validators.py`: agregado `from datetime import timedelta` (evita `NameError` al validar límites por plan).
+  - `backend/apps/backup/services.py`: `restore_backup(..., tenant=None)` ahora resuelve schema desde tenant explícito (sin asumir FK `backup.tenant`).
+  - `backend/apps/backup/views.py`: `restore()` ahora pasa `tenant=request.tenant` a `BackupService.restore_backup(...)`.
+- Documentación operativa corregida a rutas reales:
+  - `README.md`
+  - `docs/api/backup.md`
+  - Se removieron rutas antiguas `/api/organization/backup*` para backup app.
+
+## Actualizacion 2026-05-09 (sistema completo de backup/restore multi-tenant)
+- **Nuevo app `apps.backup`** implementado con sistema completo de backup/restore por tenant.
+- **Modelos:**
+  - `TenantBackup`: registro de cada backup (archivo, tamaño, estado, fechas, usuario creador/restaurador, motivo restore)
+  - `TenantBackupConfig`: configuracion de backups automaticos (hora, frecuencia, retencion)
+- **Servicio `BackupService`:** usa `pg_dump --schema=<tenant_schema>` + gzip + Django storage para crear backups; restore con DROP/CREATE SCHEMA + psql import.
+- **REST API completa:**
+  - CRUD de backups por tenant
+  - Restore con confirmacion explicita + motivo
+  - Download de archivo `.sql.gz`
+  - Configuracion de backup automatico
+  - Informacion de limites por plan
+- **Management command `backup_automatico`:** ejecuta backups automaticos para cada tenant segun su config; usa `tenant_context` para cambiar schema; soporta `--force` y `--tenant-slug`.
+- **Validadores:** limites por plan (FREE=0, PLUS=5/semana, PRO=ilimitado), validacion de restore, concurrencia.
+- **Bitacora:** todas las operaciones de backup/restore se registran con IP y user-agent.
+- **Docker Compose:** agregado servicio `backup-scheduler` que ejecuta `backup_automatico` cada hora.
+- **Dockerfile:** agregado `postgresql-client` para `pg_dump` y `psql` en runtime.
+- **Settings:** agregadas variables `BACKUP_STORAGE_PATH`, `BACKUP_TIMEOUT_SECONDS`, `BACKUP_MAX_SIZE_MB`, `BACKUP_PLAN_LIMITS`.
+- **Documentacion:** `docs/api/backup.md` con ejemplos curl y especificacion completa.
+- **Tests:** unitarios para modelos, validadores y servicio (mock de subprocess y storage).
+- **README.md:** actualizado con seccion multi-tenant, comandos de backup, ejemplos de API.
+- **Migracion creada:** `apps/backup/migrations/0001_initial.py`.
+
+## Actualizacion 2026-05-09 (migracion completa a django-tenants con schemas)
+- **Backend migrado completamente a `django-tenants` con schema-per-tenant.** El enfoque anterior (header `X-Tenant-Slug` + FK nullable + scoping manual) fue reemplazado por aislamiento real via schemas de PostgreSQL.
+- **Configuracion en `settings.py`:**
+  - `TENANT_MODEL = 'tenant.Tenant'`, `TENANT_DOMAIN_MODEL = 'tenant.Domain'`
+  - `PUBLIC_SCHEMA_NAME = 'public'`, `TENANT_SUBFOLDER_PREFIX = 't'`
+  - `PUBLIC_SCHEMA_URLCONF = 'config.urls_public'`
+  - `DATABASES.default.ENGINE = 'django_tenants.postgresql_backend'`
+  - `DATABASE_ROUTERS = ('django_tenants.routers.TenantSyncRouter',)`
+  - Middleware: `django_tenants.middleware.TenantSubfolderMiddleware` (primero en la lista)
+- **SHARED_APPS (schema public):** `django_tenants`, `apps.tenant`, `django.contrib.*`, `rest_framework`, `rest_framework_simplejwt`, `corsheaders`, `django_filters`, `apps.core`
+- **TENANT_APPS (schema por clinica):** auth, sessions, admin, token_blacklist, `apps.usuarios.*`, `apps.bitacora`, `apps.pacientes.*`, `apps.atencionClinica.*` (todas las sub-apps), `apps.crm`, `apps.notificaciones.*`
+- **URLs separadas:**
+  - `config/urls.py` → URLs dentro de tenant scope: `/t/<slug>/api/...`
+  - `config/urls_public.py` → URLs en schema public: `/api/...` (health, tenant lookup, admin)
+- **Modelos en `apps.tenant`:**
+  - `Tenant` (hereda `TenantMixin`): slug, nombre, razon_social, nit, activo, auto_create_schema=True
+  - `Domain` (hereda `DomainMixin`): dominio por tenant
+  - `SubscriptionPlan`: FREE/PLUS/PRO con limites y features
+  - `TenantSubscription`: estado, trial, renovacion automatica
+  - `TenantUsage`: contadores por periodo
+  - `TenantSettings`: timezone, idioma, branding (nombre, colores, logo), flags
+- **Endpoints nuevos:**
+  - `GET /t/<slug>/api/organization/me/` → datos publicos del tenant actual
+  - `GET/PATCH/PUT /t/<slug>/api/organization/settings/` → config visual/funcional (ADMIN/ADMINISTRATIVO)
+  - `POST /t/<slug>/api/organization/change-plan/` → cambio de plan (ADMIN/ADMINISTRATIVO)
+  - `GET /api/tenants/<slug>/` → busqueda publica de tenant (antes de entrar al scope)
+  - `GET/POST /api/tenants/` → administracion central de tenants (superadmin)
+  - `POST /api/tenants/{id}/activar|suspender|cambiar-plan/` → acciones de superadmin
+- **Auth con tenant:**
+  - `GET /t/<slug>/api/auth/tenant/` → config publica del tenant antes del login
+  - `POST /t/<slug>/api/auth/login/` → respuesta incluye `usuario`, `tenant`, `access`, `refresh`
+  - JWT refresh token incluye claims: `tenant_id`, `tenant_schema`, `tenant_slug`
+  - `GET /api/auth/me/` → incluye `tenant` en la respuesta
+  - `POST /api/auth/register/` → registro con tenant info + FCM push
+- **Entrypoint completo (`entrypoint.sh`):**
+  1. Espera PostgreSQL
+  2. Asegura schema `public` existe
+  3. `migrate_schemas --shared --noinput`
+  4. Bootstrap: planes (FREE/PLUS/PRO), tenant public, tenant demo (`clinica_demo`)
+  5. `migrate_schemas --tenant --noinput`
+  6. Seeders: public (admin) + tenant demo (admin, permisos, roles, tipos_cita, demo_paciente)
+  7. `collectstatic`
+- **Variables de entorno nuevas:** `PUBLIC_DOMAIN`, `DEMO_TENANT_SCHEMA`, `DEMO_TENANT_SLUG`, `DEMO_TENANT_NAME`, `DEMO_TENANT_EMAIL`, `DEMO_TENANT_DOMAIN`, `BOOTSTRAP_PUBLIC_SCHEMA`, `RUN_MIGRATIONS`, `BOOTSTRAP_TENANTS`, `RUN_SEEDERS`, `RUN_COLLECTSTATIC`
+- **Tenant demo por defecto:** schema `clinica_demo`, slug `clinica-demo`, plan FREE con trial 14 dias
+- **Migraciones:** ahora se usa `migrate_schemas --shared` y `migrate_schemas --tenant` en lugar de `migrate` simple
+- **⚠️ GAP CRITICO:** Frontend (Next.js) y Mobile (Flutter) **NO han sido actualizados** para usar URLs con prefijo de tenant. Siguen usando `/api/...` directo. Esto requiere adaptacion urgente en ambos clientes.
+
+## Actualizacion 2026-05-09 (push turnos: cierre backend recordatorios → FCM)
+- Se completo el faltante principal de push para turnos programados:
+  - `backend/apps/notificaciones/automatizaciones/serializers.py` ahora usa `enviar_push_a_usuario(...)` dentro de `procesar_tarea_recordatorio(...)`.
+  - Antes: el job solo persistia `Notificacion` en BD (campanita interna).
+  - Ahora: persiste en BD y ademas intenta envio FCM real a los dispositivos registrados del usuario.
+- Payload push agregado para trazabilidad en cliente:
+  - `tipo=recordatorio_control`
+  - `postoperatorio_id`
+  - `tarea_id`
+- Comportamiento por entorno:
+  - Si `FIREBASE_CREDENTIALS_PATH` no esta configurado, no rompe el flujo; queda guardada en BD y loguea warning.
+  - Si hay credenciales + tokens FCM, envia push.
+- Estado verificado de la capa push existente:
+  - Mobile ya inicializaba Firebase en `main.dart` y gestionaba token/foreground/background en `core/notifications/push_notifications.dart`.
+  - Backend ya tenia registro de dispositivos (`/api/notificaciones/dispositivos/`) y servicio de envio push (`apps.notificaciones.services`).
+
+## Actualizacion 2026-05-08 (mobile: agendar cita desde la app)
+- Se implemento flujo completo para agendar citas desde la app paciente:
+  - **Backend**: nuevo endpoint `GET /api/especialistas-disponibles/` (solo lectura, para pacientes).
+  - **CitasRepository**: metodos `scheduleAppointment()`, `getAvailableSpecialists()`, `getAppointmentTypes()`.
+  - **ScheduleAppointmentScreen**: flujo de 3 pasos (especialista → fecha/hora → confirmar).
+  - **Ruta**: `/schedule-appointment` agregada en `routes.dart`.
+  - **Home**: boton "Agendar cita >" en tarjeta de proxima cita conectado al flujo.
+- Validacion: `flutter analyze` sin errores.
+
+## Actualizacion 2026-05-08 (mobile: recuperacion de contraseña con Mailhog)
+- Se implemento flujo completo de recuperacion de contraseña en mobile:
+  - **AuthRepository**: `requestPasswordReset(email)` y `confirmPasswordReset(token, newPassword)`.
+  - **ForgotPasswordScreen**: input email → POST /auth/reset-password/ → mensaje de exito generico.
+  - **ResetPasswordScreen**: input token + nueva contraseña → POST /auth/reset-password/confirm/ → exito → login.
+  - **Rutas**: `/forgot-password` y `/reset-password` agregadas en `routes.dart`.
+  - **Login**: boton "¿Olvidaste tu contraseña?" ahora navega a `/forgot-password`.
+- Backend ya tenia endpoints implementados: siempre responde 200 en solicitud (no revela si email existe), token expira en 2h.
+- En desarrollo: token se obtiene del email en Mailhog (UI web).
+- Validacion: `flutter analyze` sin errores.
+
+## Actualizacion 2026-05-08 (mobile UI/UX UX-05: accesibilidad tactil/contraste/semantics)
+- Se aplicaron mejoras de accesibilidad en 7 archivos de la app paciente:
+  - **Semantics labels**: avatar, notificaciones, fecha, accesos rapidos, tabs de citas, tiles de citas, cards de consultas/estudios, botones de login/register.
+  - **Touch targets minimos 44x44**: `_TabChip` (ConstrainedBox minHeight: 44), `_QuickTile` (ConstrainedBox minHeight: 44), `FilledButton` (minimumSize: 48).
+  - **Feedback visual**: `InkWell` con `borderRadius` consistente en todos los elementos interactivos.
+  - **Labels descriptivos**: cada elemento interactivo tiene `Semantics(label: ...)` con contexto claro para lectores de pantalla.
+- Validacion: `flutter analyze` sin errores, solo info warnings (`prefer_const_constructors`, `unnecessary_brace_in_string_interps`).
+
+## Actualizacion 2026-05-08 (mobile UI/UX iteracion 3: tokenizacion completa Batch A+B+C)
+- **Batch A (Home screens):** `patient_home_screen.dart`, `patient_appointments_section.dart`, `patient_next_appointment_card.dart`.
+- **Batch B (Historial + Auth):** `patient_clinical_screen.dart`, `login_screen.dart`, `register_screen.dart`.
+- **Batch C (Header + Accesos):** `patient_home_header.dart`, `patient_quick_access_row.dart`.
+- Tokens aplicados: `space1` (4), `space2` (8), `space3` (12), `space4` (16), `space5` (20), `space6` (24), `motionNormal` (220ms).
+- Validacion: `flutter analyze` sin errores, solo info warnings (`prefer_const_constructors` por uso de tokens no-const).
+- Spacing y motion centralizados en `theme.dart` para toda la app paciente.
+
+## Actualizacion 2026-05-08 (mobile UI/UX iteracion 3: tokenizacion Batch A)
+- Se reemplazaron valores hardcodeados de spacing por tokens `AppTheme.space*` en:
+  - `patient_home_screen.dart` (Profile tab + _ProfileCard)
+  - `patient_appointments_section.dart` (padding, gaps, AnimatedSwitcher duration)
+  - `patient_next_appointment_card.dart` (margins, padding, gaps entre elementos)
+- Validacion: `flutter analyze` sin errores, solo 25 info warnings (`prefer_const_constructors` por uso de tokens no-const).
+- Tokens aplicados: `space1` (4), `space2` (8), `space3` (12), `space4` (16), `space5` (20), `space6` (24), `motionNormal` (220ms).
+
+## Actualizacion 2026-05-08 (mobile UI/UX iteracion 2: tokens + next appointment + perfil)
+- Se agregaron tokens de motion y spacing en `config/theme.dart`:
+  - `motionFast` (150ms), `motionNormal` (220ms), `motionSlow` (280ms)
+  - `space1` (4) a `space6` (24) para padding/margins consistentes
+- Se agrego `AppShimmerCard` en `app_async_states.dart` para loading de cards hero.
+- Se refactorizo `PatientNextAppointmentCard`:
+  - usa `AppShimmerCard`, `AppErrorStateCard`, `AppEmptyStateCard` compartidos
+  - agrega `AnimatedSwitcher` con transicion fade
+  - elimina `_LoadingCard` y `_ErrorCard` duplicados
+- Se refactorizo `_ProfileTab` en `PatientHomeScreen`:
+  - envuelto en `AppFadeSlideIn` para entrada suave
+  - agregado `_ProfileCard` con jerarquia visual mejorada (avatar, email separado)
+  - usa tokens de spacing cuando aplica
+- Validacion: `flutter analyze` sin errores, solo 3 info de `prefer_const_constructors`.
+
+## Actualizacion 2026-05-08 (mobile UI/UX iteracion 1: estados reutilizables + microanimaciones)
+- Se creo `mobile/lib/core/ui/widgets/app_async_states.dart` con componentes reutilizables de UX:
+  - `AppEmptyStateCard`
+  - `AppErrorStateCard`
+  - `AppSkeletonTile`
+  - `AppFadeSlideIn`
+- Se refactorizo `PatientAppointmentsSection` para usar estados compartidos (loading/error/empty) y `AnimatedSwitcher` + entrada `fade/slide`.
+- Se refactorizo `PatientClinicalScreen` (Consultas y Estudios) para homogeneizar feedback de carga/error/vacio con los mismos componentes compartidos y transiciones suaves.
+- Se mejoro consistencia visual/tactil en estados de error (`FilledButton` con altura minima) y semantica basica en empty state.
+- Validacion ejecutada: `flutter analyze` sobre los 3 archivos modificados, sin issues.
+
+## Actualizacion 2026-05-08 (rollback comando Sleek + artefacto DESING)
+- Se retiro el comando `.opencode/commands/sleek-design.md` para evitar dependencia operativa de API externa en flujo base del proyecto.
+- Se removio su referencia en `.opencode/README.md` y en `docs/ai/PROMPTS_LIBRARY.md`.
+- Se removio la entrada agregada de `sleek-design-mobile-apps` en `docs/ai/SKILLS_REGISTRY.md`.
+- Se creo `docs/ai/DESING.md` como registro vivo de decisiones y backlog UI/UX mobile del proyecto actual (paciente-first).
+
+## Actualizacion 2026-05-08 (workflow Sleek para diseno mobile)
+- Se agrego el comando `/sleek-design` en `.opencode/commands/sleek-design.md` para ejecutar diseno mobile con Sleek (`https://sleek.design/api/v1/*`) con flujo completo: resolver proyecto, enviar chat, poll de run, screenshots y export de HTML por `componentId`.
+- El comando incorpora reglas de seguridad: uso exclusivo de `SLEEK_API_KEY` por header Bearer, host unico HTTPS, no exponer secretos, no usar `.env` real y rechazo de `imageUrls` no HTTPS.
+- Se actualizo `.opencode/README.md`, `docs/ai/PROMPTS_LIBRARY.md` y `docs/ai/SKILLS_REGISTRY.md` para registrar el nuevo workflow y la skill de workspace `sleek-design-mobile-apps`.
+
+## Actualizacion 2026-05-08 (workflows OpenCode: commands, skills, plugin y todo-list)
+- Se agrego el comando seguro `/commit` en `.opencode/commands/commit.md`, diseñado para revisar `git status`, diffs, `.gitignore`, nombres de archivos sensibles y staged changes antes de crear un commit.
+- Se agregaron comandos reutilizables en `.opencode/commands/`: `/check-project`, `/update-memory`, `/review-security`, `/validate-stack`, `/puds-status`, `/handoff` y `/todo-start`.
+- Se agregaron skills locales OpenCode en `.opencode/skills/`: `project-memory`, `puds-traceability`, `security-review`, `docker-debug`, `clinical-ux-review` y `todo-workflow`.
+- Se agrego el plugin local `.opencode/plugins/env-protection.js`, que bloquea acceso a archivos `.env` reales y permite plantillas como `.env.example`, `.env.sample` y `.env.template`.
+- Se actualizaron los agentes de `.opencode/agents/` para recomendar uso de todo-list en tareas multi-paso y permitir `skill: allow` en especialistas.
+- El `orchestrator` ahora recomienda skills segun contexto: memoria, seguridad, PUDS, Docker, UX clinica y organizacion con todos.
+- Se actualizaron `.opencode/README.md`, `.opencode/skills/README.md`, `docs/ai/SKILLS_REGISTRY.md` y `docs/ai/PROMPTS_LIBRARY.md` para documentar los workflows reutilizables.
+
+## Actualizacion 2026-05-08 (sistema multi-agente OpenCode local)
+- Se creo la estructura OpenCode-compatible `.opencode/agents/` con agentes especializados en formato hibrido: frontmatter machine-readable soportado por OpenCode + cuerpo tecnico operativo.
+- Agentes creados: `orchestrator`, `backend`, `frontend`, `mobile`, `ui-ux`, `architecture`, `architect-planner`, `code-review`, `qa-testing`, `devops` e `infra`.
+- El `orchestrator` enruta tareas por intencion: backend, frontend, mobile, UI/UX, arquitectura, planificacion, review, testing, DevOps e infraestructura; para tareas mixtas divide trabajo y consolida respuesta.
+- Se creo `.opencode/README.md` con lista de agentes, flujo de orquestacion, reglas de routing y nota de integracion con skills. No se deja README dentro de `.opencode/agents/` porque OpenCode lo carga como agente.
+- Se creo `.opencode/skills/` como punto local para skills OpenCode del proyecto. No se detectaron skills OpenCode locales alli; adicionalmente existen skills de workspace en `.agents/skills/`: `caveman` y `find-skills`.
+- Correccion frente a la documentacion oficial: OpenCode carga agentes de proyecto desde `.opencode/agents/`; el nombre del agente viene del nombre del archivo; para heredar modelo se omite `model` en lugar de usar `model: Inherit`.
+
 ## Actualizacion 2026-05-04 (Fase 1b multi-tenant primera ola)
 - Se tenantizaron roots críticos con FK nullable a `Tenant`: `Usuario`, `Paciente`, `HistoriaClinica`, `Bitacora`, `Notificacion`, `DispositivoFcm` y `Especialista`.
 - Las tablas existentes fueron backfilled al tenant `legacy` y las nuevas altas asignan tenant server-side desde contexto runtime o fallback `legacy`.
@@ -216,20 +440,20 @@
 Ejecutar: `docker compose exec backend python manage.py seed --only demo_paciente` (requiere `tipos_cita` ya sembrados).
 
 ## Endpoints Clave (recordatorio)
-- Login: `POST /api/auth/login/` → `{ email, password }`
-- Citas (filtradas por rol): `GET /api/citas/?ordering=fecha_hora_inicio`
-- Health: `GET /api/health/`
-
-## Qué Falta (prioridad sugerida)
-- Agendar cita desde la app, detalle de cita, recuperación de contraseña en app.
-- Frontend web: más módulos sobre API (pacientes, citas, etc.).
-- Registro mobile conectado a `POST /auth/register/`.
-- Producción: `DEBUG=False`, `ALLOWED_HOSTS` explícitos, HTTPS, clave JWT larga en `.env`.
+- Tenant lookup publico: `GET /api/tenants/<slug>/` → datos basicos de clinica
+- Tenant actual (dentro de scope): `GET /t/<slug>/api/organization/me/`
+- Auth tenant (antes de login): `GET /t/<slug>/api/auth/tenant/`
+- Login: `POST /t/<slug>/api/auth/login/` → `{ email, password }` → `{ usuario, tenant, access, refresh }`
+- Citas (filtradas por rol y tenant): `GET /t/<slug>/api/citas/?ordering=fecha_hora_inicio`
+- Health: `GET /api/health/` (publico, sin tenant)
 
 ## Riesgos Conocidos
-- `numero_documento` UNIQUE en Paciente — registro auto puede dejar `PENDIENTE-{id}` hasta actualización.
-- Móvil en **dispositivo físico**: `API_BASE_URL` = IP LAN del PC (`ipconfig`), misma Wi‑Fi; no usar `10.0.2.2` fuera del emulador Android.
-- Tras cambiar `DJANGO_SECRET_KEY` corta por derivación JWT, tokens previos invalidan hasta nuevo login.
+- **Frontend y Mobile sin tenant URLs:** los clientes siguen apuntando a `/api/...` directo. Si el backend solo acepta rutas `/t/<slug>/api/...`, los clientes actuales no funcionaran.
+- `numero_documento` UNIQUE en Paciente — registro auto puede dejar `PENDIENTE-{id}` hasta actualizacion.
+- Movil en **dispositivo fisico**: `API_BASE_URL` = IP LAN del PC (`ipconfig`), misma Wi‑Fi; no usar `10.0.2.2` fuera del emulador Android.
+- Tras cambiar `DJANGO_SECRET_KEY` corta por derivacion JWT, tokens previos invalidan hasta nuevo login.
+- Con `django-tenants`, las migraciones deben ejecutarse con `migrate_schemas --shared` y `migrate_schemas --tenant`. Usar `migrate` simple puede crear tablas en el schema equivocado.
+- Si una app nueva se agrega en `SHARED_APPS` en lugar de `TENANT_APPS` (o viceversa), las tablas se crean en el schema incorrecto.
 
 ---
-*(Actualizado: 2026-05-04)*
+*(Actualizado: 2026-05-09)*

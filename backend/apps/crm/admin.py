@@ -19,6 +19,39 @@ class CampanaCRMAdmin(admin.ModelAdmin):
 
 @admin.register(HistorialContacto)
 class HistorialContactoAdmin(admin.ModelAdmin):
-    list_display = ('id_historial_contacto', 'id_paciente', 'id_campana', 'canal', 'fecha_contacto')
-    list_filter = ('canal', 'fecha_contacto')
-    search_fields = ('id_paciente__nombres', 'id_paciente__apellidos', 'resultado', 'observaciones')
+    list_display = (
+        'id_historial_contacto',
+        'id_paciente',
+        'canal',
+        'tipo_mensaje',
+        'estado_comunicacion',
+        'fecha_contacto',
+        'id_campana',
+        'contactado_por',
+    )
+    list_filter = ('canal', 'tipo_mensaje', 'estado_comunicacion', 'fecha_contacto')
+    search_fields = (
+        'id_paciente__nombres',
+        'id_paciente__apellidos',
+        'asunto',
+        'mensaje',
+        'respuesta_paciente',
+        'resultado',
+        'observaciones',
+    )
+    readonly_fields = ('contactado_por', 'created_at', 'updated_at')
+    fieldsets = (
+        ('Identificación', {
+            'fields': ('id_historial_contacto', 'id_paciente', 'id_campana'),
+        }),
+        ('Comunicación', {
+            'fields': ('canal', 'tipo_mensaje', 'estado_comunicacion', 'fecha_contacto', 'asunto'),
+        }),
+        ('Contenido', {
+            'fields': ('mensaje', 'respuesta_paciente', 'resultado', 'observaciones'),
+        }),
+        ('Auditoría', {
+            'fields': ('contactado_por', 'created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
