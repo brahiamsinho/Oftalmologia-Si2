@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from "react";
 import {
   User, Mail, Phone, Lock, Save, Eye, EyeOff,
   CheckCircle2, AlertCircle, Camera, Loader2, KeyRound,

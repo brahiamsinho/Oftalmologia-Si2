@@ -10,7 +10,7 @@
  *   POST /api/auth/change-password/
  */
 
-import api, { TokenStorage } from '@/lib/api';
+import api, { TokenStorage, TenantStorage } from '@/lib/api';
 import type { LoginCredentials, LoginResponse, Usuario } from '@/lib/types';
 
 export const authService = {
@@ -30,6 +30,7 @@ export const authService = {
       });
     }
     TokenStorage.clear();
+    TenantStorage.clear();
   },
 
   /** Obtiene el usuario autenticado actual */

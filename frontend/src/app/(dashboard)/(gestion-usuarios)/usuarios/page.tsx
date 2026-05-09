@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Shield, CheckCircle, XCircle, Lock,
+import { Search, Plus, CheckCircle, XCircle, Lock,
          Mail, Phone, SlidersHorizontal, Loader2, Users, X, Eye, EyeOff,
-         Pencil, UserCheck, UserX, Trash2 } from 'lucide-react';
+         Pencil, UserCheck, UserX, Trash2, AlertTriangle, TrendingUp } from 'lucide-react';
 import { pacientesService, usuariosService } from '@/lib/services';
-import type { Usuario, TipoUsuario, EstadoUsuario, Paciente, TipoDocumento, UsuarioCreate } from '@/lib/types';
+import api from '@/lib/api';
+import type { Usuario, TipoUsuario, EstadoUsuario, Paciente, TipoDocumento, UsuarioCreate, TenantSubscriptionPlan } from '@/lib/types';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 const TIPO_BADGE: Record<TipoUsuario, string> = {
@@ -123,6 +124,7 @@ function UsuarioModal({ usuario, onClose, onSaved }: ModalProps) {
     setLoading(true);
     try {
       if (isEdit) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { password, pacienteModo: _pm, idPacienteExistente: _ip, paciente_tipo_documento: _pt, paciente_numero_documento: _pn, ...editable } = form;
         const payload = { ...editable, telefono: form.telefono || undefined };
         await usuariosService.update(usuario!.id, password ? { ...payload, password } : payload);
@@ -446,6 +448,9 @@ export default function UsuariosPage() {
   const [estadoFilter,setEstadoFilter]= useState('');
   const [modal,       setModal]       = useState<{ open: boolean; usuario: Usuario | null }>({ open: false, usuario: null });
 
+  // ── Plan de suscripción del tenant ──
+  const [planInfo, setPlanInfo] = useState<TenantSubscriptionPlan | null>(null);
+
   const fetchUsuarios = useCallback(async () => {
     setLoading(true);
     try {
@@ -463,7 +468,20 @@ export default function UsuariosPage() {
     }
   }, [search, tipoFilter, estadoFilter]);
 
+  // Carga el plan de suscripción una sola vez al montar el componente.
+  // Usa GET /t/<slug>/api/organization/me/ — el interceptor inyecta el prefix.
+  useEffect(() => {
+    api.get<{ subscription?: { plan?: TenantSubscriptionPlan } }>('organization/me/')
+      .then(res => setPlanInfo(res.data.subscription?.plan ?? null))
+      .catch(() => setPlanInfo(null));
+  }, []);
+
   useEffect(() => { fetchUsuarios(); }, [fetchUsuarios]);
+
+  // ── Derivados del plan ──
+  const maxUsuarios  = planInfo?.max_usuarios ?? Infinity;
+  const atUserLimit  = total >= maxUsuarios;
+  const nearLimit    = !atUserLimit && planInfo !== null && total >= maxUsuarios - 1;
 
   const handleAction = async (action: 'activar' | 'bloquear', id: number) => {
     try {
@@ -500,17 +518,84 @@ export default function UsuariosPage() {
           <h2 className="text-[22px] font-bold text-gray-900">Usuarios</h2>
           <p className="text-[12.5px] text-gray-400 mt-0.5">Gestión de cuentas y accesos del sistema</p>
         </div>
-        <button
-          onClick={() => setModal({ open: true, usuario: null })}
-          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-[13.5px] font-semibold transition-colors shadow-sm">
-          <Plus className="w-4 h-4" strokeWidth={2.5} /> Nuevo Usuario
-        </button>
+
+        {/* Botón deshabilitado si se alcanzó el límite del plan */}
+        <div className="relative group">
+          <button
+            onClick={() => !atUserLimit && setModal({ open: true, usuario: null })}
+            disabled={atUserLimit}
+            className={`flex items-center gap-1.5 text-white px-4 py-2 rounded-lg text-[13.5px] font-semibold transition-colors shadow-sm
+              ${atUserLimit
+                ? 'bg-gray-300 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'}`}>
+            <Plus className="w-4 h-4" strokeWidth={2.5} /> Nuevo Usuario
+          </button>
+          {/* Tooltip explicativo cuando está al límite */}
+          {atUserLimit && (
+            <div className="absolute right-0 top-full mt-1.5 z-20 w-56 bg-gray-900 text-white text-[11.5px] rounded-lg px-3 py-2 shadow-lg
+              opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Límite del plan alcanzado ({total}/{maxUsuarios} usuarios).
+              Mejorá el plan para agregar más.
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Banner de límite del plan */}
+      {atUserLimit && planInfo && (
+        <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3.5">
+          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[13.5px] font-semibold text-red-800">
+              Límite de usuarios alcanzado
+            </p>
+            <p className="text-[12.5px] text-red-700 mt-0.5">
+              Tu plan <strong>{planInfo.nombre}</strong> permite hasta{' '}
+              <strong>{planInfo.max_usuarios} usuarios</strong> y ya tenés{' '}
+              <strong>{total}</strong>. Para agregar más, mejorá tu suscripción.
+            </p>
+          </div>
+          <a
+            href="/planes"
+            className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-[12.5px] font-semibold px-3 py-1.5 rounded-lg transition-colors flex-shrink-0"
+          >
+            <TrendingUp className="w-3.5 h-3.5" />
+            Ver Planes
+          </a>
+        </div>
+      )}
+
+      {/* Banner de advertencia cuando está cerca del límite */}
+      {nearLimit && planInfo && (
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <p className="text-[12.5px] text-amber-800 flex-1">
+            Estás cerca del límite: <strong>{total} de {planInfo.max_usuarios}</strong> usuarios del plan{' '}
+            <strong>{planInfo.nombre}</strong>. Podés{' '}
+            <a href="/planes" className="underline font-semibold hover:text-amber-900">mejorar el plan</a>{' '}
+            antes de llegar al límite.
+          </p>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        {/* Tarjeta Total con indicador de plan */}
+        <div className={`bg-white rounded-xl border shadow-sm p-4 ${atUserLimit ? 'border-red-200' : nearLimit ? 'border-amber-200' : 'border-gray-200'}`}>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[12px] text-gray-400">Total</p>
+            {planInfo && (
+              <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${atUserLimit ? 'bg-red-100 text-red-700' : nearLimit ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>
+                /{planInfo.max_usuarios}
+              </span>
+            )}
+          </div>
+          <p className={`text-[30px] font-bold leading-none ${atUserLimit ? 'text-red-600' : nearLimit ? 'text-amber-600' : 'text-gray-900'}`}>
+            {loading ? '—' : counts.total}
+          </p>
+        </div>
+
         {[
-          { label: 'Total',      value: loading ? '—' : counts.total,      color: 'text-gray-900'  },
           { label: 'Activos',    value: loading ? '—' : counts.activos,    color: 'text-green-600' },
           { label: 'Inactivos',  value: loading ? '—' : counts.inactivos,  color: 'text-gray-500'  },
           { label: 'Bloqueados', value: loading ? '—' : counts.bloqueados, color: 'text-red-600'   },

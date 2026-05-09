@@ -248,8 +248,8 @@ export default function RegistrarConsultaPage() {
                             : "";
                           const pn = c.paciente_nombre ? ` — ${String(c.paciente_nombre)}` : "";
                           return (
-                            <option key={id} value={id}>
-                              Cita #{id}
+                            <option key={String(id)} value={String(id)}>
+                              Cita #{String(id)}
                               {pn}
                               {when ? ` (${when})` : ""}
                             </option>
