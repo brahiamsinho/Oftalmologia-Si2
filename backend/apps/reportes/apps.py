@@ -3,6 +3,5 @@ from django.apps import AppConfig
 
 class ReportesConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.crm.reportes'
-    label = 'crm_reportes'
-    verbose_name = 'Reportes y Exportaciones CRM'
+    name = 'apps.reportes'
+    verbose_name = 'Reportes personalizados y predefinidos (CU21/CU22)'
