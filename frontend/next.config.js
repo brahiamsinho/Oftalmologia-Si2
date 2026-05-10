@@ -41,7 +41,10 @@ const nextConfig = {
   },
 
   images: {
-    remotePatterns: buildImageRemotePatterns(),
+    remotePatterns: [
+      ...buildImageRemotePatterns(),
+      { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
+    ],
   },
 
   async rewrites() {

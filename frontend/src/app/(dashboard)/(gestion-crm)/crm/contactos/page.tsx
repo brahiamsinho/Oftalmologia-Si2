@@ -32,7 +32,7 @@ import {
   type HistorialContacto,
   type HistorialContactoCreate,
 } from '@/lib/services/crm';
-import type { Paciente } from '@/lib/services/pacientes';
+import type { Paciente } from '@/lib/types';
 import type { CampanaCRM } from '@/lib/services/crm';
 
 // ── Helpers de color y display ──────────────────────────────────────────────
@@ -738,7 +738,7 @@ function ModalContacto({ form, setField, editing, pacientes, campanas, formError
             {isRespondido && !form.respuesta_paciente.trim() && (
               <div className="mt-3 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-[12px]">
                 <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                Marcaste el estado como <strong>"Respondido"</strong> pero aún no registraste la respuesta del paciente (sección 4).
+                Marcaste el estado como <strong>Respondido</strong> pero aún no registraste la respuesta del paciente (sección 4).
               </div>
             )}
           </section>

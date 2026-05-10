@@ -2,21 +2,20 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Scalpel, Plus, Search, X, ChevronDown,
+  Hospital, Plus, Search, X, ChevronDown,
   AlertCircle, Loader2, Trash2, Edit2,
   User, Calendar, FileText, Activity,
-  AlertTriangle, CheckCircle2, XCircle, Clock,
+  AlertTriangle, CheckCircle2, XCircle,
   RefreshCw, Play, Timer, ClipboardList,
   Stethoscope, Info, ShieldCheck,
 } from 'lucide-react';
 import {
   cirugiasService,
-  ESTADO_CIRUGIA_LABELS,
   type Cirugia,
   type CirugiaCreate,
   type CirugiaReprogramar,
 } from '@/lib/services/cirugias';
-import { pacientesService } from '@/lib/services/pacientes';
+import { fetchAll } from '@/lib/api';
 import { historialService } from '@/lib/services/historial';
 import { preoperatorioService } from '@/lib/services/preoperatorio';
 import type { Paciente } from '@/lib/types';
@@ -382,7 +381,7 @@ function ModalCirugia({
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-indigo-100 rounded-xl flex items-center justify-center">
-              <Scalpel className="w-4 h-4 text-indigo-600" strokeWidth={2} />
+              <Hospital className="w-4 h-4 text-indigo-600" strokeWidth={2} />
             </div>
             <div>
               <h2 className="text-[15px] font-bold text-gray-900">
@@ -627,7 +626,7 @@ function CirugiaCard({
         <div className="flex items-start gap-3 min-w-0">
           {/* Ícono de estado */}
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${cfg.bg.split(' ').slice(0, 1).join(' ')}`}>
-            <Scalpel className={`w-5 h-5 ${cfg.bg.split(' ').slice(1, 2).join(' ')}`} strokeWidth={2} />
+            <Hospital className={`w-5 h-5 ${cfg.bg.split(' ').slice(1, 2).join(' ')}`} strokeWidth={2} />
           </div>
 
           <div className="min-w-0 flex-1">
@@ -793,7 +792,7 @@ export default function CirugiasPage() {
     async function loadSupport() {
       try {
         const [pacRes, hisRes, preRes] = await Promise.all([
-          pacientesService.fetchAll(),
+          fetchAll<Paciente>('/pacientes/'),
           historialService.list(),
           preoperatorioService.list(),
         ]);
@@ -876,7 +875,7 @@ export default function CirugiasPage() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-sm">
-              <Scalpel className="w-5 h-5 text-white" strokeWidth={2} />
+              <Hospital className="w-5 h-5 text-white" strokeWidth={2} />
             </div>
             <div>
               <h1 className="text-[20px] font-bold text-gray-900 leading-tight">Cirugías</h1>
@@ -971,7 +970,7 @@ export default function CirugiasPage() {
             {cirugias.length === 0 ? (
               <div className="text-center py-16">
                 <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Scalpel className="w-7 h-7 text-gray-300" strokeWidth={1.5} />
+                  <Hospital className="w-7 h-7 text-gray-300" strokeWidth={1.5} />
                 </div>
                 <p className="text-[14px] font-medium text-gray-500">
                   {search || filtroEstado ? 'Sin resultados para este filtro' : 'Aún no hay cirugías registradas'}

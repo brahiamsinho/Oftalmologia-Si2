@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
@@ -25,8 +25,8 @@ async function lookupTenant(slug: string): Promise<TenantPublicData> {
   return data;
 }
 
-// ── Componente principal ──────────────────────────────────────────────────────
-export default function LoginPage() {
+// ── Contenido (useSearchParams requiere Suspense en build estático) ───────────
+function LoginPageContent() {
   const { login } = useAuth();
   const searchParams = useSearchParams();
 
@@ -54,8 +54,7 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
 
   // ── Colores dinámicos del tenant ──────────────────────────────────────────
-  const colorPrimario   = tenantData?.branding.color_primario   ?? '#2563eb';
-  const colorSecundario = tenantData?.branding.color_secundario ?? '#0f172a';
+  const colorPrimario = tenantData?.branding.color_primario ?? '#2563eb';
 
   // ── Paso 1: validar workspace ─────────────────────────────────────────────
   const handleCheckWorkspace = async (e: React.FormEvent) => {
@@ -338,5 +337,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-slate-50">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" aria-hidden />
+        </div>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
   );
 }

@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Activity, LayoutDashboard, Users, ShieldCheck, ScrollText,
   ClipboardList, LogOut, ChevronLeft, ChevronRight,
   ChevronDown, ChevronUp, KeyRound,
-  Stethoscope, Eye, Calendar, List, Scissors, Scalpel, HeartPulse,
+  Stethoscope, Eye, Calendar, List, Scissors, Hospital, HeartPulse,
   Megaphone, Bell, BarChart2, Settings, MessageSquare,
 } from 'lucide-react';
 import { useAuth }    from '@/context/AuthContext';
@@ -26,6 +26,9 @@ function NavItem({
   onNavigate?: () => void;
   badge?: string;
 }) {
+  /** Turbo/bundlers a veces dejan imports de lucide como undefined; evita crash en runtime. */
+  const IconComponent = Icon ?? Activity;
+
   return (
     <li>
       <Link
@@ -42,7 +45,7 @@ function NavItem({
             ? 'bg-blue-50 text-blue-700'
             : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'}`}
       >
-        <Icon
+        <IconComponent
           className={`flex-shrink-0 transition-colors
             ${collapsed ? 'w-[18px] h-[18px]' : 'w-[15px] h-[15px]'}
             ${active ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`}
@@ -70,6 +73,7 @@ function NavGroup({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen || active);
+  const IconComponent = Icon ?? Activity;
 
   if (collapsed) {
     return (
@@ -80,7 +84,7 @@ function NavGroup({
           className={`w-full flex items-center justify-center px-[13px] py-[9px] rounded-lg transition-all duration-150
             ${active ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'}`}
         >
-          <Icon className="w-[18px] h-[18px]" strokeWidth={1.8} />
+          <IconComponent className="w-[18px] h-[18px]" strokeWidth={1.8} />
         </button>
       </li>
     );
@@ -93,7 +97,7 @@ function NavGroup({
         className={`w-full flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-[13px] font-medium transition-all duration-150
           ${active ? 'text-blue-700' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'}`}
       >
-        <Icon
+        <IconComponent
           className={`w-[15px] h-[15px] flex-shrink-0 ${active ? 'text-blue-600' : 'text-gray-400'}`}
           strokeWidth={active ? 2.2 : 1.8}
         />
@@ -117,7 +121,11 @@ export default function Sidebar() {
   const { logout }  = useAuth();
   const { isCollapsed, isMobileDrawerOpen, toggle, closeMobileDrawer } = useSidebar();
   const isDesktop   = useMediaQuery('(min-width: 768px)', false);
-  const { orgData, planInfo, flags, loading: tenantLoading } = useTenant();
+  const { orgData, flags, loading: tenantLoading } = useTenant();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const is = (href: string) => pathname === href || pathname.startsWith(href + '/');
   const widthPx   = isDesktop ? (isCollapsed ? 64 : 220) : 220;
@@ -137,7 +145,8 @@ export default function Sidebar() {
   // ── Flags de plan para mostrar módulos opcionales ──
   const showCRM    = !tenantLoading && flags.mostrar_modulo_crm;
   const showNotif  = !tenantLoading && flags.mostrar_notificaciones;
-  const showReport = !tenantLoading && (planInfo?.permite_reportes_avanzados ?? false);
+  /** Reportes inteligentes (CU21–CU23): visible con sesión; el plan puede limitar APIs en backend. */
+  const showReport = !tenantLoading;
 
   // ── Estado del plan para badge ──
   const subEstado = orgData?.subscription?.estado;
@@ -179,7 +188,7 @@ export default function Sidebar() {
 
             <div className="min-w-0">
               <p className="text-[13px] font-bold text-gray-900 leading-tight truncate">
-                {clinicNombre}
+                {mounted ? clinicNombre : 'Cargando...'}
               </p>
               <div className="flex items-center gap-1">
                 <p className="text-[9.5px] text-gray-400 leading-tight truncate">{clinicSub}</p>
@@ -251,7 +260,7 @@ export default function Sidebar() {
             <NavItem href="/citas-agenda"             label="Citas y Agenda"        icon={Calendar}      active={is('/citas-agenda')}              collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
             <NavItem href="/evaluaciones-quirurgicas" label="Eval. Quirúrgica"      icon={Scissors}      active={is('/evaluaciones-quirurgicas')}  collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
             <NavItem href="/preoperatorio"            label="Preoperatorio"         icon={ClipboardList} active={is('/preoperatorio')}             collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
-            <NavItem href="/cirugias"                 label="Cirugías"              icon={Scalpel}       active={is('/cirugias')}                  collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/cirugias"                 label="Cirugías"              icon={Hospital}      active={is('/cirugias')}                  collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
             <NavItem href="/postoperatorio"           label="Postoperatorio"        icon={HeartPulse}    active={is('/postoperatorio')}            collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
           </NavGroup>
         </ul>

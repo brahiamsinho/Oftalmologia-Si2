@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import EyeIllustration from '@/components/EyeIllustration';
@@ -224,14 +225,34 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Images grid */}
           <div className="grid grid-cols-2 gap-3">
-            <img src="https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=400&q=80&auto=format&fit=crop"
-              alt="Equipo médico" className="w-full h-48 object-cover rounded-2xl" />
-            <img src="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&q=80&auto=format&fit=crop"
-              alt="Oftalmología" className="w-full h-48 object-cover rounded-2xl mt-6" />
-            <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&q=80&auto=format&fit=crop"
-              alt="Consulta" className="w-full h-48 object-cover rounded-2xl -mt-6" />
-            <img src="https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400&q=80&auto=format&fit=crop"
-              alt="Tecnología médica" className="w-full h-48 object-cover rounded-2xl" />
+            <Image
+              src="https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=400&q=80&auto=format&fit=crop"
+              alt="Equipo médico"
+              width={400}
+              height={192}
+              className="h-48 w-full rounded-2xl object-cover"
+            />
+            <Image
+              src="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&q=80&auto=format&fit=crop"
+              alt="Oftalmología"
+              width={400}
+              height={192}
+              className="mt-6 h-48 w-full rounded-2xl object-cover"
+            />
+            <Image
+              src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&q=80&auto=format&fit=crop"
+              alt="Consulta"
+              width={400}
+              height={192}
+              className="-mt-6 h-48 w-full rounded-2xl object-cover"
+            />
+            <Image
+              src="https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400&q=80&auto=format&fit=crop"
+              alt="Tecnología médica"
+              width={400}
+              height={192}
+              className="h-48 w-full rounded-2xl object-cover"
+            />
           </div>
 
           {/* Text */}

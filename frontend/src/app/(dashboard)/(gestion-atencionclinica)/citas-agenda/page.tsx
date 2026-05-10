@@ -253,7 +253,6 @@ function CreateUpdateModal({
 // ── Componente Principal ───────────────────────────────────────────────────────
 export default function CitasAgendaPage() {
   const [citas, setCitas] = useState<Cita[]>([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterEstado, setFilterEstado] = useState('');
@@ -276,7 +275,6 @@ export default function CitasAgendaPage() {
         estado: filterEstado || undefined
       });
       setCitas(res.results);
-      setTotal(res.count);
     } catch {
       setCitas([]);
     } finally {
