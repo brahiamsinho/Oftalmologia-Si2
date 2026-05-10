@@ -3,6 +3,7 @@
 Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tenants).
 
 ## Corto Plazo
+- [ ] **CU21/CU22 Reportes QBE**: poblar `_QBE_MODEL_REGISTRY` / `_QBE_MODEL_IMPORT_PATH` desde apps de dominio (sin acoplar reglas en `reportes`); ampliar `QBEQueryBuilder` (`Q` anidados, agregaciones por campo); tests del motor y del endpoint `execute`.
 - [x] Migracion completa a django-tenants con schema-per-tenant (backend).
 - [x] Sistema completo de backup/restore multi-tenant (modelos, API, servicio, scheduler, documentacion, tests).
 - [ ] **URGENTE: Frontend Next.js con URLs de tenant** — adaptar axios client para usar `/t/<tenantSlug>/api/...`, crear flujo de seleccion de clinica, consumir `GET /api/public/tenants/<slug>/` (lookup público) y `GET /t/<slug>/api/auth/tenant/` antes del login. *(2026-05-09: lookup en login ya apunta a `/api/public/tenants/<slug>/`.)*

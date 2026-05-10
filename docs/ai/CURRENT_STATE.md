@@ -1,5 +1,23 @@
 # CURRENT STATE
 
+## Actualizacion 2026-05-09 (app IA CU23 — NL → QBE + Gemini)
+- **Nueva app tenant** `apps.ia`: `GeminiQBETranslator` en `services/nlp_translator.py` (Gemini JSON-only → dict validado para `QBEEngine`).
+- **Settings** `config/settings.py`: `GEMINI_API_KEY`, `GEMINI_MODEL` (sin `settings/base.py` en el repo; variables en `.env.example`).
+- **API** `POST /t/<slug>/api/ia/nlp-to-report/` cuerpo `{"query":"..."}` → respuesta `{ "qbe": {...}, "report": { "meta", "data" } }` o errores parciales.
+- **Dependencia** `google-generativeai` en `requirements/base.txt`.
+
+## Actualizacion 2026-05-09 (reportes: predefinidos + export Excel)
+- **Migración datos** `apps.reportes.0002_reportes_predefinidos`: semillas CU22 *Pacientes Nuevos Recientes* (filtro `fecha_registro__gte` + campos reales) y *Ausentismo de Citas* (`estado=NO_ASISTIO`). Sin FK tenant (schema django-tenants).
+- **openpyxl** en `requirements/base.txt`; **`services/export_engine.py`**: `qbe_result_to_excel_bytes(result)` → `BytesIO` con cabecera `meta['columns']`.
+- **API** `POST .../reportes-qbe/plantillas/export-excel/` mismo JSON que `execute`; respuesta `HttpResponse` .xlsx `Content-Disposition: attachment`.
+
+## Actualizacion 2026-05-09 (modulo Reportes QBE — CU21/CU22 esqueleto)
+- **Nueva app tenant** `apps.reportes`: modelo `ReportTemplate` (nombre, descripcion, `qbe_payload`, `is_system_report`, `created_by`, `created_at`).
+- **Motor** `apps.reportes.services.qbe_engine`: `QBEQueryBuilder` + validación de payload sin SQL crudo; registro de modelos vacío hasta que dominio exponga whitelist.
+- **API DRF**: `ReportTemplateViewSet` (CRUD) + `POST .../reportes-qbe/plantillas/execute/` con `ReportExecutionSerializer` (prefijo `reportes-qbe` evita choque con `apps.crm.reportes`).
+- **Integración**: `TENANT_APPS` + `config/urls.py` incluye `apps.reportes.urls`. Migración `0001_initial`.
+- **Nota**: Coexiste con `apps.crm.reportes` (CU17 reportes predefinidos CRM); este módulo es el esqueleto QBE genérico para personalizados/predefinidos Si2.
+
 ## Actualizacion 2026-05-09 (fix login paso 1 — lookup tenant)
 - **Bug:** El login web (paso 1 workspace) llamaba `GET /api/tenants/<slug>/` pero las rutas públicas del backend viven bajo `config/urls_public.py` → prefijo **`/api/public/`**.
 - **Fix:** `frontend/src/app/(auth)/login/page.tsx` ahora usa `GET /api/public/tenants/<slug>/`. Comentario alineado en `frontend/src/lib/api.ts`.
