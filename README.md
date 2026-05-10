@@ -4,13 +4,13 @@ Sistema integral SaaS multi-tenant para clínicas oftalmológicas — gestión d
 
 ## Stack Tecnológico
 
-| Capa          | Tecnología              | Puerto Dev |
-| ------------- | ----------------------- | ---------- |
-| Backend       | Django 5 + DRF + django-tenants | :8000 |
-| Frontend      | Next.js 14 (App Router) | :3000      |
-| Mobile        | Flutter                 | —          |
-| Base de Datos | PostgreSQL 16 (multi-schema) | :5432 |
-| Contenedores  | Docker + Docker Compose | —          |
+| Capa          | Tecnología                      | Puerto Dev |
+| ------------- | ------------------------------- | ---------- |
+| Backend       | Django 5 + DRF + django-tenants | :8000      |
+| Frontend      | Next.js 14 (App Router)         | :3000      |
+| Mobile        | Flutter                         | —          |
+| Base de Datos | PostgreSQL 16 (multi-schema)    | :5432      |
+| Contenedores  | Docker + Docker Compose         | —          |
 
 ## Requisitos Previos
 
@@ -50,13 +50,7 @@ docker compose exec backend python manage.py seed
 Con los valores por defecto de `.env.example` (puertos 3000 y 8000):
 
 - **Frontend:** `http://localhost:3000` (o `http://TU_IP:HOST_PORT_FRONTEND`)
-<<<<<<< HEAD
-- **Frontend superadmin SaaS:** `http://localhost:3000/platform/login` — el usuario se crea con el seeder `seed_platform_admin` (en el entrypoint de Docker, schema `public`) o con `python manage.py ensure_platform_admin` si definís `PLATFORM_ADMIN_EMAIL` y `PLATFORM_ADMIN_PASSWORD` en `.env`. **En `DEBUG=True` sin variables**, el seeder usa credenciales solo desarrollo: `platform@oftalmologia.local` / `platform123` (cambialas en producción vía `.env`).
 - **Backend API (público):** `http://localhost:8000/api/`
-- **Login plataforma (API):** `POST http://localhost:8000/api/public/platform/auth/login/`
-=======
-- **Backend API (público):** `http://localhost:8000/api/`
->>>>>>> a1b3cfbc7f09b37d0c5426a9fdcc486986b4f915
 - **Backend API (tenant):** `http://localhost:8000/t/clinica-demo/api/`
 - **Django Admin:** `http://localhost:8000/admin/`
 
@@ -208,10 +202,10 @@ Cada tenant puede crear backups manuales y automáticos con límites según su p
 ### Límites por Plan
 
 | Plan | Backups Manuales | Retención | Restore | Automático |
-|------|------------------|-----------|---------|------------|
-| FREE | 0 | 0 días | ❌ | ❌ |
-| PLUS | 5/semana | 30 días | ✅ | ✅ |
-| PRO | Ilimitado | 90 días | ✅ | ✅ |
+| ---- | ---------------- | --------- | ------- | ---------- |
+| FREE | 0                | 0 días    | ❌      | ❌         |
+| PLUS | 5/semana         | 30 días   | ✅      | ✅         |
+| PRO  | Ilimitado        | 90 días   | ✅      | ✅         |
 
 ### Comandos de Backup
 

@@ -55,7 +55,6 @@ class IsStaffOrReadOnly(BasePermission):
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return True
         return request.user and request.user.is_staff
-<<<<<<< HEAD
 
 
 class IsPlatformAdministrator(BasePermission):
@@ -73,5 +72,3 @@ class IsPlatformAdministrator(BasePermission):
             and admin is not None
             and admin.is_active
         )
-=======
->>>>>>> a1b3cfbc7f09b37d0c5426a9fdcc486986b4f915
