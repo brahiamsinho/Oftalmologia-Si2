@@ -10,7 +10,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --- IA / Gemini (CU23): clave vía entorno; nunca commitear secretos ---
 GEMINI_API_KEY = config('GEMINI_API_KEY', default=os.getenv('GEMINI_API_KEY', '')).strip()
-GEMINI_MODEL = config('GEMINI_MODEL', default=os.getenv('GEMINI_MODEL', 'gemini-1.5-flash')).strip()
+#GEMINI_MODEL = config('GEMINI_MODEL', default=os.getenv('GEMINI_MODEL', 'gemini-1.5-flash')).strip()
+GEMINI_MODEL = 'gemini-2.5-flash'
 
 SECRET_KEY = config('DJANGO_SECRET_KEY', default='INSECURE-change-me-in-production')
 DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
