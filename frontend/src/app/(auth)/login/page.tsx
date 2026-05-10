@@ -199,6 +199,12 @@ export default function LoginPage() {
                     <ArrowLeft className="w-3.5 h-3.5" />
                     Volver al inicio
                   </Link>
+                  <p className="mt-3 text-[12px] text-gray-400">
+                    ¿Administrás el SaaS?{' '}
+                    <Link href="/platform/login" className="font-medium text-blue-600 hover:text-blue-700 hover:underline">
+                      Acceso plataforma
+                    </Link>
+                  </p>
                 </div>
               </div>
             )}

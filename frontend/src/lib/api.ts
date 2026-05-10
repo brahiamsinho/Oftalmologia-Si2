@@ -305,7 +305,7 @@ api.interceptors.response.use(
 interface DRFPage { results: unknown[]; next: string | null }
 
 /** Evita fallar en el navegador si DRF devuelve `next` con host 0.0.0.0 o `backend` (Docker). */
-function resolvePaginationUrl(next: string | null): string | null {
+export function resolvePaginationUrl(next: string | null): string | null {
   if (!next) return null;
   if (!/^https?:\/\//i.test(next)) return next;
   try {

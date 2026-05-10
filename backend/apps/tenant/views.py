@@ -1,10 +1,11 @@
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.core.permissions import IsAdministrativoOrAdmin
+from apps.core.authentication import PlatformJWTAuthentication
+from apps.core.permissions import IsAdministrativoOrAdmin, IsPlatformAdministrator
 
 from .models import SubscriptionPlan, Tenant, TenantSettings
 from .serializers import (
@@ -253,11 +254,20 @@ class SubscriptionPlanViewSet(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
+    """
+    Catálogo público de planes (AllowAny).
+
+    Sin authentication_classes explícitas, DRF usaría TenantScopedJWTAuthentication;
+    si el cliente envía Bearer de plataforma (p. ej. panel /platform/dashboard),
+    ese backend rechaza token_scope=platform → 401 y el frontend cerraba sesión.
+    """
+
     queryset = SubscriptionPlan.objects.filter(activo=True).order_by(
         'precio_mensual',
         'codigo',
     )
     serializer_class = SubscriptionPlanSerializer
+    authentication_classes = []
     permission_classes = [AllowAny]
 
 
@@ -272,7 +282,8 @@ class TenantManagementViewSet(viewsets.ModelViewSet):
         'subscription__plan',
         'usage',
     ).all()
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    authentication_classes = [PlatformJWTAuthentication]
+    permission_classes = [IsAuthenticated, IsPlatformAdministrator]
 
     def get_serializer_class(self):
         if self.action == 'create':
