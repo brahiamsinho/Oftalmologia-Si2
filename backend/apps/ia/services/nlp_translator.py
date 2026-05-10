@@ -26,19 +26,38 @@ REGLAS ABSOLUTAS (incumplir = respuesta inválida):
 2) NO uses markdown. NO uses bloques ```. NO añadas comentarios, explicaciones ni texto antes ni después del JSON.
 3) El JSON debe tener EXACTAMENTE estas claves de nivel superior: "model", "fields", "filters".
    - "model": cadena, uno de: "Paciente", "Cita".
+<<<<<<< HEAD
    - "fields": lista de cadenas con nombres de atributos del modelo, o [] para pedir todas las columnas en consulta tabular.
    - "filters": objeto; claves = nombres de campo o lookups Django simples (ej. fecha_hora_inicio__gte). Valores = tipos JSON (string, number, boolean, null, arrays solo para __in).
 
 MODELO Paciente — campos útiles (nombres exactos):
+=======
+   - "fields": lista de cadenas con nombres de atributos del modelo. Debe ser una lista NO vacía con columnas legibles para el usuario final.
+   - "filters": objeto; claves = nombres de campo o lookups Django simples (ej. fecha_hora_inicio__gte). Valores = tipos JSON (string, number, boolean, null, arrays solo para __in).
+
+REGLA DE COLUMNAS (obligatoria):
+- Si el usuario NO especifica qué columnas o campos quiere ver, NUNCA devuelvas campos técnicos como "id", "usuario_id", "tenant_id" ni claves foráneas crudas (nombres que terminen en "_id" salvo que el usuario las pida explícitamente).
+- Para el modelo "Paciente", si no pidió columnas concretas, usa por defecto en "fields": nombres, apellidos, tipo_documento, numero_documento (en ese orden; puedes añadir otros NO técnicos si aportan contexto, ej. estado_paciente, telefono).
+- Para el modelo "Cita", si no pidió columnas concretas, usa por defecto en "fields": fecha_hora_inicio, estado, motivo (en ese orden; puedes añadir otros NO técnicos si aportan contexto, ej. observaciones).
+- NUNCA uses "fields": [] ni omitas campos sustituyendo por "todas las columnas": una lista vacía en el backend equivale a exponer TODA la tabla con IDs y FKs y arruina la UX.
+
+MODELO Paciente — referencia de campos (nombres exactos; evita IDs/FK en "fields" salvo petición explícita):
+>>>>>>> a1b3cfbc7f09b37d0c5426a9fdcc486986b4f915
 id_paciente, nombres, apellidos, tipo_documento, numero_documento, numero_historia,
 fecha_nacimiento, sexo, telefono, email, estado_paciente, fecha_registro, observaciones_generales,
 contacto_emergencia_nombre, contacto_emergencia_telefono, direccion
 
 Valores típicos estado_paciente (TextChoices): "ACTIVO", "EN_SEGUIMIENTO", "POSTOPERATORIO", "INACTIVO".
 
+<<<<<<< HEAD
 MODELO Cita — campos útiles:
 id_cita, fecha_hora_inicio, fecha_hora_fin, estado, motivo, observaciones,
 id_paciente_id, id_especialista_id, id_tipo_cita_id, confirmada_en, fecha_creacion
+=======
+MODELO Cita — referencia de campos para filtros o columnas NO técnicas:
+fecha_hora_inicio, fecha_hora_fin, estado, motivo, observaciones, confirmada_en, fecha_creacion
+(Las FK internas sirven para "filters" si hace falta; no las pongas en "fields" salvo que el usuario las pida.)
+>>>>>>> a1b3cfbc7f09b37d0c5426a9fdcc486986b4f915
 
 Estados de cita VÁLIDOS en base de datos (usa SOLO estos literales en "estado" o filtros equivalentes):
 "PROGRAMADA", "CONFIRMADA", "REPROGRAMADA", "CANCELADA", "ATENDIDA", "NO_ASISTIO".
@@ -48,7 +67,11 @@ Fechas/horas en filtros: preferir ISO 8601 en string UTC, ej. "2024-05-01T00:00:
 
 EJEMPLO de entrada: "Pacientes que no asistieron este mes"
 EJEMPLO de salida (solo el JSON, sin markdown):
+<<<<<<< HEAD
 {"model":"Cita","fields":["id_cita","fecha_hora_inicio","estado","motivo"],"filters":{"estado":"NO_ASISTIO","fecha_hora_inicio__gte":"2024-05-01T00:00:00Z"}}
+=======
+{"model":"Cita","fields":["fecha_hora_inicio","estado","motivo"],"filters":{"estado":"NO_ASISTIO","fecha_hora_inicio__gte":"2024-05-01T00:00:00Z"}}
+>>>>>>> a1b3cfbc7f09b37d0c5426a9fdcc486986b4f915
 """
 
 

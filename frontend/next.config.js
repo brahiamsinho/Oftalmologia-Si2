@@ -1,16 +1,16 @@
 /** @type {import('next').NextConfig} */
 
 function normalizeNextPublicApiUrl(value) {
-  let s = (value || '').trim();
-  if (!s) return '';
-  if (s.includes(',')) {
+  let s = (value || "").trim();
+  if (!s) return "";
+  if (s.includes(",")) {
     // eslint-disable-next-line no-console
     console.warn(
-      '[next.config] NEXT_PUBLIC_API_URL tiene comas (varias URLs). Solo debe haber UNA. Usando la primera entrada.',
+      "[next.config] NEXT_PUBLIC_API_URL tiene comas (varias URLs). Solo debe haber UNA. Usando la primera entrada.",
     );
-    s = s.split(',')[0].trim();
+    s = s.split(",")[0].trim();
   }
-  return s.replace(/\/+$/, '');
+  return s.replace(/\/+$/, "");
 }
 
 const rawApi = normalizeNextPublicApiUrl(process.env.NEXT_PUBLIC_API_URL);
@@ -20,7 +20,7 @@ function buildImageRemotePatterns() {
   try {
     const u = new URL(rawApi);
     const pattern = {
-      protocol: u.protocol.replace(':', ''),
+      protocol: u.protocol.replace(":", ""),
       hostname: u.hostname,
     };
     if (u.port) {
@@ -33,11 +33,12 @@ function buildImageRemotePatterns() {
 }
 
 const nextConfig = {
-  output: 'standalone',
+  output: "standalone",
 
   env: {
     NEXT_PUBLIC_API_URL: rawApi,
-    NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || 'Oftalmología Si2',
+    NEXT_PUBLIC_APP_NAME:
+      process.env.NEXT_PUBLIC_APP_NAME || "Oftalmología Si2",
   },
 
   images: {
@@ -50,7 +51,7 @@ const nextConfig = {
     }
     return [
       {
-        source: '/api/:path*',
+        source: "/api/:path*",
         destination: `${rawApi}/:path*`,
       },
     ];

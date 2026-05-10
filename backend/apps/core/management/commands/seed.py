@@ -17,8 +17,6 @@ Con django-tenants:
     python manage.py seed --tenant clinica-demo --only permisos
     python manage.py seed --tenant clinica-demo --only demo_paciente
 
-    # Superadmin plataforma (solo schema public)
-    python manage.py seed --schema public --only platform_admin
 """
 import importlib
 import os
@@ -130,7 +128,11 @@ class Command(BaseCommand):
             return {only: SEEDERS[only]}
         return SEEDERS
 
+<<<<<<< HEAD
     def _run_seeders(self, targets, only=None):
+=======
+    def _run_seeders(self, targets):
+>>>>>>> a1b3cfbc7f09b37d0c5426a9fdcc486986b4f915
         total_creados = 0
         total_existentes = 0
 
@@ -140,6 +142,7 @@ class Command(BaseCommand):
             get_public_schema_name(),
         )
 
+<<<<<<< HEAD
         if schema_actual != get_public_schema_name():
             targets = {
                 k: v for k, v in targets.items() if k != 'platform_admin'
@@ -154,6 +157,8 @@ class Command(BaseCommand):
                 'No hay seeders para ejecutar en este schema con los filtros actuales.'
             )
 
+=======
+>>>>>>> a1b3cfbc7f09b37d0c5426a9fdcc486986b4f915
         self.stdout.write(
             self.style.MIGRATE_HEADING(
                 f'\n🌱 Ejecutando seeders en schema: {schema_actual}\n'
@@ -193,12 +198,15 @@ class Command(BaseCommand):
         tenant_slug = options.get('tenant')
         schema_name = options.get('schema')
 
+<<<<<<< HEAD
         if only == 'platform_admin' and tenant_slug:
             raise CommandError(
                 'El seeder platform_admin es solo para schema public. '
                 'Quitá --tenant o usá: python manage.py seed --schema public --only platform_admin'
             )
 
+=======
+>>>>>>> a1b3cfbc7f09b37d0c5426a9fdcc486986b4f915
         targets = self._get_targets(only)
         resolved_schema = self._resolve_schema(
             tenant_slug=tenant_slug,
@@ -207,6 +215,7 @@ class Command(BaseCommand):
 
         if resolved_schema:
             if resolved_schema == get_public_schema_name():
+<<<<<<< HEAD
                 if not only:
                     raise CommandError(
                         'En schema public solo tiene sentido un seeder explícito '
@@ -217,11 +226,21 @@ class Command(BaseCommand):
                     self.style.WARNING(
                         '⚠️ Schema public: típicamente solo platform_admin; '
                         'los seeders de clínica viven en el schema del tenant.'
+=======
+                self.stdout.write(
+                    self.style.WARNING(
+                        '⚠️ Estás ejecutando seeders sobre el schema public. '
+                        'Para datos de una clínica usa --tenant o --schema de una organización.'
+>>>>>>> a1b3cfbc7f09b37d0c5426a9fdcc486986b4f915
                     )
                 )
 
             with schema_context(resolved_schema):
+<<<<<<< HEAD
                 self._run_seeders(targets, only=only)
+=======
+                self._run_seeders(targets)
+>>>>>>> a1b3cfbc7f09b37d0c5426a9fdcc486986b4f915
             return
 
         schema_actual = getattr(
@@ -239,4 +258,8 @@ class Command(BaseCommand):
             )
         )
 
+<<<<<<< HEAD
         self._run_seeders(targets, only=only)
+=======
+        self._run_seeders(targets)
+>>>>>>> a1b3cfbc7f09b37d0c5426a9fdcc486986b4f915

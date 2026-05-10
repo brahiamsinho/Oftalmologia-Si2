@@ -29,7 +29,6 @@ celerybeat-schedule
 *.sage.py
 
 # Django
-firebase-credentials.json
 *.sqlite3
 db.sqlite3
 media/
@@ -64,17 +63,10 @@ mobile/.metadata
 # =========================
 # Environment & Secrets
 # =========================
-mobile/.env
+.env
 .env.local
 .env.*.local
 !.env.example
-!mobile/.env.example
-google-services.json
-GoogleService-Info.plist
-backend/firebase-credentials.json
-**/firebase-credentials.json
-**/google-services.json
-**/GoogleService-Info.plist
 
 # =========================
 # AI / Agent & Docs
@@ -105,6 +97,14 @@ Thumbs.db
 *.exe
 *.dll
 *.pdb
+
+
+
+venv/
+#AGENTS.md
+
+BaseDeDatos.sql
+BaseDeDatos.sql
 
 
 

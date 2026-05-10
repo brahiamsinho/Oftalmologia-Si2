@@ -29,23 +29,28 @@
 **Frontend Web (implementado hoy, segunda ronda):**
 
 ### E. `pacientes/page.tsx` ? Restriccion `max_pacientes`
+
 Mismo patron que Usuarios. Consulta `organization/me/`, compara `total` con `plan.max_pacientes`.
 Boton "Nuevo Paciente" deshabilitado si se alcanza el limite. Banners rojo/amarillo + badge `X/Y`.
 
 ### F. Backend `CitaViewSet` ? Filtro por fecha
+
 Se agrego soporte para `?fecha_desde=YYYY-MM-DD` y `?fecha_hasta=YYYY-MM-DD` en `get_queryset()`.
 Permite calcular el conteo mensual real de citas desde el frontend.
 
 ### G. `citas-agenda/page.tsx` ? Restriccion `max_citas_mes` mensual
+
 Hace 2 llamadas al montar: `organization/me/` (plan) y citas del mes actual (usando `fecha_desde`/`fecha_hasta`).
 Si `citasMesCount >= max_citas_mes`: boton "Agendar Cita" deshabilitado, banners, tarjeta "Este Mes" con badge `X/Y`.
 El conteo se recalcula al crear o eliminar citas.
 
 ### H. `lib/api.ts` ? Interceptor 403 tenant inactivo
+
 403 en ruta no-login ? limpia `TenantStorage` + `TokenStorage` ? redirige a `/login?motivo=tenant_inactivo`.
 El login detecta ese parametro y muestra un aviso naranja.
 
 ### I. `planes/page.tsx` ? Conectada con backend real
+
 - Carga planes desde `GET /api/plans/` (endpoint publico).
 - Carga plan actual desde `GET organization/me/`.
 - Boton "Mejorar Plan" / "Bajar a este plan" abre modal de confirmacion.
@@ -55,6 +60,7 @@ El login detecta ese parametro y muestra un aviso naranja.
 ### J. `TenantContext` + refactor de llamadas duplicadas
 
 Se creo `context/TenantContext.tsx`:
+
 - Hace `GET organization/me/` UNA sola vez al montar el dashboard layout.
 - Expone `orgData`, `planInfo`, `flags` y `refresh` a todo el arbol de componentes.
 - Las paginas `usuarios`, `pacientes` y `citas-agenda` ahora consumen `useTenant()`
@@ -63,6 +69,7 @@ Se creo `context/TenantContext.tsx`:
 ### K. Sidebar con branding real + modulos condicionales
 
 `Sidebar.tsx` ahora:
+
 - Muestra nombre y logo real de la clinica usando `TenantStorage` + `orgData.branding`.
 - Si `branding.logo_url` existe, renderiza `<Image>` del logo real; si no, usa el icono
   con `color_primario` del plan.
@@ -81,21 +88,25 @@ con los datos frescos del response, sincrorizando el storage sin necesidad de pa
 ### M. Nuevos tipos: `TenantOrgData`, `TenantOrgSettings`, `TenantFlags`
 
 `lib/api.ts` ahora exporta:
+
 - `TenantOrgData` ? shape de `GET organization/me/` (branding, config, settings, subscription, usage).
 - `TenantOrgSettings` ? shape del endpoint `GET/PATCH organization/settings/`.
 - `TenantFlags` ? flags de modulos (`mostrar_modulo_crm`, `mostrar_notificaciones`, etc.).
 - `TenantSubscriptionEstado` ? union type del estado de suscripcion.
 
 ### N. `TenantContext` ampliado ? `usage` + `trial`
+
 - Expone `usage` (contadores reales del backend) y `trial` (`isTrial`, `diasRestantes`).
 - Pages `usuarios`, `pacientes`, `citas` usan `usage.xxx_actuales` para l?mites reales.
 - `citas-agenda` elimina el fetch mensual extra cuando el backend expone `usage`.
 
 ### O. Banner TRIAL en el dashboard layout
+
 `TrialBanner` se muestra entre el Header y `<main>` si `trial.isTrial === true`.
 Colores rojo/naranja/amarillo seg?n d?as restantes. Bot?n "Ver Planes" + dismiss.
 
 ### P. P?gina `/configuracion-org`
+
 Conectada a `GET/PATCH organization/settings/`. Permite cambiar: nombre de la cl?nica,
 logo (preview en tiempo real), colores (color picker + hex), timezone, idioma, y flags
 de m?dulos (`permit_reserva_online`, `mostrar_modulo_crm`, `mostrar_notificaciones`).
@@ -104,10 +115,12 @@ Al guardar llama `refresh()` del TenantContext ? Sidebar actualiza inmediatament
 ### Q. CU12 - Evaluaciones Quirurgicas (frontend completo)
 
 Nuevos archivos:
+
 - `frontend/src/lib/services/evaluacion_quirurgica.ts` ? CRUD completo + tipos TypeScript.
 - `frontend/src/app/(dashboard)/(gestion-atencionclinica)/evaluaciones-quirurgicas/page.tsx` ? pagina completa.
 
 La pagina incluye:
+
 - Header con boton "Nueva evaluacion".
 - 4 tarjetas de estadisticas: Total / Aptos / No aptos / Pendientes.
 - Filtros: busqueda en texto + filtro por estado prequirurgico.
@@ -125,10 +138,12 @@ Permisos backend: lectura para todos los autenticados; escritura solo `IsMedicoO
 ### R. CU13 - Preoperatorio (frontend completo)
 
 Nuevos archivos:
+
 - `frontend/src/lib/services/preoperatorio.ts` ? CRUD completo + tipos TypeScript.
 - `frontend/src/app/(dashboard)/(gestion-atencionclinica)/preoperatorio/page.tsx` ? pagina completa.
 
 La pagina incluye:
+
 - 4 stat cards: Total / Aprobados / En proceso / Pendientes.
 - Filtros: busqueda + filtro por estado.
 - Lista de tarjetas con: nombre paciente, badge de estado, fecha creacion, fecha cirugia programada, chips checklist/anestesia.
@@ -148,10 +163,12 @@ Regla de negocio clave: `estado=APROBADO` solo cuando `checklist_completado && a
 ### S. CU14 - Cirugias (frontend completo)
 
 Nuevos archivos:
+
 - `frontend/src/lib/services/cirugias.ts` ? CRUD + accion especial `reprogramar()`.
 - `frontend/src/app/(dashboard)/(gestion-atencionclinica)/cirugias/page.tsx` ? pagina completa.
 
 La pagina incluye:
+
 - 4 stat cards: Total / Programadas / En curso / Finalizadas.
 - Filtros: busqueda + filtro por estado (5 estados: PROGRAMADA, REPROGRAMADA, EN_CURSO, FINALIZADA, CANCELADA).
 - Lista de tarjetas con: nombre paciente, badge de estado, fecha programada, procedimiento (preview), fechas reales + duracion calculada en minutos, chips de reprogramacion y complicaciones.
@@ -168,10 +185,12 @@ La pagina incluye:
 ### T. CU15 - Postoperatorio (frontend completo)
 
 Nuevos archivos:
+
 - `frontend/src/lib/services/postoperatorio.ts` ? CRUD completo + tipos TypeScript.
 - `frontend/src/app/(dashboard)/(gestion-atencionclinica)/postoperatorio/page.tsx` ? pagina completa.
 
 La pagina incluye:
+
 - Banner de alertas: muestra controles con proximo_control vencido o en las proximas 48h.
 - 4 stat cards: Total / Estables / En observacion / Complicados (el contador de Complicados se pone en rojo si > 0).
 - 3 filtros: busqueda libre, estado, y filtro por fecha exacta (?fecha=YYYY-MM-DD ? feature nativa del backend).
@@ -188,16 +207,17 @@ La pagina incluye:
 API backend: `GET/POST/PATCH/DELETE /cirugias/` + `POST /cirugias/{id}/reprogramar/`
 Permisos backend: lectura para todos los autenticados; escritura y reprogramar solo `IsMedicoOrAdmin`.
 Reglas de negocio:
-  1. `fecha_programada` y `procedimiento` obligatorios.
-  2. `estado=FINALIZADA` ? `fecha_real_inicio` y `fecha_real_fin` obligatorias.
-  3. `fecha_real_inicio` <= `fecha_real_fin` (validacion cronologica).
-  4. `cirujano` se asigna automaticamente a `request.user` al crear (no es campo editable del formulario).
-  5. 
-**Fecha:** 2026-05-09 (continuacion: suite backup adaptada y verde)
+
+1. `fecha_programada` y `procedimiento` obligatorios.
+2. `estado=FINALIZADA` ? `fecha_real_inicio` y `fecha_real_fin` obligatorias.
+3. `fecha_real_inicio` <= `fecha_real_fin` (validacion cronologica).
+4. `cirujano` se asigna automaticamente a `request.user` al crear (no es campo editable del formulario).
+5. **Fecha:** 2026-05-09 (continuacion: suite backup adaptada y verde)
 
 **Cambio mayor:** se implementó el plan de estabilización de pruebas para `apps.backup` y se dejó la suite del módulo en verde bajo Docker.
 
 **Cambios aplicados:**
+
 - `backend/apps/backup/views.py`
   - orden explícito en `BackupConfigViewSet.get_queryset()` para evitar warning de paginación (`order_by('id_config')`).
 - `backend/apps/backup/tests.py`
@@ -207,13 +227,16 @@ Reglas de negocio:
   - pruebas de concurrencia migradas a mocks de queryset.
 
 **Validación ejecutada:**
+
 - `docker compose exec backend python manage.py test apps.backup`
 - Resultado: **OK (15 tests)**.
 
 **Cobertura nueva agregada:**
+
 - Tests del command `backup_automatico` para verificar uso de `tenant_context` y comportamiento cuando `--tenant-slug` no existe.
 
 **Pendiente inmediato:**
+
 1. Agregar integración tenant-schema real (opcional) con `tenant_context` para uno o dos tests E2E del módulo backup.
 2. Continuar con panel frontend de backups.
 
@@ -222,16 +245,19 @@ Detalle de sesión: `docs/ai/sessions/2026-05-09-agent-backup-tests-green.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-09 (continuacion: hardening + validacion backup/restore)
 
 **Cambio mayor:** se cerraron errores runtime restantes del flujo backup/restore multi-tenant y se validó E2E con tenant demo.
 
 **Fixes aplicados:**
+
 - `backend/apps/backup/validators.py`: import faltante `timedelta` (error 500 al crear backup manual).
 - `backend/apps/backup/services.py`: restore ya no depende de `backup.tenant` (modelo schema-local sin FK tenant); ahora recibe tenant explícito.
 - `backend/apps/backup/views.py`: `restore()` pasa `tenant=request.tenant` al servicio.
 
 **Validacion ejecutada:**
+
 - Login tenant: `POST /t/clinica-demo/api/auth/login/`
 - Plan info: `GET /t/clinica-demo/api/backup/plan-info/`
 - Cambio de plan: `POST /t/clinica-demo/api/organization/change-plan/` → `PLUS`
@@ -240,9 +266,11 @@ Detalle de sesión: `docs/ai/sessions/2026-05-09-agent-backup-tests-green.md`
 - Scheduler forzado: `python manage.py backup_automatico --force --tenant-slug clinica-demo` ✅
 
 **Docs corregidas:**
+
 - `README.md` y `docs/api/backup.md` actualizados a rutas reales `/t/<slug>/api/backup*` y `/t/<slug>/api/backup-config/`.
 
 **Pendiente inmediato:**
+
 1. Agregar/ajustar tests backend para cubrir los dos bugs corregidos (`timedelta` + restore sin `backup.tenant`).
 2. Resolver warning de paginación en `backup-config` (queryset sin ordering explícito).
 3. Implementar panel frontend para gestión de backups.
@@ -252,15 +280,18 @@ Detalle de sesión: `docs/ai/sessions/2026-05-09-agent-backup-smoke-fixes.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-09 (sistema completo de backup/restore multi-tenant)
 
 **Cambio mayor:** se implemento un sistema completo de backup/restore por tenant con API REST, backups automaticos programables, limites por plan y auditoria completa.
 
 **Archivos creados:**
+
 - `backend/apps/backup/` (app completa con modelos, servicios, vistas, serializers, URLs, admin, tests, management command)
 - `docs/api/backup.md` (documentacion completa de la API)
 
 **Archivos modificados:**
+
 - `backend/config/settings.py`: agregado `apps.backup` a TENANT_APPS + settings de backup
 - `backend/config/urls.py`: registradas URLs de backup
 - `backend/Dockerfile`: agregado `postgresql-client` para pg_dump/psql
@@ -268,6 +299,7 @@ Detalle de sesión: `docs/ai/sessions/2026-05-09-agent-backup-smoke-fixes.md`
 - `README.md`: actualizado con seccion multi-tenant + comandos de backup
 
 **Verificacion:**
+
 - Modelos: `TenantBackup` (metadata) + `TenantBackupConfig` (config automatica)
 - Servicio: `BackupService` con `pg_dump --schema` + gzip + storage
 - REST API: CRUD + restore + download + config + plan-info
@@ -277,6 +309,7 @@ Detalle de sesión: `docs/ai/sessions/2026-05-09-agent-backup-smoke-fixes.md`
 - Docker: scheduler corre cada hora
 
 **Pendiente inmediato:**
+
 1. Rebuild Docker backend: `docker compose build backend` (para incluir postgresql-client)
 2. Ejecutar migraciones: `docker compose run --rm backend python manage.py migrate`
 3. Implementar panel frontend para gestion de backups
@@ -289,11 +322,13 @@ Detalle: `docs/ai/sessions/2026-05-09-backup-restore-system.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-09 (migracion completa a django-tenants con schemas)
 
 **Cambio mayor:** el backend migro completamente del enfoque anterior (header `X-Tenant-Slug` + FK nullable + scoping manual) a `django-tenants` con **schema-per-tenant** en PostgreSQL.
 
 **Verificacion completa:**
+
 - `settings.py`: `SHARED_APPS`, `TENANT_APPS`, `TenantSubfolderMiddleware`, `django_tenants.postgresql_backend`, `TenantSyncRouter`, `PUBLIC_SCHEMA_URLCONF`.
 - `config/urls.py`: URLs tenant-scoped (`/t/<slug>/api/...`).
 - `config/urls_public.py`: URLs publicas (`/api/...`, `/api/public/...`).
@@ -304,6 +339,7 @@ Detalle: `docs/ai/sessions/2026-05-09-backup-restore-system.md`
 - `entrypoint.sh`: bootstrap completo (migrate_schemas --shared, planes, tenant public, tenant demo, migrate_schemas --tenant, seeders, collectstatic).
 
 **Estado de clientes:**
+
 - **Frontend (Next.js):** NO actualizado. Sigue usando `/api/...` sin prefijo de tenant.
 - **Mobile (Flutter):** NO actualizado. Sigue usando `/api/...` sin prefijo de tenant.
 
@@ -316,6 +352,7 @@ Detalle: `docs/ai/sessions/2026-05-09-agent-memoria-django-tenants.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-09 (push turnos: recordatorios automaticos → FCM)
 
 **Verificacion:** la base de push ya estaba implementada en backend+mobile (registro de token FCM, listeners foreground/background, pantalla de notificaciones).
@@ -323,12 +360,14 @@ Detalle: `docs/ai/sessions/2026-05-09-agent-memoria-django-tenants.md`
 **Faltante detectado y cerrado:** en el procesamiento de recordatorios automaticos (CU17), la tarea solo creaba `Notificacion` en BD y no enviaba push real.
 
 **Cambio aplicado:**
+
 - Archivo: `backend/apps/notificaciones/automatizaciones/serializers.py`
 - Metodo: `procesar_tarea_recordatorio(...)`
 - Antes: `Notificacion.objects.create(...)`
 - Ahora: `enviar_push_a_usuario(...)` con payload (`tipo`, `postoperatorio_id`, `tarea_id`)
 
 **Resultado:**
+
 - Se mantiene historial interno de notificaciones.
 - Si Firebase esta configurado y el usuario tiene dispositivos registrados, se envia push FCM real.
 - Si Firebase no esta configurado, el flujo no falla (warning + notificacion en BD).
@@ -340,9 +379,11 @@ Detalle: `docs/ai/sessions/2026-05-09-agent-push-turnos-fcm.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-08 (mobile: agendar cita)
 
 **Agendar cita:** se implemento flujo completo para agendar citas desde la app paciente:
+
 - **Backend**: `GET /api/especialistas-disponibles/` (solo lectura, especialistas activos).
 - **CitasRepository**: `scheduleAppointment()`, `getAvailableSpecialists()`, `getAppointmentTypes()`.
 - **ScheduleAppointmentScreen**: 3 pasos (especialista → fecha/hora → confirmar).
@@ -356,9 +397,11 @@ Detalle: `docs/ai/sessions/2026-05-08-agent-mobile-schedule-appointment.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-08 (mobile: recuperacion de contraseña)
 
 **Reset password:** se implemento flujo completo de recuperacion de contraseña en mobile:
+
 - `AuthRepository`: metodos `requestPasswordReset()` y `confirmPasswordReset()`.
 - `ForgotPasswordScreen`: solicita email, envia solicitud al backend, muestra exito generico.
 - `ResetPasswordScreen`: ingresa token (de Mailhog) + nueva contraseña, confirma reset.
@@ -374,9 +417,11 @@ Detalle: `docs/ai/sessions/2026-05-08-agent-mobile-reset-password.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-08 (mobile UI/UX UX-05: accesibilidad)
 
 **Accesibilidad (UX-05):** se aplicaron mejoras de accesibilidad en 7 archivos de la app paciente:
+
 - **Semantics labels** en todos los elementos interactivos (avatar, notificaciones, fecha, accesos rapidos, tabs, citas, consultas, estudios, botones).
 - **Touch targets minimos 44x44** en `_TabChip`, `_QuickTile` y `FilledButton` usando `ConstrainedBox` y `minimumSize`.
 - **Feedback visual** consistente con `InkWell` + `borderRadius`.
@@ -389,9 +434,11 @@ Detalle: `docs/ai/sessions/2026-05-08-agent-mobile-uiux-ux05-accesibilidad.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-08 (mobile UI/UX iteracion 3: tokenizacion completa)
 
 **Tokenizacion Batch A+B+C:** se reemplazaron valores hardcodeados de spacing/motion por tokens `AppTheme.space*` y `AppTheme.motion*` en toda la app paciente:
+
 - **Batch A:** `patient_home_screen.dart`, `patient_appointments_section.dart`, `patient_next_appointment_card.dart`
 - **Batch B:** `patient_clinical_screen.dart`, `login_screen.dart`, `register_screen.dart`
 - **Batch C:** `patient_home_header.dart`, `patient_quick_access_row.dart`
@@ -405,6 +452,7 @@ Detalle: `docs/ai/sessions/2026-05-08-agent-mobile-uiux-iteracion3.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-08 (mobile UI/UX iteracion 2)
 
 **Tokens:** se agregaron motion tokens (`motionFast/Normal/Slow`) y spacing scale (`space1`–`space6`) en `config/theme.dart`.
@@ -412,6 +460,7 @@ Detalle: `docs/ai/sessions/2026-05-08-agent-mobile-uiux-iteracion3.md`
 **Shared widgets:** se agrego `AppShimmerCard` para loading de cards hero.
 
 **Refactor:**
+
 - `PatientNextAppointmentCard` usa estados compartidos + `AnimatedSwitcher`.
 - `_ProfileTab` envuelto en `AppFadeSlideIn` con `_ProfileCard` mejorado.
 
@@ -424,11 +473,13 @@ Detalle: `docs/ai/sessions/2026-05-08-agent-mobile-uiux-iteracion2.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-08 (mobile UI/UX iteracion 1)
 
 **Mobile:** se agrego capa UI compartida en `mobile/lib/core/ui/widgets/app_async_states.dart` para estados `loading/empty/error` y animacion `fade+slide`.
 
 **Refactor:**
+
 - `patient_appointments_section.dart` usa componentes compartidos + `AnimatedSwitcher`.
 - `patient_clinical_screen.dart` usa mismos patrones UX en tabs de Consultas/Estudios.
 
@@ -441,6 +492,7 @@ Detalle: `docs/ai/sessions/2026-05-08-agent-mobile-uiux-iteracion1.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-08 (rollback Sleek command + DESING.md)
 
 **Rollback:** se eliminó el comando `/sleek-design` (`.opencode/commands/sleek-design.md`) y sus referencias en `.opencode/README.md` y `docs/ai/PROMPTS_LIBRARY.md`.
@@ -454,6 +506,7 @@ Detalle: `docs/ai/sessions/2026-05-08-agent-desing-md-rollover.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-08 (workflow Sleek diseno mobile)
 
 **Comando:** se agrego `.opencode/commands/sleek-design.md` para operar Sleek API end-to-end en tareas de UI mobile: proyecto, chat run async, polling, screenshots por `componentId` y export de HTML para implementacion.
@@ -467,6 +520,7 @@ Detalle: `docs/ai/sessions/2026-05-08-agent-sleek-design-workflow.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-08 (workflows OpenCode: commands, skills, plugin y todo-list)
 
 **Comandos:** se agrego `.opencode/commands/` con `/check-project`, `/commit`, `/update-memory`, `/review-security`, `/validate-stack`, `/puds-status`, `/handoff` y `/todo-start`. `/commit` exige revision de secretos, `.gitignore`, staged/unstaged changes y mensaje antes de commitear.
@@ -484,6 +538,7 @@ Detalle: `docs/ai/sessions/2026-05-08-agent-opencode-workflows.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-08 (sistema multi-agente OpenCode local)
 
 **Agentes:** se agrego `.opencode/agents/` con agentes en formato hibrido OpenCode-compatible: `orchestrator`, `backend`, `frontend`, `mobile`, `ui-ux`, `architecture`, `architect-planner`, `code-review`, `qa-testing`, `devops` e `infra`.
@@ -499,6 +554,7 @@ Detalle: `docs/ai/sessions/2026-05-08-agent-multi-agent-system.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-05 (Fase 1b multi-tenant segunda ola, parcial)
 
 **Backend:** se reforzó el tenant-aware scoping en citas, consultas, CRM y automatizaciones con FK a `Tenant`, backfill `legacy` y serializers que bloquean tenant/relaciones cruzadas desde el cliente.
@@ -512,6 +568,7 @@ Detalle: `docs/ai/sessions/2026-05-05-agent-multi-tenant-fase1b-oleada2.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-04 (Fase 1b multi-tenant primera ola)
 
 **Backend:** se agregaron FK nullable a `Tenant` en raíces críticas (`Usuario`, `Paciente`, `HistoriaClinica`, `Bitacora`, `Notificacion`, `DispositivoFcm`, `Especialista`) con backfill a `legacy`.
@@ -525,6 +582,7 @@ Detalle: `docs/ai/sessions/2026-05-05-agent-multi-tenant-fase1b-oleada2.md`
 Detalle: `docs/ai/sessions/2026-05-04-agent-multi-tenant-fase1b-oleada1.md`
 
 ## Resumen
+
 **Fecha:** 2026-05-04 (Fase 1a multi-tenant base)
 
 **Backend:** se agrego la base multi-tenant con `apps.tenant`, middleware `X-Tenant-Slug` y contexto utilitario en `apps.core`.
@@ -539,7 +597,6 @@ Detalle: `docs/ai/sessions/2026-05-04-agent-multi-tenant-fase1b-oleada1.md`
 
 Detalle: `docs/ai/sessions/2026-05-04-agent-multi-tenant-fase1a.md`
 
-
 ---
 
 ### U. CU16 - CRM para la comunicacion con pacientes (backend extendido)
@@ -550,6 +607,7 @@ El modulo `backend/apps/crm` existia parcialmente. Se extendio el modelo `Histor
 con los campos requeridos por CU16.
 
 **Archivos modificados:**
+
 - `backend/apps/crm/models.py` - 2 nuevos `TextChoices` (TipoMensaje, EstadoComunicacion) + 5 nuevos campos.
 - `backend/apps/crm/serializers.py` - Validacion: estado=RESPONDIDO requiere respuesta_paciente.
 - `backend/apps/crm/views.py` - Filtros ampliados (tipo_mensaje, estado_comunicacion); search incluye asunto, mensaje, respuesta.
@@ -557,6 +615,7 @@ con los campos requeridos por CU16.
 - `backend/apps/crm/migrations/0003_historialcontacto_cu16_fields.py` - Migracion para aplicar.
 
 **Nuevos campos en `HistorialContacto`:**
+
 ```
 tipo_mensaje        RECORDATORIO|NOTIFICACION|SEGUIMIENTO|RESULTADO|INFORMATIVO|OTRO  (default: SEGUIMIENTO)
 asunto              CharField 200, opcional
@@ -566,6 +625,7 @@ estado_comunicacion PENDIENTE|ENVIADO|ENTREGADO|LEIDO|RESPONDIDO|FALLIDO  (defau
 ```
 
 **Para aplicar la migracion:**
+
 ```bash
 docker compose exec backend python manage.py migrate crm
 ```
@@ -577,10 +637,12 @@ docker compose exec backend python manage.py migrate crm
 **Fecha:** 2026-05-09
 
 Nuevos archivos:
+
 - `frontend/src/lib/services/crm.ts` - Interfaces + constantes + `historialContactoService` + `campanaCRMService`.
 - `frontend/src/app/(dashboard)/(gestion-crm)/crm/contactos/page.tsx` - Pagina completa CU16.
 
 La pagina `/crm/contactos` incluye:
+
 - Header con boton "Nueva comunicacion".
 - 4 stat cards: Total / Pendientes / Respondidas / Fallidas (Fallidas en rojo si > 0).
 - 4 filtros: busqueda libre + tipo de mensaje + estado de comunicacion + canal.
@@ -595,6 +657,7 @@ La pagina `/crm/contactos` incluye:
 - Modal de confirmacion de eliminacion.
 
 Archivos modificados:
+
 - `Sidebar.tsx` - Fix import duplicado `ClipboardList`; label "Comunicaciones" con icono `MessageSquare`; orden: Comunicaciones primero, Campanas segundo.
 - `Header.tsx` - Breadcrumbs `/crm/contactos`, `/crm/campanas`, `/crm`.
 - `lib/services/index.ts` - Exporta `historialContactoService`, `campanaCRMService`, constantes y tipos.
@@ -612,6 +675,7 @@ Sub-modulo creado dentro del paquete CRM: `backend/apps/crm/reportes/`.
 Patron: mismo que los sub-modulos de `atencionClinica` (cirugias, preoperatorio, etc.).
 
 **Archivos creados:**
+
 - `apps.py` ? `ReportesConfig` con `name='apps.crm.reportes'`
 - `models.py` ? modelo `ReporteGenerado` (tabla: `crm_reportes_generados`)
 - `serializers.py` ? `ReporteGeneradoSerializer` + `GenerarReporteRequestSerializer`
@@ -621,10 +685,12 @@ Patron: mismo que los sub-modulos de `atencionClinica` (cirugias, preoperatorio,
 - `migrations/0001_initial.py`
 
 **Archivos modificados:**
+
 - `config/settings.py` ? `'apps.crm.reportes'` en `TENANT_APPS`
 - `config/urls.py` ? `path('', include('apps.crm.reportes.urls'))`
 
 **Endpoints:**
+
 ```
 GET  /reportes/tipos/        ? catalogo de 7 tipos disponibles
 GET  /reportes/              ? historial de reportes generados (paginado)
@@ -645,6 +711,7 @@ POST /reportes/{id}/regenerar/ ? re-ejecutar con mismos parametros
 | CRM_COMUNICACIONES | HistorialContacto |
 
 **Request de ejemplo:**
+
 ```json
 POST /reportes/generar/
 {
@@ -656,11 +723,13 @@ POST /reportes/generar/
 ```
 
 **Para aplicar la migracion:**
+
 ```bash
 docker compose exec backend python manage.py migrate crm_reportes
 ```
 
 **Proximos pasos:**
+
 1. Frontend CU17: pagina `/reportes` con selector de tipo, rango de fechas, preview de datos y boton "Exportar CSV".
 2. Mobile (Flutter): implementar `WorkspaceScreen` + `TenantInterceptor` de Dio.
    Guia completa en `docs/ai/sessions/2026-05-09-agent-multi-tenant-frontend.md` Seccion 5.
@@ -674,9 +743,11 @@ Detalle: `docs/ai/sessions/2026-05-09-agent-multi-tenant-frontend.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-09 (Multi-Tenant Frontend ? primera parte)
 
 **Frontend Web:**
+
 - `lib/api.ts`: `TenantStorage` + interceptor que reescribe `baseURL` a `/t/<slug>/api` automaticamente.
 - `login/page.tsx`: flujo 2 pasos estilo Slack (slug ? credenciales + branding dinamico del tenant).
 - `lib/services/auth.ts`: logout limpia `TenantStorage`.
@@ -687,6 +758,7 @@ Detalle: `docs/ai/sessions/2026-05-09-agent-multi-tenant-frontend.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-05 (Fase 1b multi-tenant segunda ola, parcial)
 
 **Backend:** se reforz? el tenant-aware scoping en citas, consultas, CRM y automatizaciones con FK a `Tenant`, backfill `legacy` y serializers que bloquean tenant/relaciones cruzadas desde el cliente.
@@ -696,6 +768,7 @@ Detalle: `docs/ai/sessions/2026-05-05-agent-multi-tenant-fase1b-oleada2.md`
 ---
 
 ## Resumen
+
 **Fecha:** 2026-05-04 (Fase 1b multi-tenant primera ola)
 
 **Backend:** se agregaron FK nullable a `Tenant` en ra?ces cr?ticas (`Usuario`, `Paciente`, `HistoriaClinica`, `Bitacora`, `Notificacion`, `DispositivoFcm`, `Especialista`) con backfill a `legacy`.
@@ -703,6 +776,7 @@ Detalle: `docs/ai/sessions/2026-05-05-agent-multi-tenant-fase1b-oleada2.md`
 Detalle: `docs/ai/sessions/2026-05-04-agent-multi-tenant-fase1b-oleada1.md`
 
 ## Resumen
+
 **Fecha:** 2026-05-04 (Fase 1a multi-tenant base)
 
 **Backend:** se agrego la base multi-tenant con `apps.tenant`, middleware `X-Tenant-Slug` y contexto utilitario en `apps.core`.
@@ -712,12 +786,14 @@ Detalle: `docs/ai/sessions/2026-05-04-agent-multi-tenant-fase1a.md`
 ---
 
 ## Que debe hacer el siguiente agente
+
 1. Leer `docs/ai/CURRENT_STATE.md` y la sesion de hoy.
 2. Verificar `.env`: `NEXT_PUBLIC_API_URL=http://localhost:8000/api`.
 3. El desarrollador Mobile debe leer la Seccion 5 del archivo de sesion de hoy para implementar el interceptor en Flutter/Dio.
 4. Si hay tiempo, aplicar restricciones de plan en CRM y Notificaciones con el mismo patron de `organization/me/`.
 
 ## Variables (recordatorio)
+
 ```
 NEXT_PUBLIC_API_URL=.../api     # sin segunda barra /api en paths del cliente
 tenant_slug=...                 # guardado en localStorage por TenantStorage al hacer login

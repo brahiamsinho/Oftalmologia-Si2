@@ -8,8 +8,11 @@ Important: do not place documentation-only markdown files inside `.opencode/agen
 
 ## Agents
 
+<<<<<<< HEAD
 _Definiciones equivalentes para **Cursor** (Project Rules, `@agent-*`): `.cursor/rules/*.mdc` — ver `.cursor/rules/README.md`. OpenCode sigue usando solo `.opencode/agents/`._
 
+=======
+>>>>>>> a1b3cfbc7f09b37d0c5426a9fdcc486986b4f915
 - `orchestrator`: primary coordinator and router.
 - `backend`: Django, DRF, PostgreSQL, JWT, tenant, permissions, migrations, backend tests.
 - `frontend`: Next.js, React, dashboard UI, services, forms, responsive UX, accessibility.

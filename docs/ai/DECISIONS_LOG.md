@@ -3,6 +3,7 @@
 Este archivo documenta todas las decisiones técnicas arquitectónicas importantes tomadas en la evolución del proyecto.
 
 ## Formato de Registro
+
 - **Fecha:** YYYY-MM-DD
 - **Decisión:** Resumen de la decisión técnica.
 - **Motivo:** ¿Por qué se tomó y qué alternativas se consideraron?
@@ -13,7 +14,7 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 **Fecha:** 2026-05-10  
 **Decisión:** Identidad de **superadmin SaaS** separada de `Usuario` de clínica: modelo **`PlatformAdministrator`** en app shared `apps.platform_admin` (tabla `platform_administrator` en schema `public`). JWT de plataforma con claim `token_scope=platform` (`PlatformAccessToken`); autenticación DRF por defecto **`TenantScopedJWTAuthentication`** rechaza tokens plataforma en APIs `/t/<slug>/`. **`TenantManagementViewSet`** usa **`PlatformJWTAuthentication`** + **`IsPlatformAdministrator`**. Sin refresh JWT plataforma en MVP (sesión larga vía `PLATFORM_JWT_ACCESS_MINUTES`); bootstrap con `ensure_platform_admin` + variables `PLATFORM_ADMIN_*` en entrypoint.  
 **Motivo:** Los usuarios clínicos viven solo en schemas tenant; `IsAdminUser` sobre `Usuario` no existe en `public`. Evitar mezclar tokens y evitar que un Bearer de plataforma acceda a datos clínicos por error.  
-**Impacto:** Nuevas rutas `/api/public/platform/auth/*`; frontend `platformApi.ts` y rutas `/platform/*`; documentación en `docs/ai/PLATFORM_SAAS.md`.  
+**Impacto:** Nuevas rutas `/api/public/platform/auth/*`; frontend `platformApi.ts` y rutas `/platform/*`; documentación en `docs/ai/PLATFORM_SAAS.md`.
 
 ---
 
@@ -207,7 +208,7 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 ---
 
 **Fecha:** 2026-05-01  
-**Decisión:** Para Fase 1 (CU12) se implementa endpoint plano ` /api/evaluaciones-quirurgicas/ `, manteniendo prefijo global `/api/` y sin romper rutas existentes.  
+**Decisión:** Para Fase 1 (CU12) se implementa endpoint plano `/api/evaluaciones-quirurgicas/`, manteniendo prefijo global `/api/` y sin romper rutas existentes.  
 **Motivo:** Requerimiento funcional de fase con aprobacion humana incremental.  
 **Impacto:** CU13..CU15 deben mantener consistencia de naming de endpoints planos solicitados en el plan por fases.
 
