@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import {
   postoperatorioService,
-  ESTADO_POSTOP_LABELS,
   type Postoperatorio,
   type PostoperatorioCreate,
 } from '@/lib/services/postoperatorio';
@@ -592,7 +591,7 @@ export default function PostoperatorioPage() {
     async function loadSupport() {
       try {
         const [pacRes, hisRes, cirRes] = await Promise.all([
-          pacientesService.fetchAll(),
+          pacientesService.listAll(),
           historialService.list(),
           cirugiasService.list(),
         ]);

@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LogOut, Menu } from 'lucide-react';
 import { useSidebar } from '@/context/SidebarContext';
@@ -49,13 +48,6 @@ export default function PlatformHeader() {
       </div>
 
       <div className="flex flex-shrink-0 items-center gap-1 sm:gap-2">
-        <Link
-          href="/login"
-          className="rounded-lg px-3 py-2 text-[13px] font-medium text-blue-600 hover:bg-blue-50 hover:text-blue-700"
-        >
-          <span className="hidden sm:inline">Login clínica</span>
-          <span className="sm:hidden">Clínica</span>
-        </Link>
         <button
           type="button"
           onClick={logout}

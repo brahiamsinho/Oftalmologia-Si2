@@ -12,13 +12,24 @@
 
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-// ── Base URL (obligatoria: NEXT_PUBLIC_API_URL en .env de la raíz del monorepo) ─
+// ── Base URL (NEXT_PUBLIC_API_URL en .env; si falta, fallback localhost como .env.example) ─
+let warnedMissingPublicApiUrl = false;
+
 function resolveApiBaseUrl(): string {
   let raw = process.env.NEXT_PUBLIC_API_URL?.trim();
   if (!raw) {
-    throw new Error(
-      'NEXT_PUBLIC_API_URL no está definida. Copiá .env.example a .env en la raíz del repo y definí la URL del backend.',
-    );
+    // Misma URL que .env.example: permite `next build` / prerender sin .env local;
+    // en despliegue real definí NEXT_PUBLIC_API_URL explícitamente.
+    raw = 'http://localhost:8000/api';
+    if (typeof window === 'undefined' && !warnedMissingPublicApiUrl) {
+      warnedMissingPublicApiUrl = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[api] NEXT_PUBLIC_API_URL no definida; usando fallback',
+        raw,
+        '— copiá .env.example a .env o definí la variable en CI/Docker.',
+      );
+    }
   }
   // Coma en .env suele ser error (p.ej. dos URLs); CORS sí admite lista separada por coma, esto NO.
   if (raw.includes(',')) {

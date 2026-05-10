@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import {
   evaluacionQuirurgicaService,
-  ESTADO_LABELS,
   type EvaluacionQuirurgica,
   type EvaluacionQuirurgicaCreate,
 } from '@/lib/services/evaluacion_quirurgica';
@@ -618,7 +617,7 @@ export default function EvaluacionesQuirurgicasPage() {
     async function loadSupport() {
       try {
         const [pacRes, hisRes] = await Promise.all([
-          pacientesService.fetchAll(),
+          pacientesService.listAll(),
           historialService.list(),
         ]);
         setPacientes(pacRes);

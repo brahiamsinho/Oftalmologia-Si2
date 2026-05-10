@@ -109,8 +109,11 @@ Thumbs.db
 
 
 
-AGENTS.md
-
-BaseDeDatos.sql
-.opencode/
+#AGENTS.md
+.env
+.agents/
 .cursor/
+.opencode/
+bfg-1.15.0.jar
+BaseDeDatos.sql
+skills-lock.json

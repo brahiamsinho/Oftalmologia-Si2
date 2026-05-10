@@ -1,5 +1,14 @@
 # CURRENT STATE
 
+## Actualizacion 2026-05-10 (build frontend + Fase 0 plan)
+- **Lucide:** `Scalpel` → `Slice` en cirugías y sidebar (icono no exportado en lucide 0.460).
+- **Pacientes:** `pacientesService.listAll()` (paginación agregada vía `fetchAll`); reemplaza usos erróneos de `fetchAll()` en cirugías, evaluaciones, pre/postoperatorio.
+- **CRM contactos:** tipo `Paciente` importado desde `@/lib/types`.
+- **ESLint:** imports/vars sin uso en varias páginas; `react/no-unescaped-entities` en contactos; estado `total` no usado en citas-agenda.
+- **`api.ts`:** si falta `NEXT_PUBLIC_API_URL`, fallback `http://localhost:8000/api` (como `.env.example`) + un solo `console.warn` en SSR/build; permite `next build` sin `.env`.
+- **Login:** `useSearchParams` envuelto en `<Suspense>` para prerender.
+- **`npm run build`:** exit 0 (quedan warnings eslint next/font e img en landing).
+
 ## Memoria / índice para agentes (2026-05-10)
 
 | Documento | Contenido |

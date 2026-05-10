@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   LayoutGrid,
-  LogIn,
   LogOut,
 } from 'lucide-react';
 import { useSidebar } from '@/context/SidebarContext';
@@ -57,6 +56,8 @@ function NavItem({
 /**
  * Sidebar del panel superadmin — mismo patrón visual que el dashboard de clínica
  * (`Sidebar.tsx`): fondo blanco, borde, colapsable, drawer en móvil.
+ * No enlaza a `/login` (portal clínica): el shell queda acotado a operación plataforma;
+ * el acceso público de clínicas es otra URL y otra sesión (JWT tenant vs platform).
  */
 export default function PlatformSidebar() {
   const pathname = usePathname();
@@ -133,26 +134,6 @@ export default function PlatformSidebar() {
             label="Organizaciones"
             icon={LayoutGrid}
             active={is('/platform/dashboard')}
-            collapsed={isCollapsed}
-            onNavigate={closeMobileDrawer}
-          />
-        </ul>
-
-        <div className="mx-1 my-3 border-t border-gray-100" />
-
-        <p
-          className={`mb-1 px-3 text-[10px] font-semibold uppercase tracking-wide text-gray-400 ${
-            isCollapsed ? 'sr-only' : ''
-          }`}
-        >
-          Accesos
-        </p>
-        <ul className="space-y-0.5">
-          <NavItem
-            href="/login"
-            label="Login clínica"
-            icon={LogIn}
-            active={false}
             collapsed={isCollapsed}
             onNavigate={closeMobileDrawer}
           />

@@ -8,7 +8,7 @@ import {
   Activity, LayoutDashboard, Users, ShieldCheck, ScrollText,
   ClipboardList, LogOut, ChevronLeft, ChevronRight,
   ChevronDown, ChevronUp, KeyRound,
-  Stethoscope, Eye, Calendar, List, Scissors, Scalpel, HeartPulse,
+  Stethoscope, Eye, Calendar, List, Scissors, Slice, HeartPulse,
   Megaphone, Bell, BarChart2, Settings, MessageSquare,
 } from 'lucide-react';
 import { useAuth }    from '@/context/AuthContext';
@@ -251,7 +251,7 @@ export default function Sidebar() {
             <NavItem href="/citas-agenda"             label="Citas y Agenda"        icon={Calendar}      active={is('/citas-agenda')}              collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
             <NavItem href="/evaluaciones-quirurgicas" label="Eval. Quirúrgica"      icon={Scissors}      active={is('/evaluaciones-quirurgicas')}  collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
             <NavItem href="/preoperatorio"            label="Preoperatorio"         icon={ClipboardList} active={is('/preoperatorio')}             collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
-            <NavItem href="/cirugias"                 label="Cirugías"              icon={Scalpel}       active={is('/cirugias')}                  collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
+            <NavItem href="/cirugias"                 label="Cirugías"              icon={Slice}         active={is('/cirugias')}                  collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
             <NavItem href="/postoperatorio"           label="Postoperatorio"        icon={HeartPulse}    active={is('/postoperatorio')}            collapsed={false} depth={1} onNavigate={closeMobileDrawer} />
           </NavGroup>
         </ul>

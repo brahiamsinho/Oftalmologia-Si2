@@ -4,6 +4,10 @@
 
 ## Resumen
 
+**Fecha:** 2026-05-10 — **UI/UX logins:** `/login` (clínica): `main`/aside, labels `htmlFor`, `role="alert"`, inputs `min-h-[48px]`, toggle contraseña accesible, copy “portal de clínica” vs “Acceso plataforma”, Suspense fallback alineado al gradiente. `/platform/login`: tema oscuro índigo/violeta, `ShieldCheck`, show password, CTAs 48px, enlaces a clínica e inicio.
+
+**Fecha:** 2026-05-10 — **Build frontend (plan Fase 0):** `Scalpel`→`Slice`; `pacientesService.listAll()`; import `Paciente` en CRM; ESLint/citas-agenda; `api.ts` fallback `NEXT_PUBLIC_API_URL` + warning único; login `Suspense`+`useSearchParams`; `npm run build` OK. Sesión `docs/ai/sessions/2026-05-10-agent-plan-build-hardening.md`. `NEXT_STEPS` actualizado (URLs tenant en axios ya hechas).
+
 **Fecha:** 2026-05-10 — **UI shell panel plataforma (superadmin):** `frontend/src/app/platform/dashboard/layout.tsx` con `SidebarProvider`, `PlatformSidebar` y `PlatformHeader` (mismo patrón que `(dashboard)/layout`: sidebar 220/64px, overlay móvil, `gray-50` + header sticky). `platform/layout.tsx` solo renderiza `children`; login `/platform/login` añade `bg-slate-950` propio. Componentes: `frontend/src/components/platform/PlatformSidebar.tsx`, `PlatformHeader.tsx`. Página `dashboard/page.tsx`: tema claro alineado al shell; “Login clínica” / “Salir” en header lateral + barra superior.
 
 **Fecha:** 2026-05-10 — **Cursor Project Rules (`agent-*.mdc`):** formato oficial + contenido alineado a OpenCode (`description`, Role/Scope/Rules/Deliverables, tabla permisos equivalentes, `mode`, ruta fuente). Cursor **no enforce** permisos como OpenCode; ver `.cursor/rules/README.md`. Puntero `.cursor/agents/README.md`.

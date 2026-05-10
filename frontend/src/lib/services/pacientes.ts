@@ -48,6 +48,17 @@ export const pacientesService = {
     return fetchAll<Paciente>(`/pacientes/?${q.toString()}`);
   },
 
+  /** Todas las fichas (paginación agregada). Para selectores en cirugías y similares. */
+  async listAll(params?: Omit<PacientesParams, 'page'>): Promise<Paciente[]> {
+    const q = new URLSearchParams({ ordering: 'apellidos' });
+    if (params?.search?.trim()) q.set('search', params.search.trim());
+    if (params?.estado_paciente) q.set('estado_paciente', params.estado_paciente);
+    if (params?.sexo) q.set('sexo', params.sexo);
+    if (params?.sin_cuenta) q.set('sin_cuenta', 'true');
+    if (params?.ordering) q.set('ordering', params.ordering);
+    return fetchAll<Paciente>(`/pacientes/?${q.toString()}`);
+  },
+
   /** Obtener un paciente por ID */
   async get(id: number): Promise<Paciente> {
     const { data } = await api.get<Paciente>(`/pacientes/${id}/`);

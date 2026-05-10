@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import {
   preoperatorioService,
-  ESTADO_PREOP_LABELS,
   type Preoperatorio,
   type PreoperatorioCreate,
 } from '@/lib/services/preoperatorio';
@@ -704,7 +703,7 @@ export default function PreoperatorioPage() {
     async function loadSupport() {
       try {
         const [pacRes, hisRes, evRes] = await Promise.all([
-          pacientesService.fetchAll(),
+          pacientesService.listAll(),
           historialService.list(),
           evaluacionQuirurgicaService.list(),
         ]);
