@@ -13,6 +13,7 @@ Proveer un sistema integral híbrido (Web + Mobile), moderno y escalable que cen
 - **Backend Central:** API RESTful robusta y segura (Django).
 - **Frontend Web:** Interfaz para administradores, médicos y personal de recepción (Next.js).
 - **Mobile:** Aplicación móvil interactiva para pacientes (agendamiento, historial) y médicos (agenda, notas) nativamente multiplataforma (Flutter).
+- **SaaS multi-tenant:** Clínicas aisladas por **schema PostgreSQL** (`django-tenants`); planes FREE/PLUS/PRO; **dos portales web**: operación por clínica (`/login` + `/t/<slug>/…`) y **administración de la plataforma** (`/platform/login`) para gestionar organizaciones sin mezclar datos clínicos entre schemas (ver `docs/ai/PLATFORM_SAAS.md`).
 
 ## Visión del Sistema
 Una plataforma segura, modular y altamente mantenible preparada para Local + Docker + Nube/VM. Construida como un monorepo que separa estrictamente las responsabilidades del backend (reglas de negocio y datos), de los frontends web y mobile (presentación en sus respectivos paradigmas).

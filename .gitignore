@@ -64,7 +64,6 @@ mobile/.metadata
 # =========================
 # Environment & Secrets
 # =========================
-.env
 mobile/.env
 .env.local
 .env.*.local
@@ -109,8 +108,9 @@ Thumbs.db
 
 
 
-venv/
-#AGENTS.md
+
+AGENTS.md
 
 BaseDeDatos.sql
-BaseDeDatos.sql
+.opencode/
+.cursor/

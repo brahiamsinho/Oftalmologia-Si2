@@ -1,5 +1,45 @@
 # CURRENT STATE
 
+## Memoria / índice para agentes (2026-05-10)
+
+| Documento | Contenido |
+|-----------|-----------|
+| **`docs/ai/PLATFORM_SAAS.md`** | **Referencia canónica:** login clínica vs plataforma, JWT `token_scope`, URLs `/api/public/...`, env `PLATFORM_*`, panel web (login, dashboard, **shell sidebar/header**, archivos frontend). Leer antes de cambiar auth o tenants. |
+| `docs/ai/ARCHITECTURE.md` | Multi-tenant, schemas, flujos web; enlaza a PLATFORM_SAAS. |
+| `docs/ai/DECISIONS_LOG.md` | Decisión formal superadmin SaaS (2026-05-10). |
+| `docs/ai/HANDOFF_LATEST.md` | Últimos cambios y archivos tocados. |
+| `docs/ai/NEXT_STEPS.md` | Backlog priorizado. |
+
+---
+
+## Actualizacion 2026-05-10 (shell UI `/platform/dashboard`)
+- **Frontend:** layout dedicado con sidebar + navbar reutilizando `SidebarContext` / `useMediaQuery` como el dashboard clínica; componentes `components/platform/PlatformSidebar.tsx`, `PlatformHeader.tsx`. Login plataforma conserva fondo oscuro en la propia página.
+
+## Actualizacion 2026-05-10 (Cursor: rules oficiales para “subagentes”)
+- **Project Rules** en `.cursor/rules/agent-*.mdc` según [documentación Cursor Rules](https://cursor.com/docs/context/rules): `alwaysApply: false` sin `description` ni `globs` → aplicación solo al **@-mencionar** la regla (equivalente manual a subagentes). Índice `.cursor/rules/README.md`. Carpeta `.cursor/agents/` reducida a puntero.
+
+## Actualizacion 2026-05-10 (fix 401 GET /api/public/plans/ con JWT plataforma)
+- **Backend:** `SubscriptionPlanViewSet` ahora usa `authentication_classes = []`. El catálogo es `AllowAny`, pero el default `TenantScopedJWTAuthentication` rechazaba Bearer `token_scope=platform` → 401 → interceptor `platformApi` redirigía a `/platform/login`.
+
+## Actualizacion 2026-05-10 (seeder superadmin plataforma)
+- **Seeder:** `seeders/seed_platform_admin.py` — crea `PlatformAdministrator` en schema `public`; integrado en `manage.py seed --schema public --only platform_admin` y en `entrypoint.sh` (`public_seeders`). Si `PLATFORM_ADMIN_*` no están en `.env` y `DEBUG=True`, usa credenciales solo desarrollo (`platform@oftalmologia.local` / `platform123`, ver README). `ensure_platform_admin` reutiliza la misma lógica.
+
+## Actualizacion 2026-05-10 (dashboard plataforma — acciones CRUD tenants)
+- **Frontend:** `/platform/dashboard` con crear organización (slug, nombre, plan, trial), botones Activar/Suspender/Cambiar plan; lista de planes desde `GET /api/public/plans/`; checkbox confirmación al downgrade de plan.
+
+## Actualizacion 2026-05-10 (login superadmin / plataforma SaaS)
+- **Modelo** `PlatformAdministrator` (`apps.platform_admin`, SHARED_APPS solo): credenciales en schema `public`; no es `Usuario` de clínica.
+- **API:** `POST /api/public/platform/auth/login/` → `{ access, administrator }` (sin refresh por ahora para no depender del blacklist JWT ligado a `AUTH_USER_MODEL` tenant). `GET /api/public/platform/auth/me/` sesión actual.
+- **JWT:** tokens de plataforma con `token_scope=platform`; tokens de clínica con `token_scope=tenant` (emitidos en `_jwt_response`). Auth por defecto: `TenantScopedJWTAuthentication` rechaza Bearer de plataforma en APIs `/t/<slug>/`.
+- **Gestión tenants:** `GET/POST …/api/public/tenants/` y acciones sólo con JWT plataforma (`TenantManagementViewSet`).
+- **Frontend:** rutas `/platform/login` y `/platform/dashboard`; tokens en `platform_access_token` (separados del panel clínica).
+- **Ops:** `.env` `PLATFORM_ADMIN_EMAIL`, `PLATFORM_ADMIN_PASSWORD`, `PLATFORM_JWT_ACCESS_MINUTES`; `manage.py ensure_platform_admin`; entrypoint ejecuta el seeder `seed_platform_admin` en arranque y además `ensure_platform_admin` si las variables están definidas (idempotente).
+
+## Actualizacion 2026-05-09 (hardening reportes/ia post-merge main)
+- **`NlpToReportView`:** `IsAuthenticated` (antes `AllowAny` + comentarios de prueba) — evita abuso y coste Gemini sin sesión.
+- **`GEMINI_MODEL`:** lee `config` / entorno; default `gemini-2.5-flash` (alineado con `.env.example` si se define allí).
+- **`QBEEngine.execute`:** filtros y `order_by` pasan por `_normalize_filters` / `_normalize_order_by` (misma regla que el builder estricto).
+
 ## Actualizacion 2026-05-09 (app IA CU23 — NL → QBE + Gemini)
 - **Nueva app tenant** `apps.ia`: `GeminiQBETranslator` en `services/nlp_translator.py` (Gemini JSON-only → dict validado para `QBEEngine`).
 - **Settings** `config/settings.py`: `GEMINI_API_KEY`, `GEMINI_MODEL` (sin `settings/base.py` en el repo; variables en `.env.example`).

@@ -10,6 +10,20 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+**Fecha:** 2026-05-10  
+**Decisión:** Identidad de **superadmin SaaS** separada de `Usuario` de clínica: modelo **`PlatformAdministrator`** en app shared `apps.platform_admin` (tabla `platform_administrator` en schema `public`). JWT de plataforma con claim `token_scope=platform` (`PlatformAccessToken`); autenticación DRF por defecto **`TenantScopedJWTAuthentication`** rechaza tokens plataforma en APIs `/t/<slug>/`. **`TenantManagementViewSet`** usa **`PlatformJWTAuthentication`** + **`IsPlatformAdministrator`**. Sin refresh JWT plataforma en MVP (sesión larga vía `PLATFORM_JWT_ACCESS_MINUTES`); bootstrap con `ensure_platform_admin` + variables `PLATFORM_ADMIN_*` en entrypoint.  
+**Motivo:** Los usuarios clínicos viven solo en schemas tenant; `IsAdminUser` sobre `Usuario` no existe en `public`. Evitar mezclar tokens y evitar que un Bearer de plataforma acceda a datos clínicos por error.  
+**Impacto:** Nuevas rutas `/api/public/platform/auth/*`; frontend `platformApi.ts` y rutas `/platform/*`; documentación en `docs/ai/PLATFORM_SAAS.md`.  
+
+---
+
+**Fecha:** 2026-05-09
+**Decisión:** Endpoint `POST .../ia/nlp-to-report/` requiere usuario autenticado (`IsAuthenticated`). `GEMINI_MODEL` configurable por entorno (default `gemini-2.5-flash`). `QBEEngine.execute` normaliza `filters` y `order_by` con las mismas funciones estrictas que el builder QBE.
+**Motivo:** Evitar consumo de cuota Gemini y lectura de datos por anónimos; alinear modelo LLM con despliegue; cerrar brecha donde `execute` aceptaba claves de filtro menos restrictivas que `validate_qbe_payload`.
+**Impacto:** Clientes deben enviar JWT en tenant scope; pruebas manuales del endpoint IA desde curl necesitan `Authorization: Bearer`.
+
+---
+
 **Fecha:** 2026-05-09
 **Decisión:** Módulo `apps.reportes` para CU21/CU22 con motor QBE (`qbe_engine`) que solo traduce JSON validado al ORM; prohibido SQL crudo desde cliente o IA.
 **Motivo:** Aislamiento de seguridad y extensión futura vía whitelist de modelos y lookups permitidos, sin acoplar reglas de negocio de otras apps en el esqueleto.

@@ -296,12 +296,10 @@ class QBEEngine:
             )
 
         model_cls = ALLOWED_MODELS[model_key]
-        filters = payload.get('filters') or {}
-        if not isinstance(filters, dict):
-            raise ValidationError('"filters" debe ser un objeto JSON.')
-        for key in filters:
-            if not isinstance(key, str):
-                raise ValidationError('Las claves de "filters" deben ser cadenas.')
+        try:
+            filters = _normalize_filters(payload.get('filters'))
+        except QBESafeQueryError as exc:
+            raise ValidationError(str(exc)) from exc
 
         fields_raw = payload.get('fields')
         fields: list[str] | None
@@ -324,14 +322,10 @@ class QBEEngine:
         else:
             raise ValidationError('"fields" debe ser una lista o null.')
 
-        order_by = payload.get('order_by') or []
-        if order_by is None:
-            order_by = []
-        if not isinstance(order_by, list):
-            raise ValidationError('"order_by" debe ser una lista.')
-        for item in order_by:
-            if not isinstance(item, str):
-                raise ValidationError('Cada elemento de "order_by" debe ser una cadena.')
+        try:
+            order_by = _normalize_order_by(payload.get('order_by'))
+        except QBESafeQueryError as exc:
+            raise ValidationError(str(exc)) from exc
 
         qs: QuerySet = model_cls.objects.all()
 

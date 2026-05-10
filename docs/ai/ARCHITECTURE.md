@@ -24,22 +24,30 @@ Cada clínica/organización tiene su propio **schema de PostgreSQL**. El aislami
 | `clinica_norte` | Mismas tablas, datos completamente separados | `users`, `pacientes`, `citas`, `consultas` |
 
 ### Apps por capa
-- **SHARED_APPS (public):** `django_tenants`, `apps.tenant`, `django.contrib.*`, `rest_framework`, `rest_framework_simplejwt`, `corsheaders`, `django_filters`, `apps.core`
-- **TENANT_APPS (por clínica):** auth, sessions, admin, token_blacklist, `apps.usuarios.*`, `apps.bitacora`, `apps.pacientes.*`, `apps.atencionClinica.*` (todas), `apps.crm`, `apps.notificaciones.*`
+- **SHARED_APPS (public):** `django_tenants`, `apps.tenant`, **`apps.platform_admin`** (operadores SaaS: `PlatformAdministrator`), `django.contrib.contenttypes`, sessions/messages/staticfiles, `rest_framework`, `rest_framework_simplejwt`, `corsheaders`, `django_filters`, `apps.core`. *(Auth de Django para usuarios de clínica vive en TENANT_APPS; no hay tabla `Usuario` en `public`.)*
+- **TENANT_APPS (por clínica):** auth, sessions, admin, token_blacklist, `apps.usuarios.*`, `apps.bitacora`, `apps.pacientes.*`, `apps.atencionClinica.*` (todas), `apps.crm`, `apps.notificaciones.*`, backup, reportes, ia, …
 
 ### URLs separadas
 - `config/urls.py` → URLs dentro de tenant scope (`/t/<slug>/api/...`)
 - `config/urls_public.py` → URLs en schema public (`/api/...`, `/api/public/...`)
 
-### Flujo de clientes
+### Flujo de clientes (operador de clínica)
 ```
-1. Usuario entra a / o selecciona clínica
-2. Frontend consulta GET /api/tenants/<slug>/ (público)
-3. Si existe, redirige a /t/<slug>/login
-4. Frontend consulta GET /t/<slug>/api/auth/tenant/ → obtiene branding
-5. Login: POST /t/<slug>/api/auth/login/ → recibe usuario + tenant + tokens
-6. Todas las llamadas posteriores: /t/<slug>/api/...
+1. Usuario entra al login web y escribe el workspace (slug)
+2. Frontend consulta GET /api/public/tenants/<slug>/ (lookup público)
+3. Si existe, guarda slug y muestra paso de credenciales
+4. Opcional: GET /t/<slug>/api/auth/tenant/ → branding
+5. Login: POST /t/<slug>/api/auth/login/ → usuario + tenant + JWT (token_scope=tenant)
+6. API de datos de clínica: /t/<slug>/api/...
 ```
+
+### Flujo superadmin plataforma (gestión de clínicas)
+```
+1. POST /api/public/platform/auth/login/ → JWT (token_scope=platform), solo access
+2. GET|POST /api/public/tenants/ … activar / suspender / cambiar-plan (metadatos en public)
+3. Frontend dedicado: /platform/login → /platform/dashboard (UI con sidebar + header; mismo patrón que el dashboard de clínica — ver PLATFORM_SAAS §7)
+```
+Detalle, rutas y mapa de archivos: **`docs/ai/PLATFORM_SAAS.md`**.
 
 ## Principios Arquitectónicos
 - **Modularidad Total:** Separación por responsabilidades tanto en carpetas como en apps internas de Django.

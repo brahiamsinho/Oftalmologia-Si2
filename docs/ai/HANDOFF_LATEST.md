@@ -1,6 +1,20 @@
 # HANDOFF LATEST
 
+**Memoria SaaS / superadmin:** documento único de referencia **`docs/ai/PLATFORM_SAAS.md`** (rutas, JWT, env, privacidad, **frontend plataforma §7–§9** incluye shell sidebar/navbar y mapa de archivos). Índice actualizado en **`docs/ai/CURRENT_STATE.md`** (sección “Memoria / índice para agentes”).
+
 ## Resumen
+
+**Fecha:** 2026-05-10 — **UI shell panel plataforma (superadmin):** `frontend/src/app/platform/dashboard/layout.tsx` con `SidebarProvider`, `PlatformSidebar` y `PlatformHeader` (mismo patrón que `(dashboard)/layout`: sidebar 220/64px, overlay móvil, `gray-50` + header sticky). `platform/layout.tsx` solo renderiza `children`; login `/platform/login` añade `bg-slate-950` propio. Componentes: `frontend/src/components/platform/PlatformSidebar.tsx`, `PlatformHeader.tsx`. Página `dashboard/page.tsx`: tema claro alineado al shell; “Login clínica” / “Salir” en header lateral + barra superior.
+
+**Fecha:** 2026-05-10 — **Cursor Project Rules (`agent-*.mdc`):** formato oficial + contenido alineado a OpenCode (`description`, Role/Scope/Rules/Deliverables, tabla permisos equivalentes, `mode`, ruta fuente). Cursor **no enforce** permisos como OpenCode; ver `.cursor/rules/README.md`. Puntero `.cursor/agents/README.md`.
+
+**Fecha:** 2026-05-10 — **Seeder superadmin:** `backend/seeders/seed_platform_admin.py` (credenciales desde `PLATFORM_ADMIN_*` o fallback solo `DEBUG`: `platform@oftalmologia.local` / `platform123`). Comando `seed --schema public --only platform_admin`; `entrypoint.sh` lista `public_seeders`; `ensure_platform_admin` delega en la misma función. Docs: `README.md`, `.env.example`, `CURRENT_STATE`.
+
+**Fecha:** 2026-05-10 — **Documentación memoria:** creado `PLATFORM_SAAS.md`; actualizados `PROJECT_VISION`, `TECH_STACK`, `ARCHITECTURE`, `DECISIONS_LOG`, `CURRENT_STATE`, este handoff.
+
+**Fecha:** 2026-05-10 — **Dashboard plataforma:** `frontend/src/app/platform/dashboard/page.tsx` — modal “Nueva clínica” (`POST /api/public/tenants/`), acciones por fila Activar / Suspender / Cambiar plan (`activar`, `suspender`, `cambiar-plan`), carga de planes (`GET …/plans/`), confirmación de downgrade al bajar de plan.
+
+**Fecha:** 2026-05-10 — **Superadmin SaaS (login plataforma)** separado del login de clínica: app shared `apps.platform_admin` (`PlatformAdministrator`, tabla `platform_administrator` en schema public), JWT con `token_scope=platform`, endpoints `POST /api/public/platform/auth/login/` y `GET /api/public/platform/auth/me/`, `TenantManagementViewSet` protegido con `PlatformJWTAuthentication` + `IsPlatformAdministrator`. Clínica: `TenantScopedJWTAuthentication` rechaza tokens de plataforma; tokens de clínica llevan `token_scope=tenant`. Frontend: `/platform/login`, `/platform/dashboard`, `lib/platformApi.ts`, enlace desde login de clínica. Bootstrap: `PLATFORM_ADMIN_*` + comando `ensure_platform_admin` (hooks en `backend/entrypoint.sh`). Archivos clave: `apps/core/authentication.py`, `apps/core/permissions.py`, `apps/tenant/views.py`, `config/settings.py`, `.env.example`.
 
 **Fecha:** 2026-05-09 — Esqueleto **Reportes QBE** (`apps.reportes`): `ReportTemplate`, `services/qbe_engine.py` (puente ORM seguro para futura IA), CRUD + `POST /api/reportes-qbe/plantillas/execute/`. Registrar modelos en whitelist cuando se implemente CU21/CU22 a fondo.
 
