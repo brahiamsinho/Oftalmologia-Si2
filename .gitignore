@@ -64,12 +64,18 @@ mobile/.metadata
 # =========================
 # Environment & Secrets
 # =========================
+# Nunca subir valores reales: copiar desde .env.example y completar en local.
 .env
+.env.*
+!.env.example
 mobile/.env
+mobile/.env.*
+!mobile/.env.example
 .env.local
 .env.*.local
-!.env.example
-!mobile/.env.example
+.env.development
+.env.production
+.env.staging
 google-services.json
 GoogleService-Info.plist
 backend/firebase-credentials.json
