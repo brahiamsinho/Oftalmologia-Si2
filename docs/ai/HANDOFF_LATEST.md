@@ -2,6 +2,8 @@
 
 ## Resumen
 
+**Fecha:** 2026-05-09 — Esqueleto **Reportes QBE** (`apps.reportes`): `ReportTemplate`, `services/qbe_engine.py` (puente ORM seguro para futura IA), CRUD + `POST /api/reportes-qbe/plantillas/execute/`. Registrar modelos en whitelist cuando se implemente CU21/CU22 a fondo.
+
 **Fecha:** 2026-05-09 — Fix login web: lookup tenant usa `GET /api/public/tenants/<slug>/` (antes `/api/tenants/...` → 404). Archivos: `frontend/src/app/(auth)/login/page.tsx`, `frontend/src/lib/api.ts`.
 
 **Fecha:** 2026-05-09 (Multi-Tenant Frontend ? segunda parte, completo)

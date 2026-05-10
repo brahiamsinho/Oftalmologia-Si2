@@ -1,0 +1,33 @@
+Actúa como Arquitecto Django Senior. Vamos a darle vida al motor de QBE en `services/qbe_engine.py` para el módulo de reportes. 
+
+Por favor, implementa la clase `QBEEngine` con los siguientes requerimientos estrictos:
+
+1. WHITELIST DE MODELOS (Seguridad):
+Crea un diccionario `ALLOWED_MODELS` en la parte superior del archivo. Importa un par de modelos seguros de nuestro sistema (por ejemplo `Paciente` de la app pacientes, o haz un mock si no los tienes en contexto). Si el payload pide un modelo que no está aquí, lanza un `ValidationError`.
+
+2. MÉTODO PRINCIPAL DE EJECUCIÓN:
+Implementa el método `execute(self, payload: dict)`. El payload tendrá esta estructura:
+{
+  "model": "Paciente",
+  "fields": ["id", "nombre", "apellido"], // opcional, si no viene trae todo
+  "filters": {"is_active": true, "edad__gte": 18} // opcional
+}
+
+3. TRADUCCIÓN AL ORM:
+- Resuelve el modelo desde el Whitelist.
+- Inicia el queryset: `qs = ModelClass.objects.all()`
+- Aplica filtros si existen usando desempaquetado de kwargs: `qs = qs.filter(**payload.get('filters', {}))`
+- Aplica limitación de campos si vienen en "fields": `qs = qs.values(*fields)` si no, usa `values()` completo.
+
+4. FORMATO DE RESPUESTA:
+El método debe devolver un diccionario estructurado para que el frontend arme tablas fácilmente:
+{
+    "meta": {
+        "model": "Paciente",
+        "total_records": <count del qs final>,
+        "columns": <lista de campos solicitados o los keys del primer elemento>
+    },
+    "data": <lista resultante convertida a list(qs)>
+}
+
+REGLA: Maneja excepciones (por ejemplo, si envían un campo de filtro que no existe en el modelo, atrapa el FieldError de Django y lanza un error amigable).

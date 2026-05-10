@@ -11,6 +11,13 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 ---
 
 **Fecha:** 2026-05-09
+**Decisión:** Módulo `apps.reportes` para CU21/CU22 con motor QBE (`qbe_engine`) que solo traduce JSON validado al ORM; prohibido SQL crudo desde cliente o IA.
+**Motivo:** Aislamiento de seguridad y extensión futura vía whitelist de modelos y lookups permitidos, sin acoplar reglas de negocio de otras apps en el esqueleto.
+**Impacto:** Nuevo CRUD `ReportTemplate` + `POST .../reportes-qbe/plantillas/execute/` (prefijo `reportes-qbe` para no colisionar con CU17 en `/api/reportes/`); migración y registro en `TENANT_APPS`.
+
+---
+
+**Fecha:** 2026-05-09
 **Decision:** En restore de backups schema-local, el tenant objetivo se pasa explícitamente desde `request.tenant` al servicio en lugar de inferirlo desde `backup.tenant`.
 **Motivo:** `TenantBackup` y `TenantBackupConfig` viven en `TENANT_APPS` y no tienen FK `tenant`; asumir `backup.tenant` causa error en runtime bajo `django-tenants`.
 **Impacto:** `BackupService.restore_backup(...)` acepta `tenant` y valida `schema_name` antes de ejecutar `DROP/CREATE SCHEMA`; se alinea el servicio con aislamiento por schema y se evita dependencia inválida de modelo.

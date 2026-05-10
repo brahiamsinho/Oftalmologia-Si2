@@ -1,4 +1,5 @@
 import hashlib
+import os
 from datetime import timedelta
 from pathlib import Path
 
@@ -6,6 +7,10 @@ from decouple import Csv, config
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# --- IA / Gemini (CU23): clave vía entorno; nunca commitear secretos ---
+GEMINI_API_KEY = config('GEMINI_API_KEY', default=os.getenv('GEMINI_API_KEY', '')).strip()
+GEMINI_MODEL = config('GEMINI_MODEL', default=os.getenv('GEMINI_MODEL', 'gemini-1.5-flash')).strip()
 
 SECRET_KEY = config('DJANGO_SECRET_KEY', default='INSECURE-change-me-in-production')
 DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
@@ -95,6 +100,7 @@ TENANT_APPS = [
     # CRM por clínica.
     'apps.crm',
     'apps.crm.reportes',
+     
 
     # Notificaciones por clínica.
     'apps.notificaciones',
@@ -102,6 +108,12 @@ TENANT_APPS = [
 
     # Backup y restore por clínica.
     'apps.backup',
+
+    # Reportes QBE — CU21 personalizados / CU22 predefinidos (ORM únicamente).
+    'apps.reportes',
+
+    # Inteligencia artificial (NL → QBE, CU23+).
+    'apps.ia',
 ]
 
 
