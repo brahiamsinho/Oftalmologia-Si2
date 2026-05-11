@@ -1,102 +1,113 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import EyeIllustration from '@/components/EyeIllustration';
+import Image from "next/image";
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import EyeIllustration from "@/components/EyeIllustration";
 import {
-  Activity, Users, Calendar, Shield, Bot, BarChart3, ArrowRight,
-  CheckCircle, Phone, Mail, MapPin, ChevronRight
-} from 'lucide-react';
+  Activity,
+  Users,
+  Calendar,
+  Shield,
+  Bot,
+  BarChart3,
+  ArrowRight,
+  CheckCircle,
+  Phone,
+  Mail,
+  MapPin,
+  ChevronRight,
+} from "lucide-react";
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 const FEATURES = [
   {
     icon: Users,
-    color: 'bg-blue-50 text-blue-600',
-    title: 'Gestión de Pacientes',
-    desc: 'Historial clínico digital completo. Diagnósticos, evoluciones, recetas y seguimiento postoperatorio en un solo lugar.',
+    color: "bg-blue-50 text-blue-600",
+    title: "Gestión de Pacientes",
+    desc: "Historial clínico digital completo. Diagnósticos, evoluciones, recetas y seguimiento postoperatorio en un solo lugar.",
   },
   {
     icon: Calendar,
-    color: 'bg-green-50 text-green-600',
-    title: 'Agenda Inteligente',
-    desc: 'Programación de citas, cirugías y estudios diagnósticos. Confirmaciones automáticas y recordatorios.',
+    color: "bg-green-50 text-green-600",
+    title: "Agenda Inteligente",
+    desc: "Programación de citas, cirugías y estudios diagnósticos. Confirmaciones automáticas y recordatorios.",
   },
   {
     icon: Bot,
-    color: 'bg-purple-50 text-purple-600',
-    title: 'Asistente con IA',
-    desc: 'Documentación médica automática, alertas clínicas inteligentes y sugerencias basadas en el historial del paciente.',
+    color: "bg-purple-50 text-purple-600",
+    title: "Asistente con IA",
+    desc: "Documentación médica automática, alertas clínicas inteligentes y sugerencias basadas en el historial del paciente.",
   },
   {
     icon: Shield,
-    color: 'bg-orange-50 text-orange-600',
-    title: 'Seguridad y Auditoría',
-    desc: 'Control de acceso por roles, bitácora de todas las acciones y cumplimiento de normativas de privacidad médica.',
+    color: "bg-orange-50 text-orange-600",
+    title: "Seguridad y Auditoría",
+    desc: "Control de acceso por roles, bitácora de todas las acciones y cumplimiento de normativas de privacidad médica.",
   },
   {
     icon: BarChart3,
-    color: 'bg-cyan-50 text-cyan-600',
-    title: 'Reportes y Estadísticas',
-    desc: 'Dashboards en tiempo real con métricas clínicas, ocupación quirúrgica y seguimiento de resultados.',
+    color: "bg-cyan-50 text-cyan-600",
+    title: "Reportes y Estadísticas",
+    desc: "Dashboards en tiempo real con métricas clínicas, ocupación quirúrgica y seguimiento de resultados.",
   },
   {
     icon: Activity,
-    color: 'bg-rose-50 text-rose-600',
-    title: 'Control Quirúrgico',
-    desc: 'Gestión completa del proceso quirúrgico: preoperatorio, acto quirúrgico y seguimiento postoperatorio.',
+    color: "bg-rose-50 text-rose-600",
+    title: "Control Quirúrgico",
+    desc: "Gestión completa del proceso quirúrgico: preoperatorio, acto quirúrgico y seguimiento postoperatorio.",
   },
 ];
 
 const STATS = [
-  { value: '+500',  label: 'Pacientes gestionados' },
-  { value: '99.9%', label: 'Disponibilidad del sistema' },
-  { value: '+20',   label: 'Especialistas conectados' },
-  { value: '< 2s',  label: 'Tiempo de respuesta' },
+  { value: "+500", label: "Pacientes gestionados" },
+  { value: "99.9%", label: "Disponibilidad del sistema" },
+  { value: "+20", label: "Especialistas conectados" },
+  { value: "< 2s", label: "Tiempo de respuesta" },
 ];
 
 const BENEFITS = [
-  'Acceso desde cualquier dispositivo, 24/7',
-  'Datos cifrados y respaldos automáticos',
-  'Integración con equipos de diagnóstico',
-  'Soporte técnico especializado',
-  'Actualizaciones continuas sin costo adicional',
-  'Capacitación incluida para el equipo médico',
+  "Acceso desde cualquier dispositivo, 24/7",
+  "Datos cifrados y respaldos automáticos",
+  "Integración con equipos de diagnóstico",
+  "Soporte técnico especializado",
+  "Actualizaciones continuas sin costo adicional",
+  "Capacitación incluida para el equipo médico",
 ];
 
 // ── Componente ────────────────────────────────────────────────────────────────
 export default function LandingPage() {
-  const [active, setActive] = useState('inicio');
+  const [active, setActive] = useState("inicio");
 
   useEffect(() => {
-    const sections = ['inicio', 'features', 'nosotros', 'contacto'];
+    const sections = ["inicio", "features", "nosotros", "contacto"];
     const observers: IntersectionObserver[] = [];
 
-    sections.forEach(id => {
+    sections.forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
       const obs = new IntersectionObserver(
-        ([entry]) => { if (entry.isIntersecting) setActive(id); },
-        { threshold: 0.4 }
+        ([entry]) => {
+          if (entry.isIntersecting) setActive(id);
+        },
+        { threshold: 0.4 },
       );
       obs.observe(el);
       observers.push(obs);
     });
 
-    return () => observers.forEach(o => o.disconnect());
+    return () => observers.forEach((o) => o.disconnect());
   }, []);
 
   const NAV = [
-    { label: 'Inicio',          href: '#inicio'   , id: 'inicio'   },
-    { label: 'Características', href: '#features' , id: 'features' },
-    { label: 'Sobre nosotros',  href: '#nosotros' , id: 'nosotros' },
-    { label: 'Contacto',        href: '#contacto' , id: 'contacto' },
+    { label: "Inicio", href: "#inicio", id: "inicio" },
+    { label: "Características", href: "#features", id: "features" },
+    { label: "Sobre nosotros", href: "#nosotros", id: "nosotros" },
+    { label: "Contacto", href: "#contacto", id: "contacto" },
   ];
 
   return (
     <div className="min-h-screen bg-white">
-
       {/* ══ NAVBAR ══════════════════════════════════════════════════════════ */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-blue-700">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -111,20 +122,25 @@ export default function LandingPage() {
           {/* Nav links */}
           <nav className="hidden md:flex items-center gap-1">
             {NAV.map(({ label, href, id }) => (
-              <a key={id} href={href}
+              <a
+                key={id}
+                href={href}
                 className={`px-4 py-2 rounded-lg text-[13.5px] font-medium transition-colors ${
                   active === id
-                    ? 'bg-white/20 text-white'
-                    : 'text-blue-100 hover:bg-white/10 hover:text-white'
-                }`}>
+                    ? "bg-white/20 text-white"
+                    : "text-blue-100 hover:bg-white/10 hover:text-white"
+                }`}
+              >
                 {label}
               </a>
             ))}
           </nav>
 
           {/* CTA */}
-          <Link href="/login"
-            className="flex items-center gap-1.5 bg-white text-blue-700 hover:bg-blue-50 px-4 py-2 rounded-lg text-[13.5px] font-semibold transition-colors shadow-sm">
+          <Link
+            href="/login"
+            className="flex items-center gap-1.5 bg-white text-blue-700 hover:bg-blue-50 px-4 py-2 rounded-lg text-[13.5px] font-semibold transition-colors shadow-sm"
+          >
             Iniciar Sesión
             <ChevronRight className="w-3.5 h-3.5" />
           </Link>
@@ -147,22 +163,29 @@ export default function LandingPage() {
                 Sistema activo — Clínica Oftalmológica San Rafael
               </span>
               <h1 className="text-[46px] font-bold text-white leading-[1.1] mb-5">
-                Gestión médica<br />
-                <span className="text-blue-200">inteligente</span><br />
+                Gestión médica
+                <br />
+                <span className="text-blue-200">inteligente</span>
+                <br />
                 con IA
               </h1>
               <p className="text-blue-100 text-[16px] leading-relaxed mb-8 max-w-[480px]">
-                Centraliza la administración de tu clínica oftalmológica. Pacientes, citas,
-                cirugías, historiales clínicos y más — todo en una plataforma segura y moderna.
+                Centraliza la administración de tu clínica oftalmológica.
+                Pacientes, citas, cirugías, historiales clínicos y más — todo en
+                una plataforma segura y moderna.
               </p>
               <div className="flex items-center gap-3 flex-wrap">
-                <Link href="/login"
-                  className="flex items-center gap-2 bg-white text-blue-700 hover:bg-blue-50 px-6 py-3 rounded-xl text-[14.5px] font-bold transition-colors shadow-lg">
+                <Link
+                  href="/login"
+                  className="flex items-center gap-2 bg-white text-blue-700 hover:bg-blue-50 px-6 py-3 rounded-xl text-[14.5px] font-bold transition-colors shadow-lg"
+                >
                   Acceder al sistema
                   <ArrowRight className="w-4 h-4" />
                 </Link>
-                <a href="#features"
-                  className="flex items-center gap-2 text-white border border-white/30 hover:bg-white/10 px-6 py-3 rounded-xl text-[14.5px] font-semibold transition-colors">
+                <a
+                  href="#features"
+                  className="flex items-center gap-2 text-white border border-white/30 hover:bg-white/10 px-6 py-3 rounded-xl text-[14.5px] font-semibold transition-colors"
+                >
                   Ver características
                 </a>
               </div>
@@ -185,7 +208,9 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-6 grid grid-cols-2 lg:grid-cols-4 gap-8">
           {STATS.map(({ value, label }) => (
             <div key={label} className="text-center">
-              <p className="text-[38px] font-bold text-white leading-none">{value}</p>
+              <p className="text-[38px] font-bold text-white leading-none">
+                {value}
+              </p>
               <p className="text-[13px] text-gray-400 mt-2">{label}</p>
             </div>
           ))}
@@ -196,24 +221,35 @@ export default function LandingPage() {
       <section id="features" className="py-24 bg-gray-50">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-14">
-            <span className="text-[13px] font-semibold text-blue-600 uppercase tracking-widest">Características</span>
+            <span className="text-[13px] font-semibold text-blue-600 uppercase tracking-widest">
+              Características
+            </span>
             <h2 className="text-[36px] font-bold text-gray-900 mt-2 mb-3">
               Todo lo que necesita tu clínica
             </h2>
             <p className="text-[15px] text-gray-500 max-w-xl mx-auto">
-              Una plataforma completa diseñada específicamente para clínicas oftalmológicas,
-              con flujos de trabajo adaptados al sector.
+              Una plataforma completa diseñada específicamente para clínicas
+              oftalmológicas, con flujos de trabajo adaptados al sector.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {FEATURES.map(({ icon: Icon, color, title, desc }) => (
-              <div key={title} className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md transition-shadow group">
-                <div className={`w-11 h-11 ${color} rounded-xl flex items-center justify-center mb-4`}>
+              <div
+                key={title}
+                className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md transition-shadow group"
+              >
+                <div
+                  className={`w-11 h-11 ${color} rounded-xl flex items-center justify-center mb-4`}
+                >
                   <Icon className="w-5 h-5" strokeWidth={1.8} />
                 </div>
-                <h3 className="text-[15px] font-bold text-gray-900 mb-2">{title}</h3>
-                <p className="text-[13.5px] text-gray-500 leading-relaxed">{desc}</p>
+                <h3 className="text-[15px] font-bold text-gray-900 mb-2">
+                  {title}
+                </h3>
+                <p className="text-[13.5px] text-gray-500 leading-relaxed">
+                  {desc}
+                </p>
               </div>
             ))}
           </div>
@@ -257,23 +293,30 @@ export default function LandingPage() {
 
           {/* Text */}
           <div>
-            <span className="text-[13px] font-semibold text-blue-600 uppercase tracking-widest">Sobre nosotros</span>
+            <span className="text-[13px] font-semibold text-blue-600 uppercase tracking-widest">
+              Sobre nosotros
+            </span>
             <h2 className="text-[34px] font-bold text-gray-900 mt-2 mb-4 leading-tight">
               Tecnología al servicio de la visión
             </h2>
             <p className="text-[14.5px] text-gray-500 leading-relaxed mb-5">
-              OftalmoCRM nació de la necesidad real de una clínica oftalmológica de digitalizar y
-              centralizar todos sus procesos. Diseñado junto a médicos y especialistas para que
-              la herramienta se adapte al trabajo clínico, no al revés.
+              OftalmoCRM nació de la necesidad real de una clínica oftalmológica
+              de digitalizar y centralizar todos sus procesos. Diseñado junto a
+              médicos y especialistas para que la herramienta se adapte al
+              trabajo clínico, no al revés.
             </p>
             <p className="text-[14.5px] text-gray-500 leading-relaxed mb-8">
-              Nuestra plataforma integra inteligencia artificial para asistir en la documentación
-              clínica, reduciendo la carga administrativa y permitiendo que los profesionales
-              se enfoquen en lo que más importa: la salud de sus pacientes.
+              Nuestra plataforma integra inteligencia artificial para asistir en
+              la documentación clínica, reduciendo la carga administrativa y
+              permitiendo que los profesionales se enfoquen en lo que más
+              importa: la salud de sus pacientes.
             </p>
             <ul className="space-y-2.5">
-              {BENEFITS.map(b => (
-                <li key={b} className="flex items-center gap-2.5 text-[13.5px] text-gray-600">
+              {BENEFITS.map((b) => (
+                <li
+                  key={b}
+                  className="flex items-center gap-2.5 text-[13.5px] text-gray-600"
+                >
                   <CheckCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
                   {b}
                 </li>
@@ -290,10 +333,13 @@ export default function LandingPage() {
             ¿Listo para modernizar tu clínica?
           </h2>
           <p className="text-blue-100 text-[15px] mb-8">
-            Accedé al sistema con tus credenciales o solicitá una demostración gratuita.
+            Accedé al sistema con tus credenciales o solicitá una demostración
+            gratuita.
           </p>
-          <Link href="/login"
-            className="inline-flex items-center gap-2 bg-white text-blue-700 hover:bg-blue-50 px-8 py-3.5 rounded-xl text-[15px] font-bold transition-colors shadow-lg">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 bg-white text-blue-700 hover:bg-blue-50 px-8 py-3.5 rounded-xl text-[15px] font-bold transition-colors shadow-lg"
+          >
             Iniciar Sesión
             <ArrowRight className="w-4 h-4" />
           </Link>
@@ -305,21 +351,32 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-10">
             <h2 className="text-[28px] font-bold text-gray-900">Contacto</h2>
-            <p className="text-gray-500 text-[14px] mt-1">Clínica Oftalmológica San Rafael</p>
+            <p className="text-gray-500 text-[14px] mt-1">
+              Clínica Oftalmológica San Rafael
+            </p>
           </div>
           <div className="flex flex-col sm:flex-row justify-center gap-8">
             {[
-              { icon: Phone,   label: 'Teléfono',   value: '+34 900 000 000'          },
-              { icon: Mail,    label: 'Correo',      value: 'info@sanrafael.clinica'   },
-              { icon: MapPin,  label: 'Dirección',   value: 'Calle Médica 42, Madrid'  },
+              { icon: Phone, label: "Teléfono", value: "+34 900 000 000" },
+              { icon: Mail, label: "Correo", value: "info@sanrafael.clinica" },
+              {
+                icon: MapPin,
+                label: "Dirección",
+                value: "Calle Médica 42, Madrid",
+              },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-4.5 h-4.5 text-blue-600 w-5 h-5" strokeWidth={1.8} />
+                  <Icon
+                    className="w-4.5 h-4.5 text-blue-600 w-5 h-5"
+                    strokeWidth={1.8}
+                  />
                 </div>
                 <div>
                   <p className="text-[11.5px] text-gray-400">{label}</p>
-                  <p className="text-[13.5px] font-medium text-gray-900">{value}</p>
+                  <p className="text-[13.5px] font-medium text-gray-900">
+                    {value}
+                  </p>
                 </div>
               </div>
             ))}
@@ -334,13 +391,18 @@ export default function LandingPage() {
             <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
               <Activity className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
             </div>
-            <span className="text-[13.5px] font-semibold text-white">OftalmoCRM</span>
+            <span className="text-[13.5px] font-semibold text-white">
+              OftalmoCRM
+            </span>
           </div>
           <p className="text-[12.5px] text-gray-500">
-            © 2026 Clínica Oftalmológica San Rafael. Sistema de gestión médica integral.
+            © 2026 Clínica Oftalmológica San Rafael. Sistema de gestión médica
+            integral.
           </p>
-          <Link href="/login"
-            className="text-[13px] text-blue-400 hover:text-blue-300 font-medium transition-colors">
+          <Link
+            href="/login"
+            className="text-[13px] text-blue-400 hover:text-blue-300 font-medium transition-colors"
+          >
             Acceso al panel →
           </Link>
         </div>

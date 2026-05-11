@@ -4,13 +4,13 @@ Sistema integral SaaS multi-tenant para clínicas oftalmológicas — gestión d
 
 ## Stack Tecnológico
 
-| Capa          | Tecnología              | Puerto Dev |
-| ------------- | ----------------------- | ---------- |
-| Backend       | Django 5 + DRF + django-tenants | :8000 |
-| Frontend      | Next.js 14 (App Router) | :3000      |
-| Mobile        | Flutter                 | —          |
-| Base de Datos | PostgreSQL 16 (multi-schema) | :5432 |
-| Contenedores  | Docker + Docker Compose | —          |
+| Capa          | Tecnología                      | Puerto Dev |
+| ------------- | ------------------------------- | ---------- |
+| Backend       | Django 5 + DRF + django-tenants | :8000      |
+| Frontend      | Next.js 14 (App Router)         | :3000      |
+| Mobile        | Flutter                         | —          |
+| Base de Datos | PostgreSQL 16 (multi-schema)    | :5432      |
+| Contenedores  | Docker + Docker Compose         | —          |
 
 ## Requisitos Previos
 
@@ -202,10 +202,10 @@ Cada tenant puede crear backups manuales y automáticos con límites según su p
 ### Límites por Plan
 
 | Plan | Backups Manuales | Retención | Restore | Automático |
-|------|------------------|-----------|---------|------------|
-| FREE | 0 | 0 días | ❌ | ❌ |
-| PLUS | 5/semana | 30 días | ✅ | ✅ |
-| PRO | Ilimitado | 90 días | ✅ | ✅ |
+| ---- | ---------------- | --------- | ------- | ---------- |
+| FREE | 0                | 0 días    | ❌      | ❌         |
+| PLUS | 5/semana         | 30 días   | ✅      | ✅         |
+| PRO  | Ilimitado        | 90 días   | ✅      | ✅         |
 
 ### Comandos de Backup
 

@@ -1,7 +1,7 @@
 /**
  * lib/services/cirugias.ts
  *
- * CRUD de cirugías oftalmológicas (CU14).
+ * CRUD de cirugías oftalmológicas.
  * Rutas del backend:
  *   GET    /cirugias/                   — lista paginada con filtros
  *   POST   /cirugias/                   — crear cirugía (cirujano = request.user auto)

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * CU16 — Gestionar CRM para la comunicación con pacientes
+ * CRM — comunicación con pacientes
  *
  * Ruta: /crm/contactos
  * Backend: GET/POST/PATCH/DELETE /crm-contactos/
@@ -601,7 +601,7 @@ function ModalContacto({ form, setField, editing, pacientes, campanas, formError
             <h2 className="text-[15px] font-bold text-gray-900">
               {editing ? 'Editar comunicación' : 'Nueva comunicación'}
             </h2>
-            <p className="text-[12px] text-gray-400 mt-0.5">CU16 — CRM</p>
+            <p className="text-[12px] text-gray-400 mt-0.5">Historial de comunicaciones</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
             <X className="w-4 h-4" />

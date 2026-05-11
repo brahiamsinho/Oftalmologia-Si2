@@ -35,6 +35,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.bitacora.models import AccionBitacora
+from apps.core.authentication import TOKEN_SCOPE_TENANT
 from apps.core.permissions import IsAdministrativoOrAdmin
 from apps.core.utils import get_client_ip, registrar_bitacora
 from apps.notificaciones.services import enviar_push_a_usuario, registrar_dispositivo_fcm
@@ -119,6 +120,7 @@ def _jwt_response(usuario, request=None):
     Genera respuesta estándar con tokens JWT + datos del usuario + tenant actual.
     """
     refresh = RefreshToken.for_user(usuario)
+    refresh['token_scope'] = TOKEN_SCOPE_TENANT
 
     tenant_data = _tenant_payload(request) if request is not None else None
 
@@ -128,6 +130,7 @@ def _jwt_response(usuario, request=None):
         refresh['tenant_slug'] = tenant_data.get('slug')
 
     access = refresh.access_token
+    access['token_scope'] = TOKEN_SCOPE_TENANT
 
     return {
         'usuario': UsuarioSerializer(usuario).data,

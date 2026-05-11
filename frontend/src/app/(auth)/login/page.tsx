@@ -1,18 +1,25 @@
-'use client';
+"use client";
 
-import { Suspense, useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import axios from 'axios';
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import axios from "axios";
 import {
-  Eye, EyeOff, Lock, Mail, ArrowLeft, Building2, Loader2,
-  AlertCircle, ChevronRight,
-} from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
-import { TenantStorage, resolveApiOrigin } from '@/lib/api';
-import type { TenantPublicData } from '@/lib/types';
-import SnellenEvaluation from '@/components/SnellenEvaluation';
-import MinimalIris from '@/components/MinimalIris';
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  ArrowLeft,
+  Building2,
+  Loader2,
+  AlertCircle,
+  ChevronRight,
+} from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { TenantStorage, resolveApiOrigin } from "@/lib/api";
+import type { TenantPublicData } from "@/lib/types";
+import SnellenEvaluation from "@/components/SnellenEvaluation";
+import MinimalIris from "@/components/MinimalIris";
 
 // ── Lookup público: no pasa por el interceptor de tenant ──────────────────────
 // Se usa axios directamente (sin la instancia `api`) para que el interceptor
@@ -25,45 +32,56 @@ async function lookupTenant(slug: string): Promise<TenantPublicData> {
   return data;
 }
 
-// ── Contenido (useSearchParams requiere Suspense en build estático) ───────────
-function LoginPageContent() {
-  const { login } = useAuth();
+// ── Componente principal (useSearchParams → envolver en Suspense para prerender) ─
+function LoginPageInner() {
+  const { login, user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
 
+  /** Sesión ya válida (validada en AuthProvider): ir al panel sin depender del middleware. */
+  useEffect(() => {
+    if (authLoading) return;
+    if (user) {
+      router.replace("/dashboard");
+    }
+  }, [authLoading, user, router]);
+
   // Estado compartido
-  const [step,    setStep]    = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState('');
-  const [sysMsg,  setSysMsg]  = useState('');
+  const [error, setError] = useState("");
+  const [sysMsg, setSysMsg] = useState("");
 
   // Detecta si fue redirigido por tenant inactivo (motivo=tenant_inactivo)
   useEffect(() => {
-    const motivo = searchParams.get('motivo');
-    if (motivo === 'tenant_inactivo') {
-      setSysMsg('Tu organización fue suspendida o está inactiva. Contactá al administrador del sistema.');
+    const motivo = searchParams.get("motivo");
+    if (motivo === "tenant_inactivo") {
+      setSysMsg(
+        "Tu organización fue suspendida o está inactiva. Contactá al administrador del sistema.",
+      );
     }
   }, [searchParams]);
 
   // Paso 1
-  const [slugInput,   setSlugInput]   = useState('');
-  const [tenantData,  setTenantData]  = useState<TenantPublicData | null>(null);
+  const [slugInput, setSlugInput] = useState("");
+  const [tenantData, setTenantData] = useState<TenantPublicData | null>(null);
 
   // Paso 2
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
 
   // ── Colores dinámicos del tenant ──────────────────────────────────────────
-  const colorPrimario = tenantData?.branding.color_primario ?? '#2563eb';
+  const colorPrimario = tenantData?.branding.color_primario ?? "#2563eb";
 
   // ── Paso 1: validar workspace ─────────────────────────────────────────────
   const handleCheckWorkspace = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!slugInput.trim()) {
-      setError('Escribí el nombre de tu workspace.');
+      setError("Escribí el nombre de tu workspace.");
       return;
     }
-    setError('');
+    setError("");
     setLoading(true);
     try {
       const data = await lookupTenant(slugInput);
@@ -72,7 +90,7 @@ function LoginPageContent() {
       setTenantData(data);
       setStep(2);
     } catch {
-      setError('No encontramos esa clínica. Verificá el nombre del workspace.');
+      setError("No encontramos esa clínica. Verificá el nombre del workspace.");
     } finally {
       setLoading(false);
     }
@@ -83,20 +101,20 @@ function LoginPageContent() {
     TenantStorage.clear();
     setTenantData(null);
     setStep(1);
-    setError('');
-    setEmail('');
-    setPassword('');
+    setError("");
+    setEmail("");
+    setPassword("");
   };
 
   // ── Paso 2: iniciar sesión ────────────────────────────────────────────────
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
     try {
       await login(email.trim(), password);
     } catch {
-      setError('Correo o contraseña incorrectos.');
+      setError("Correo o contraseña incorrectos.");
     } finally {
       setLoading(false);
     }
@@ -104,37 +122,57 @@ function LoginPageContent() {
 
   // ── Renderizado ──────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 flex items-center justify-center relative overflow-hidden px-4 py-10">
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 px-4 py-10">
+      {/* Círculos decorativos — reducidos si el usuario pide menos movimiento */}
+      <div
+        className="pointer-events-none absolute top-0 right-0 h-[500px] w-[500px] -translate-y-1/3 translate-x-1/3 rounded-full bg-blue-500/20 motion-reduce:opacity-40"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute bottom-0 left-0 h-[380px] w-[380px] translate-y-1/3 -translate-x-1/4 rounded-full bg-blue-900/40 motion-reduce:opacity-40"
+        aria-hidden
+      />
 
-      {/* Círculos decorativos */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-blue-500/20 -translate-y-1/3 translate-x-1/3 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[380px] h-[380px] rounded-full bg-blue-900/40 translate-y-1/3 -translate-x-1/4 pointer-events-none" />
-
-      {/* Layout principal */}
-      <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-
+      {/* Contenido principal (un solo landmark main) */}
+      <main className="relative z-10 grid w-full max-w-5xl grid-cols-1 items-center gap-10 lg:grid-cols-2">
         {/* ══ IZQUIERDA ══ */}
-        <div className="flex flex-col items-center lg:items-start gap-8">
-          <div className="w-full max-w-[380px] flex flex-col items-center gap-6">
+        <aside
+          className="flex flex-col items-center gap-8 lg:items-start"
+          aria-labelledby="login-marketing-title"
+        >
+          <div className="flex w-full max-w-[380px] flex-col items-center gap-6">
             <MinimalIris />
             <SnellenEvaluation />
           </div>
-          <div>
-            <h2 className="text-[26px] font-bold text-white mb-1">Clínica Oftalmológica</h2>
-            <p className="text-blue-200 text-[13.5px]">Sistema de Gestión Médica — Multi-Clínica</p>
+          <div className="text-center lg:text-left">
+            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-blue-200/90">
+              Portal de clínica
+            </p>
+            <h2
+              id="login-marketing-title"
+              className="mb-1 text-[26px] font-bold text-white"
+            >
+              OftalmoCRM
+            </h2>
+            <p className="text-[13.5px] leading-relaxed text-blue-100/90">
+              Sistema de gestión para tu organización. Ingresá con el workspace
+              que te asignaron.
+            </p>
           </div>
-        </div>
+        </aside>
 
         {/* ══ DERECHA: tarjeta dinámica ══ */}
         <div className="w-full">
-          <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-white shadow-2xl shadow-blue-950/20 ring-1 ring-black/5">
             {/* ── Paso 1: Elegir workspace ── */}
             {step === 1 && (
               <div className="px-8 py-8">
                 <div className="flex justify-center mb-6">
                   <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center shadow-md">
-                    <Building2 className="w-7 h-7 text-white" strokeWidth={1.8} />
+                    <Building2
+                      className="w-7 h-7 text-white"
+                      strokeWidth={1.8}
+                    />
                   </div>
                 </div>
                 <h1 className="text-[22px] font-bold text-gray-900 text-center mb-1">
@@ -145,37 +183,60 @@ function LoginPageContent() {
                 </p>
 
                 {sysMsg && (
-                  <div className="flex items-start gap-2 text-[12.5px] text-orange-700 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2.5 mb-5">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-orange-500" />
+                  <div
+                    role="alert"
+                    className="mb-5 flex items-start gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-[12.5px] text-orange-800"
+                  >
+                    <AlertCircle
+                      className="mt-0.5 h-4 w-4 shrink-0 text-orange-500"
+                      aria-hidden
+                    />
                     {sysMsg}
                   </div>
                 )}
 
                 <form onSubmit={handleCheckWorkspace} className="space-y-4">
                   <div>
-                    <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+                    <label
+                      htmlFor="login-workspace-slug"
+                      className="mb-1.5 block text-[13px] font-medium text-gray-800"
+                    >
                       Nombre del workspace
                     </label>
                     <div className="relative">
-                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Building2
+                        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                        aria-hidden
+                      />
                       <input
+                        id="login-workspace-slug"
                         type="text"
                         value={slugInput}
-                        onChange={e => { setSlugInput(e.target.value); setError(''); }}
+                        onChange={(e) => {
+                          setSlugInput(e.target.value);
+                          setError("");
+                        }}
                         placeholder="ej: clinica-vision"
-                        autoComplete="off"
+                        autoComplete="organization"
                         autoFocus
-                        className="w-full h-11 pl-9 pr-3.5 bg-gray-50 border border-gray-200 rounded-xl text-[13.5px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                        className="min-h-[48px] w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-9 pr-3.5 text-[15px] text-gray-900 placeholder:text-gray-400 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                     <p className="mt-1.5 text-[11.5px] text-gray-400">
-                      El workspace es el identificador único de tu clínica en el sistema.
+                      El workspace es el identificador único de tu clínica en el
+                      sistema.
                     </p>
                   </div>
 
                   {error && (
-                    <div className="flex items-start gap-2 text-[12.5px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <div
+                      role="alert"
+                      className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-[12.5px] text-red-800"
+                    >
+                      <AlertCircle
+                        className="mt-0.5 h-4 w-4 shrink-0 text-red-600"
+                        aria-hidden
+                      />
                       {error}
                     </div>
                   )}
@@ -183,21 +244,36 @@ function LoginPageContent() {
                   <button
                     type="submit"
                     disabled={loading || !slugInput.trim()}
-                    className="w-full h-11 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-[14px] font-semibold rounded-xl transition-colors shadow-sm"
+                    className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {loading
-                      ? <Loader2 className="w-4 h-4 animate-spin" />
-                      : <><span>Continuar</span><ChevronRight className="w-4 h-4" /></>
-                    }
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <span>Continuar</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
                 </form>
 
                 <div className="mt-6 text-center">
-                  <Link href="/"
-                    className="inline-flex items-center gap-1.5 text-[13px] text-gray-400 hover:text-gray-600 transition-colors">
-                    <ArrowLeft className="w-3.5 h-3.5" />
+                  <Link
+                    href="/"
+                    className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-lg px-2 text-[13px] text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     Volver al inicio
                   </Link>
+                  <p className="mt-2 text-[12px] leading-relaxed text-gray-500">
+                    ¿Sos operador del SaaS (no una clínica)?{" "}
+                    <Link
+                      href="/platform/login"
+                      className="font-semibold text-blue-600 underline-offset-2 hover:text-blue-700 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500/40 rounded"
+                    >
+                      Acceso plataforma
+                    </Link>
+                  </p>
                 </div>
               </div>
             )}
@@ -222,7 +298,10 @@ function LoginPageContent() {
                       className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
                       style={{ background: colorPrimario }}
                     >
-                      <Building2 className="w-5 h-5 text-white" strokeWidth={1.8} />
+                      <Building2
+                        className="w-5 h-5 text-white"
+                        strokeWidth={1.8}
+                      />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -230,90 +309,136 @@ function LoginPageContent() {
                       {tenantData.branding.nombre}
                     </p>
                     <p className="text-[11.5px] text-gray-400 mt-0.5">
-                      Workspace: <span className="font-mono font-semibold">{tenantData.slug}</span>
+                      Workspace:{" "}
+                      <span className="font-mono font-semibold">
+                        {tenantData.slug}
+                      </span>
                     </p>
                   </div>
                   <button
+                    type="button"
                     onClick={handleBack}
-                    title="Cambiar de clínica"
-                    className="text-[12px] text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors flex-shrink-0"
+                    className="flex min-h-[44px] shrink-0 items-center gap-1 rounded-lg px-2 text-[12px] font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                    aria-label="Cambiar de clínica o workspace"
                   >
-                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
                     Cambiar
                   </button>
                 </div>
 
                 {/* Formulario de credenciales */}
                 <div className="px-8 py-7">
-                  <h1 className="text-[20px] font-bold text-gray-900 mb-1">
-                    Iniciar Sesión
+                  <h1 className="mb-1 text-[20px] font-bold text-gray-900">
+                    Iniciar sesión
                   </h1>
-                  <p className="text-[13px] text-gray-400 mb-6">
-                    Ingresá tus credenciales para acceder al sistema
+                  <p className="mb-6 text-[13px] leading-relaxed text-gray-500">
+                    Credenciales del personal de{" "}
+                    <span className="font-medium text-gray-700">
+                      {tenantData.branding.nombre}
+                    </span>
+                    .
                   </p>
 
                   <form onSubmit={handleLogin} className="space-y-4">
                     {/* Correo */}
                     <div>
-                      <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+                      <label
+                        htmlFor="login-clinic-email"
+                        className="mb-1.5 block text-[13px] font-medium text-gray-800"
+                      >
                         Correo electrónico
                       </label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Mail
+                          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                          aria-hidden
+                        />
                         <input
+                          id="login-clinic-email"
                           type="email"
                           value={email}
-                          onChange={e => setEmail(e.target.value)}
+                          onChange={(e) => setEmail(e.target.value)}
                           placeholder="correo@clinica.com"
                           autoComplete="username"
                           autoFocus
-                          className="w-full h-11 pl-9 pr-3.5 bg-gray-50 border border-gray-200 rounded-xl text-[13.5px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:border-transparent transition"
-                          style={{ '--tw-ring-color': colorPrimario } as React.CSSProperties}
-                          onFocus={e => e.target.style.boxShadow = `0 0 0 2px ${colorPrimario}40`}
-                          onBlur={e => e.target.style.boxShadow = ''}
+                          className="min-h-[48px] w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-9 pr-3.5 text-[15px] text-gray-900 placeholder:text-gray-400 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
                     </div>
 
                     {/* Contraseña */}
                     <div>
-                      <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+                      <label
+                        htmlFor="login-clinic-password"
+                        className="mb-1.5 block text-[13px] font-medium text-gray-800"
+                      >
                         Contraseña
                       </label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Lock
+                          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                          aria-hidden
+                        />
                         <input
-                          type={showPass ? 'text' : 'password'}
+                          id="login-clinic-password"
+                          type={showPass ? "text" : "password"}
                           value={password}
-                          onChange={e => setPassword(e.target.value)}
+                          onChange={(e) => setPassword(e.target.value)}
                           placeholder="••••••••"
                           autoComplete="current-password"
-                          className="w-full h-11 pl-9 pr-10 bg-gray-50 border border-gray-200 rounded-xl text-[13.5px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:border-transparent transition"
-                          onFocus={e => e.target.style.boxShadow = `0 0 0 2px ${colorPrimario}40`}
-                          onBlur={e => e.target.style.boxShadow = ''}
+                          className="min-h-[48px] w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-9 pr-12 text-[15px] text-gray-900 placeholder:text-gray-400 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
-                        <button type="button" onClick={() => setShowPass(!showPass)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
-                          {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        <button
+                          type="button"
+                          onClick={() => setShowPass(!showPass)}
+                          className="absolute right-2 top-1/2 flex h-10 min-h-[44px] w-10 min-w-[44px] -translate-y-1/2 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                          aria-label={
+                            showPass
+                              ? "Ocultar contraseña"
+                              : "Mostrar contraseña"
+                          }
+                        >
+                          {showPass ? (
+                            <EyeOff className="h-4 w-4" aria-hidden />
+                          ) : (
+                            <Eye className="h-4 w-4" aria-hidden />
+                          )}
                         </button>
                       </div>
                     </div>
 
                     {/* Error */}
                     {error && (
-                      <div className="flex items-start gap-2 text-[12.5px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <div
+                        role="alert"
+                        className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-[12.5px] text-red-800"
+                      >
+                        <AlertCircle
+                          className="mt-0.5 h-4 w-4 shrink-0 text-red-600"
+                          aria-hidden
+                        />
                         {error}
                       </div>
                     )}
 
                     {/* Demo */}
-                    <div className="rounded-xl bg-gray-50 border border-gray-100 px-3.5 py-3">
-                      <p className="text-[11.5px] text-gray-400 font-medium mb-1.5">Credenciales de demo</p>
-                      <button type="button"
-                        onClick={() => { setEmail('admin@oftalmologia.local'); setPassword('admin123'); }}
-                        className="w-full text-left text-[12px] text-blue-700 hover:text-blue-900 transition-colors">
-                        <span className="font-semibold">Administrador:</span> admin@oftalmologia.local / admin123
+                    <div className="rounded-xl border border-gray-100 bg-gray-50 px-3.5 py-3">
+                      <p className="mb-1.5 text-[11.5px] font-medium text-gray-500">
+                        Solo desarrollo — credenciales demo
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEmail("admin@oftalmologia.local");
+                          setPassword("admin123");
+                        }}
+                        className="w-full rounded-lg py-2 text-left text-[12px] text-blue-700 transition-colors hover:bg-white hover:text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                      >
+                        <span className="font-semibold">Administrador:</span>{" "}
+                        <span className="font-mono text-[11px]">
+                          admin@oftalmologia.local
+                        </span>{" "}
+                        / admin123
                       </button>
                     </div>
 
@@ -321,13 +446,19 @@ function LoginPageContent() {
                     <button
                       type="submit"
                       disabled={loading || !email.trim() || !password}
-                      className="w-full h-11 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed text-white text-[14px] font-semibold rounded-xl transition-colors shadow-sm"
-                      style={{ backgroundColor: loading || !email.trim() || !password ? '#9ca3af' : colorPrimario }}
+                      className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl text-[14px] font-semibold text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:opacity-60"
+                      style={{
+                        backgroundColor:
+                          loading || !email.trim() || !password
+                            ? "#9ca3af"
+                            : colorPrimario,
+                      }}
                     >
-                      {loading
-                        ? <Loader2 className="w-4 h-4 animate-spin" />
-                        : 'Iniciar Sesión'
-                      }
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        "Iniciar Sesión"
+                      )}
                     </button>
                   </form>
                 </div>
@@ -335,7 +466,7 @@ function LoginPageContent() {
             )}
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
@@ -344,12 +475,13 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-slate-50">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" aria-hidden />
+        <div className="flex min-h-dvh items-center justify-center bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 text-white">
+          <Loader2 className="h-9 w-9 animate-spin opacity-90" aria-hidden />
+          <span className="sr-only">Cargando inicio de sesión…</span>
         </div>
       }
     >
-      <LoginPageContent />
+      <LoginPageInner />
     </Suspense>
   );
 }

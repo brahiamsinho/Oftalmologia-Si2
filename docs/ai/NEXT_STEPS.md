@@ -2,11 +2,15 @@
 
 Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tenants).
 
+**Contexto SaaS:** ver **`docs/ai/PLATFORM_SAAS.md`** antes de cambiar auth, tenants o rutas públicas.
+
 ## Corto Plazo
+
+- [x] **Superadmin web:** `/platform/dashboard` — crear clínica (modal), activar, suspender, cambiar plan (modales + confirmación downgrade); **shell** sidebar + header como el dashboard clínica (`dashboard/layout.tsx`, `PlatformSidebar`, `PlatformHeader`). Detalle en `docs/ai/PLATFORM_SAAS.md` §7.
 - [ ] **CU21/CU22 Reportes QBE**: poblar `_QBE_MODEL_REGISTRY` / `_QBE_MODEL_IMPORT_PATH` desde apps de dominio (sin acoplar reglas en `reportes`); ampliar `QBEQueryBuilder` (`Q` anidados, agregaciones por campo); tests del motor y del endpoint `execute`.
 - [x] Migracion completa a django-tenants con schema-per-tenant (backend).
 - [x] Sistema completo de backup/restore multi-tenant (modelos, API, servicio, scheduler, documentacion, tests).
-- [ ] **URGENTE: Frontend Next.js con URLs de tenant** — adaptar axios client para usar `/t/<tenantSlug>/api/...`, crear flujo de seleccion de clinica, consumir `GET /api/public/tenants/<slug>/` (lookup público) y `GET /t/<slug>/api/auth/tenant/` antes del login. *(2026-05-09: lookup en login ya apunta a `/api/public/tenants/<slug>/`.)*
+- [ ] **URGENTE: Frontend Next.js con URLs de tenant** — **Hecho (2026-05-10):** `lib/api.ts` reescribe `baseURL` a `resolveTenantBaseUrl(slug)` cuando hay `tenant_slug`; refresh usa el mismo prefijo. **Pendiente UX:** pantalla dedicada de selección de clínica / branding si se quiere además del paso 1 del login actual; consumo explícito de `GET /t/<slug>/api/auth/tenant/` donde falte.
 - [ ] **URGENTE: Mobile Flutter con URLs de tenant** — adaptar Dio client para usar `/t/<tenantSlug>/api/...`, crear flujo de seleccion de clinica, consumir endpoints de tenant antes del login.
 - [x] OpenCode workflows: crear comandos reutilizables (`/check-project`, `/commit`, `/update-memory`, `/review-security`, `/validate-stack`, `/puds-status`, `/handoff`, `/todo-start`).
 - [x] OpenCode workflows: crear comandos reutilizables (`/check-project`, `/commit`, `/update-memory`, `/review-security`, `/validate-stack`, `/puds-status`, `/handoff`, `/todo-start`).
@@ -45,6 +49,7 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] Mobile UI/UX (UX-05): accesibilidad tactil/contraste/semantics en toda la app paciente.
 
 ## Mediano Plazo
+
 - [x] Modelos y API Pacientes/Citas (backend Sprint 1).
 - [ ] Web Admin: tablas y flujos sobre pacientes, citas, disponibilidades (con URLs de tenant).
 - [ ] Mobile: vista **médico** / staff (si aplica mismo app o build flavor).
@@ -53,11 +58,13 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [ ] Validar flujo completo end-to-end con Docker: crear tenant nuevo → seed → login → operaciones.
 
 ## Largo Plazo
+
 - [ ] Web: historias clínicas completas, adjuntos/imágenes.
 - [x] Mobile: notificaciones (FCM) para turnos.
 - [ ] Despliegue: Nginx, HTTPS, `DEBUG=False`, hosts y CORS explícitos.
 
 ## Pendientes Técnicos
+
 - [x] Definir e instalar skills locales en `.opencode/skills/` para flujos repetibles de memoria, PUDS, seguridad, Docker, UX clinica y todo-list.
 - [ ] Evaluar plugins adicionales solo si aportan valor real: recordatorio de memoria, checklist PUDS, validacion de limites de arquitectura o runner de validaciones.
 - [x] Guía despliegue VM Ubuntu / Azure + onboarding en `docs/README.md` (`docs/guides/despliegue-ubuntu-nube.md`).

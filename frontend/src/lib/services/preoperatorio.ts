@@ -1,7 +1,7 @@
 /**
  * lib/services/preoperatorio.ts
  *
- * CRUD de preoperatorios (CU13).
+ * CRUD de preoperatorios.
  * Rutas del backend:
  *   GET    /preoperatorios/           — lista paginada con filtros
  *   POST   /preoperatorios/           — crear preoperatorio

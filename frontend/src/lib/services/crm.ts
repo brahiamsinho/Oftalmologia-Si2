@@ -1,7 +1,7 @@
 /**
  * lib/services/crm.ts
  *
- * CU16 — Gestionar CRM para la comunicación con pacientes.
+ * Servicios CRM — comunicación con pacientes y campañas.
  *
  * Modelos cubiertos:
  *   HistorialContacto  — comunicaciones individuales con pacientes
@@ -142,6 +142,16 @@ export interface CampanaCRM {
   updated_at: string;
 }
 
+export interface SegmentacionPaciente {
+  id_segmentacion: number;
+  nombre: string;
+  descripcion: string | null;
+  criterios: string | null;
+  activo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // ── Servicios ─────────────────────────────────────────────────────────────
 export const historialContactoService = {
   async list(params?: HistorialContactoParams): Promise<PaginatedResponse<HistorialContacto>> {
@@ -182,6 +192,16 @@ export const campanaCRMService = {
   async list(params?: { search?: string; estado?: string }): Promise<PaginatedResponse<CampanaCRM>> {
     const { data } = await api.get<PaginatedResponse<CampanaCRM>>(
       '/crm-campanas/',
+      { params },
+    );
+    return data;
+  },
+};
+
+export const segmentacionCRMService = {
+  async list(params?: { search?: string }): Promise<PaginatedResponse<SegmentacionPaciente>> {
+    const { data } = await api.get<PaginatedResponse<SegmentacionPaciente>>(
+      '/crm-segmentaciones/',
       { params },
     );
     return data;

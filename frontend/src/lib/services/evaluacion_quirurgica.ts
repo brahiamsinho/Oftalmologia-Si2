@@ -1,7 +1,7 @@
 /**
  * lib/services/evaluacion_quirurgica.ts
  *
- * CRUD de evaluaciones quirúrgicas (CU12).
+ * CRUD de evaluaciones quirúrgicas.
  * Rutas del backend:
  *   GET    /evaluaciones-quirurgicas/           — lista paginada con filtros
  *   POST   /evaluaciones-quirurgicas/           — crear evaluación

@@ -55,3 +55,20 @@ class IsStaffOrReadOnly(BasePermission):
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return True
         return request.user and request.user.is_staff
+
+
+class IsPlatformAdministrator(BasePermission):
+    """
+    Solo sesión JWT de plataforma (``PlatformJWTUser`` / ``platform_administrator``).
+    """
+
+    message = 'Acceso exclusivo para administradores de la plataforma SaaS.'
+
+    def has_permission(self, request, view):
+        admin = getattr(request.user, 'platform_administrator', None)
+        return (
+            request.user
+            and request.user.is_authenticated
+            and admin is not None
+            and admin.is_active
+        )

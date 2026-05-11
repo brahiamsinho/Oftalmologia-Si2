@@ -110,7 +110,9 @@ export default function ReportesInteligentesPage() {
       <header className="space-y-2">
         <div className="flex items-center gap-2 text-indigo-600">
           <Sparkles className="h-6 w-6" aria-hidden />
-          <span className="text-xs font-semibold uppercase tracking-wide">CU21 · CU22 · CU23</span>
+          <span className="text-xs font-semibold uppercase tracking-wide">
+            Consultas en lenguaje natural · Filtros · Exportación
+          </span>
         </div>
         <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Reportes inteligentes</h1>
         <p className="max-w-3xl text-sm text-gray-600 sm:text-base">

@@ -6,8 +6,6 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-### Agregá esto para permitir acceso sin autenticación
-from rest_framework.permissions import AllowAny
 
 from apps.ia.serializers import NlpToReportRequestSerializer
 from apps.ia.services.nlp_translator import GeminiQBETranslator, GeminiTranslatorError
@@ -21,8 +19,7 @@ class NlpToReportView(APIView):
     1. Traduce ``query`` con ``GeminiQBETranslator.translate_to_qbe``.
     2. Ejecuta el JSON con ``QBEEngine.execute`` (misma whitelist que reportes).
     """
-    permission_classes = [AllowAny]  # <- Agregá esto
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         ser = NlpToReportRequestSerializer(data=request.data)

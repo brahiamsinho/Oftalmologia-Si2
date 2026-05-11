@@ -6,7 +6,8 @@
 - **Framework:** Django 5+
 - **API:** Django REST Framework (DRF)
 - **Base de Datos:** PostgreSQL
-- **Autenticación:** JWT vía `djangorestframework-simplejwt`
+- **Multi-tenant:** `django-tenants` (schema-per-tenant); migraciones con `migrate_schemas --shared` / `--tenant`.
+- **Autenticación:** JWT vía `djangorestframework-simplejwt`;claims `token_scope` para separar **tokens de clínica** (`tenant`) y **tokens de plataforma** (`platform`) — ver `docs/ai/PLATFORM_SAAS.md`.
 
 ### Frontend Web
 - **Framework:** Next.js (App Router)

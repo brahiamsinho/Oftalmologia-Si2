@@ -1,5 +1,5 @@
 /**
- * Tipos para Reportes inteligentes (CU21–CU23) y respuesta NL → QBE.
+ * Tipos para reportes inteligentes (NL → QBE, tabla, exportación).
  */
 
 /** Payload QBE devuelto por la IA (compatible con QBEEngine). */

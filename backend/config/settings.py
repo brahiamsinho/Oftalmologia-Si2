@@ -10,8 +10,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --- IA / Gemini (CU23): clave vía entorno; nunca commitear secretos ---
 GEMINI_API_KEY = config('GEMINI_API_KEY', default=os.getenv('GEMINI_API_KEY', '')).strip()
-#GEMINI_MODEL = config('GEMINI_MODEL', default=os.getenv('GEMINI_MODEL', 'gemini-1.5-flash')).strip()
-GEMINI_MODEL = 'gemini-2.5-flash'
+GEMINI_MODEL = config(
+    'GEMINI_MODEL',
+    default=os.getenv('GEMINI_MODEL', 'gemini-2.5-flash'),
+).strip()
+
+# JWT de plataforma (superadmin SaaS, schema public): duración del access (sin refresh por ahora).
+PLATFORM_JWT_ACCESS_MINUTES = config(
+    'PLATFORM_JWT_ACCESS_MINUTES',
+    default=720,
+    cast=int,
+)
+
+# Bootstrap superadmin SaaS (schema public). Usar solo en entornos controlados.
+PLATFORM_ADMIN_EMAIL = config('PLATFORM_ADMIN_EMAIL', default='').strip().lower()
+PLATFORM_ADMIN_PASSWORD = config('PLATFORM_ADMIN_PASSWORD', default='')
 
 SECRET_KEY = config('DJANGO_SECRET_KEY', default='INSECURE-change-me-in-production')
 DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
@@ -49,6 +62,7 @@ SHARED_APPS = [
     'django_tenants',
 
     'apps.tenant',
+    'apps.platform_admin',
 
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -226,7 +240,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'apps.core.authentication.TenantScopedJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',

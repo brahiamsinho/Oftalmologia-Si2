@@ -15,6 +15,8 @@ router.register('tenants', TenantManagementViewSet, basename='tenants')
 router.register('plans', SubscriptionPlanViewSet, basename='subscription-plans')
 
 urlpatterns = [
+    path('platform/', include('apps.platform_admin.urls')),
+
     path('organization/me/', TenantCurrentView.as_view(), name='tenant-current'),
 
     path(
