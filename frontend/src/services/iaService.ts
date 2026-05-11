@@ -1,5 +1,5 @@
 /**
- * Servicios IA + ejecución QBE (CU23).
+ * Servicios IA + ejecución QBE.
  * Usa `@/lib/api` (JWT + prefijo tenant `/t/<slug>/api`).
  */
 import api from '@/lib/api';

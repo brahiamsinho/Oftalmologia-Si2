@@ -34,7 +34,10 @@ const BREADCRUMB: Record<string, string> = {
   '/postoperatorio':            'Postoperatorio',
   '/crm/contactos':             'CRM · Comunicaciones',
   '/crm/campanas':              'CRM · Campañas',
+  '/crm/segmentaciones':        'CRM · Segmentaciones',
   '/crm':                       'CRM',
+  '/notificaciones':            'Notificaciones',
+  '/reportes':                  'Reportes',
 };
 
 export default function Header() {

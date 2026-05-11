@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import axios from "axios";
 import {
@@ -34,8 +34,17 @@ async function lookupTenant(slug: string): Promise<TenantPublicData> {
 
 // ── Componente principal (useSearchParams → envolver en Suspense para prerender) ─
 function LoginPageInner() {
-  const { login } = useAuth();
+  const { login, user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
+
+  /** Sesión ya válida (validada en AuthProvider): ir al panel sin depender del middleware. */
+  useEffect(() => {
+    if (authLoading) return;
+    if (user) {
+      router.replace("/dashboard");
+    }
+  }, [authLoading, user, router]);
 
   // Estado compartido
   const [step, setStep] = useState<1 | 2>(1);
@@ -143,7 +152,7 @@ function LoginPageInner() {
               id="login-marketing-title"
               className="mb-1 text-[26px] font-bold text-white"
             >
-              Oftalmología Si2
+              OftalmoCRM
             </h2>
             <p className="text-[13.5px] leading-relaxed text-blue-100/90">
               Sistema de gestión para tu organización. Ingresá con el workspace

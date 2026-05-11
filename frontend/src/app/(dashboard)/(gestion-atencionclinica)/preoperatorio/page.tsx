@@ -360,7 +360,7 @@ function ModalPreoperatorio({
                 {isEdit ? "Editar preoperatorio" : "Nuevo preoperatorio"}
               </h2>
               <p className="text-[11px] text-gray-400">
-                CU13 · Preparación prequirúrgica
+                Preparación prequirúrgica
               </p>
             </div>
           </div>
@@ -454,7 +454,7 @@ function ModalPreoperatorio({
                 </div>
               </Field>
 
-              {/* Evaluación quirúrgica — link con CU12 */}
+              {/* Evaluación quirúrgica */}
               <Field
                 label="Evaluación quirúrgica (opcional)"
                 hint={
@@ -970,7 +970,7 @@ export default function PreoperatorioPage() {
                 Preoperatorio
               </h1>
               <p className="text-[12px] text-gray-400">
-                CU13 · Gestión de preparación prequirúrgica
+                Gestión de preparación prequirúrgica
               </p>
             </div>
           </div>

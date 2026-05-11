@@ -68,7 +68,7 @@ export default function DashboardPage() {
 
       <div>
         <h2 className="text-[22px] sm:text-[24px] font-extrabold text-gray-900 tracking-tight">Panel principal</h2>
-        <p className="text-[13.5px] text-gray-500 mt-1">Bienvenido al sistema médico Si2</p>
+        <p className="text-[13.5px] text-gray-500 mt-1">Bienvenido a tu espacio de trabajo en OftalmoCRM</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

@@ -313,14 +313,10 @@ def run_seed(module_path):
 # El schema public NO tiene la app users (esta en TENANT_APPS),
 # por lo tanto no existe la tabla "usuarios" en public.
 # No ejecutar seed_admin en public para evitar ProgrammingError.
-<<<<<<< HEAD
 # Superadmin SaaS (PlatformAdministrator) vive solo en public.
 public_seeders = [
     "seeders.seed_platform_admin",
 ]
-=======
-public_seeders = []
->>>>>>> a1b3cfbc7f09b37d0c5426a9fdcc486986b4f915
 
 tenant_seeders = [
     "seeders.seed_admin",
@@ -350,7 +346,6 @@ fi
 
 
 # -------------------------------------------------------------------
-<<<<<<< HEAD
 # 6b. Superadmin plataforma (schema public) — opcional vía .env
 # -------------------------------------------------------------------
 if [ -n "${PLATFORM_ADMIN_EMAIL:-}" ] && [ -n "${PLATFORM_ADMIN_PASSWORD:-}" ]; then
@@ -360,8 +355,6 @@ fi
 
 
 # -------------------------------------------------------------------
-=======
->>>>>>> a1b3cfbc7f09b37d0c5426a9fdcc486986b4f915
 # 7. Collect static
 # -------------------------------------------------------------------
 if [ "${RUN_COLLECTSTATIC:-1}" = "1" ]; then

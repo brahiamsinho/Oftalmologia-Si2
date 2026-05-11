@@ -277,7 +277,7 @@ function ModalEvaluacion({
                   : "Nueva evaluación quirúrgica"}
               </h2>
               <p className="text-[11px] text-gray-400">
-                CU12 · Valoración prequirúrgica
+                Valoración prequirúrgica
               </p>
             </div>
           </div>
@@ -847,7 +847,7 @@ export default function EvaluacionesQuirurgicasPage() {
                 Evaluaciones Quirúrgicas
               </h1>
               <p className="text-[12px] text-gray-400">
-                CU12 · Valoraciones prequirúrgicas de los pacientes
+                Valoraciones prequirúrgicas de los pacientes
               </p>
             </div>
           </div>

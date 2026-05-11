@@ -507,7 +507,7 @@ function ModalCirugia({
                 {isEdit ? "Editar cirugía" : "Registrar cirugía"}
               </h2>
               <p className="text-[11px] text-gray-400">
-                CU14 · Gestión quirúrgica oftalmológica
+                Gestión quirúrgica oftalmológica
               </p>
             </div>
           </div>
@@ -604,7 +604,7 @@ function ModalCirugia({
                 </div>
               </Field>
 
-              {/* Vínculo CU13 → CU14 */}
+              {/* Enlace desde preparación preoperatoria */}
               <Field
                 label="Preoperatorio (opcional)"
                 hint={
@@ -1174,7 +1174,7 @@ export default function CirugiasPage() {
                 Cirugías
               </h1>
               <p className="text-[12px] text-gray-400">
-                CU14 · Gestión de procedimientos quirúrgicos oftalmológicos
+                Procedimientos quirúrgicos oftalmológicos
               </p>
             </div>
           </div>

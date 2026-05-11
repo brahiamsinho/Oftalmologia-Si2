@@ -327,6 +327,7 @@ api.interceptors.response.use(
     } catch (refreshError) {
       processQueue(refreshError, null);
       TokenStorage.clear();
+      TenantStorage.clear();
       if (typeof window !== "undefined") window.location.href = "/login";
       return Promise.reject(refreshError);
     } finally {

@@ -14,7 +14,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/lib/services/auth';
-import { TokenStorage } from '@/lib/api';
+import { TenantStorage, TokenStorage } from '@/lib/api';
 import type { Usuario } from '@/lib/types';
 
 interface AuthContextValue {
@@ -41,7 +41,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     authService.me()
       .then(setUser)
-      .catch(() => TokenStorage.clear())
+      .catch(() => {
+        TokenStorage.clear();
+        TenantStorage.clear();
+      })
       .finally(() => setIsLoading(false));
   }, []);
 

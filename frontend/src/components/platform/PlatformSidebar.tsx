@@ -98,7 +98,7 @@ export default function PlatformSidebar() {
             </div>
             <div className="min-w-0">
               <p className="truncate text-[13px] font-bold leading-tight text-gray-900">
-                Oftalmología Si2
+                OftalmoCRM
               </p>
               <p className="truncate text-[9.5px] leading-tight text-gray-400">
                 Plataforma SaaS

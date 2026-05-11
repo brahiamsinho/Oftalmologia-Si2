@@ -316,7 +316,7 @@ function ModalPostoperatorio({
                   : "Nuevo control postoperatorio"}
               </h2>
               <p className="text-[11px] text-gray-400">
-                CU15 · Seguimiento postoperatorio
+                Seguimiento postoperatorio
               </p>
             </div>
           </div>
@@ -408,7 +408,7 @@ function ModalPostoperatorio({
                 </div>
               </Field>
 
-              {/* Vínculo CU14 → CU15 */}
+              {/* Enlace desde cirugías */}
               <Field
                 label="Cirugía vinculada (opcional)"
                 hint={
@@ -904,7 +904,7 @@ export default function PostoperatorioPage() {
                 Postoperatorio
               </h1>
               <p className="text-[12px] text-gray-400">
-                CU15 · Seguimiento postquirúrgico de pacientes
+                Seguimiento postquirúrgico de pacientes
               </p>
             </div>
           </div>

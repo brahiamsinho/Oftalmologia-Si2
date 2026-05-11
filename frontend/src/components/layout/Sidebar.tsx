@@ -29,6 +29,7 @@ import {
   BarChart2,
   Settings,
   MessageSquare,
+  Tags,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
@@ -60,7 +61,7 @@ function NavItem({
     <li>
       <Link
         href={href}
-        title={collapsed ? label : undefined}
+        title={label}
         onClick={onNavigate}
         className={`group flex items-center gap-2.5 rounded-lg text-[13px] font-medium transition-all duration-150
           ${
@@ -160,11 +161,11 @@ export default function Sidebar() {
   const { isCollapsed, isMobileDrawerOpen, toggle, closeMobileDrawer } =
     useSidebar();
   const isDesktop = useMediaQuery("(min-width: 768px)", false);
-  const { orgData, planInfo, flags, loading: tenantLoading } = useTenant();
+  const { orgData, flags, loading: tenantLoading } = useTenant();
 
   const is = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
-  const widthPx = isDesktop ? (isCollapsed ? 64 : 220) : 220;
+  const widthPx = isDesktop ? (isCollapsed ? 64 : 244) : 244;
   const offCanvas = !isDesktop && !isMobileDrawerOpen;
 
   // ── Datos de branding del tenant ──
@@ -179,11 +180,8 @@ export default function Sidebar() {
   const logoUrl = branding?.logo_url ?? null;
   const colorPrimario = branding?.color_primario ?? "#2563eb";
 
-  // ── Flags de plan para mostrar módulos opcionales ──
-  const showCRM = !tenantLoading && flags.mostrar_modulo_crm;
+  // Notificaciones siguen ligadas al plan/flags; CRM y Reportes siempre en el menú (rutas ya existen).
   const showNotif = !tenantLoading && flags.mostrar_notificaciones;
-  const showReport =
-    !tenantLoading && (planInfo?.permite_reportes_avanzados ?? false);
 
   // ── Estado del plan para badge ──
   const subEstado = orgData?.subscription?.estado;
@@ -417,37 +415,44 @@ export default function Sidebar() {
           </NavGroup>
         </ul>
 
-        {/* CRM — solo si el plan + settings lo permiten */}
-        {showCRM && (
-          <ul className="space-y-0.5 mt-1">
-            <NavGroup
-              label="CRM"
+        {/* CRM — comunicación con pacientes (CU16); visible siempre; permisos en API */}
+        <ul className="space-y-0.5 mt-1">
+          <NavGroup
+            label="CRM"
+            icon={Megaphone}
+            active={is("/crm")}
+            collapsed={isCollapsed}
+            defaultOpen={is("/crm")}
+          >
+            <NavItem
+              href="/crm/segmentaciones"
+              label="Segmentaciones"
+              icon={Tags}
+              active={is("/crm/segmentaciones")}
+              collapsed={false}
+              depth={1}
+              onNavigate={closeMobileDrawer}
+            />
+            <NavItem
+              href="/crm/campanas"
+              label="Campañas"
               icon={Megaphone}
-              active={is("/crm")}
-              collapsed={isCollapsed}
-              defaultOpen={is("/crm")}
-            >
-              <NavItem
-                href="/crm/contactos"
-                label="Comunicaciones"
-                icon={MessageSquare}
-                active={is("/crm/contactos")}
-                collapsed={false}
-                depth={1}
-                onNavigate={closeMobileDrawer}
-              />
-              <NavItem
-                href="/crm/campanas"
-                label="Campañas"
-                icon={Megaphone}
-                active={is("/crm/campanas")}
-                collapsed={false}
-                depth={1}
-                onNavigate={closeMobileDrawer}
-              />
-            </NavGroup>
-          </ul>
-        )}
+              active={is("/crm/campanas")}
+              collapsed={false}
+              depth={1}
+              onNavigate={closeMobileDrawer}
+            />
+            <NavItem
+              href="/crm/contactos"
+              label="Comunicaciones"
+              icon={MessageSquare}
+              active={is("/crm/contactos")}
+              collapsed={false}
+              depth={1}
+              onNavigate={closeMobileDrawer}
+            />
+          </NavGroup>
+        </ul>
 
         {/* Notificaciones — solo si el plan + settings lo permiten */}
         {showNotif && (
@@ -463,19 +468,17 @@ export default function Sidebar() {
           </ul>
         )}
 
-        {/* Reportes avanzados — solo si el plan lo permite */}
-        {showReport && (
-          <ul className="space-y-0.5 mt-1">
-            <NavItem
-              href="/reportes"
-              label="Reportes"
-              icon={BarChart2}
-              active={is("/reportes")}
-              collapsed={isCollapsed}
-              onNavigate={closeMobileDrawer}
-            />
-          </ul>
-        )}
+        {/* Reportes (CU17) — visible siempre; export/plan según backend */}
+        <ul className="space-y-0.5 mt-1">
+          <NavItem
+            href="/reportes"
+            label="Reportes"
+            icon={BarChart2}
+            active={is("/reportes")}
+            collapsed={isCollapsed}
+            onNavigate={closeMobileDrawer}
+          />
+        </ul>
 
         <div className="my-2 border-t border-gray-100 mx-1" />
 

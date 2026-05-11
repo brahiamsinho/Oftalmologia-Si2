@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link   from 'next/link';
 import Sidebar from '@/components/layout/Sidebar';
 import Header  from '@/components/layout/Header';
+import { ClinicSessionGate } from '@/components/auth/ClinicSessionGate';
 import { SidebarProvider, useSidebar } from '@/context/SidebarContext';
 import { TenantProvider, useTenant }   from '@/context/TenantContext';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
@@ -64,7 +65,7 @@ function TrialBanner() {
 function DashboardInner({ children }: { children: React.ReactNode }) {
   const { isCollapsed, isMobileDrawerOpen, closeMobileDrawer } = useSidebar();
   const isDesktop = useMediaQuery('(min-width: 768px)', false);
-  const marginLeft = isDesktop ? (isCollapsed ? 64 : 220) : 0;
+  const marginLeft = isDesktop ? (isCollapsed ? 64 : 244) : 0;
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -93,10 +94,12 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <TenantProvider>
-      <SidebarProvider>
-        <DashboardInner>{children}</DashboardInner>
-      </SidebarProvider>
-    </TenantProvider>
+    <ClinicSessionGate>
+      <TenantProvider>
+        <SidebarProvider>
+          <DashboardInner>{children}</DashboardInner>
+        </SidebarProvider>
+      </TenantProvider>
+    </ClinicSessionGate>
   );
 }

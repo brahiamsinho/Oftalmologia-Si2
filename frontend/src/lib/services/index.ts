@@ -22,8 +22,10 @@ export type { Cirugia, CirugiaCreate, CirugiaReprogramar, CirugiaParams } from '
 export { postoperatorioService, ESTADO_POSTOP_LABELS, ESTADO_POSTOP } from './postoperatorio';
 export type { Postoperatorio, PostoperatorioCreate, PostoperatorioParams } from './postoperatorio';
 export {
-  historialContactoService, campanaCRMService,
+  historialContactoService, campanaCRMService, segmentacionCRMService,
   CANAL_LABELS, TIPO_MENSAJE_LABELS, ESTADO_COM_LABELS,
   CANAL_CONTACTO, TIPO_MENSAJE, ESTADO_COMUNICACION,
 } from './crm';
-export type { HistorialContacto, HistorialContactoCreate, HistorialContactoParams, CampanaCRM } from './crm';
+export type {
+  HistorialContacto, HistorialContactoCreate, HistorialContactoParams, CampanaCRM, SegmentacionPaciente,
+} from './crm';

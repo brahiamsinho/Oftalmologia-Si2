@@ -38,7 +38,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: rawApi,
     NEXT_PUBLIC_APP_NAME:
-      process.env.NEXT_PUBLIC_APP_NAME || "Oftalmología Si2",
+      process.env.NEXT_PUBLIC_APP_NAME || "OftalmoCRM",
   },
 
   images: {

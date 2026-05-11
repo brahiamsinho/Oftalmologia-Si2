@@ -26,8 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="font-sans antialiased">
-      <body className={`${inter.className} antialiased`}>
+      <body className={`${inter.className} font-sans antialiased`}>
         <AuthProvider>
           {children}
         </AuthProvider>

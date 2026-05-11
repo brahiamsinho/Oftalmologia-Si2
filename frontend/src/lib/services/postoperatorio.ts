@@ -1,7 +1,7 @@
 /**
  * lib/services/postoperatorio.ts
  *
- * CRUD de seguimiento postoperatorio (CU15).
+ * CRUD de seguimiento postoperatorio.
  * Rutas del backend:
  *   GET    /postoperatorios/           — lista paginada con filtros
  *   POST   /postoperatorios/           — crear registro (profesional_atiende = request.user auto)
