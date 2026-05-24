@@ -11,6 +11,13 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+**Fecha:** 2026-05-23  
+**Decisión:** Numeración de casos de uso alineada al documento PUDS §3.10 (diagramas de paquetes). Fuente de verdad: `docs/ai/PACKAGE_CU_MAP.md`. Paquete administrativa: CU18 `apps.seguros`, CU19 `apps.descuentos`, CU20 `apps.facturacion`. Paquete CRM: CU17 recordatorios en `apps.notificaciones.automatizaciones` (no confundir con CU21 reportes). Paquete reportes: CU21 generar/exportar (`apps.crm.reportes` + QBE sistema), CU22 informes personalizados (`apps.reportes` plantillas usuario).  
+**Motivo:** Chats y commits previos usaban CU18–CU22 desplazados respecto al PUDS entregado en clase/defensa.  
+**Impacto:** Comentarios en código, seeders, frontend y `docs/ai/` actualizados; nombres de archivos de migración (`0003_cu18_*`) se mantienen por historial git.
+
+---
+
 **Fecha:** 2026-05-10  
 **Decisión:** Identidad de **superadmin SaaS** separada de `Usuario` de clínica: modelo **`PlatformAdministrator`** en app shared `apps.platform_admin` (tabla `platform_administrator` en schema `public`). JWT de plataforma con claim `token_scope=platform` (`PlatformAccessToken`); autenticación DRF por defecto **`TenantScopedJWTAuthentication`** rechaza tokens plataforma en APIs `/t/<slug>/`. **`TenantManagementViewSet`** usa **`PlatformJWTAuthentication`** + **`IsPlatformAdministrator`**. Sin refresh JWT plataforma en MVP (sesión larga vía `PLATFORM_JWT_ACCESS_MINUTES`); bootstrap con `ensure_platform_admin` + variables `PLATFORM_ADMIN_*` en entrypoint.  
 **Motivo:** Los usuarios clínicos viven solo en schemas tenant; `IsAdminUser` sobre `Usuario` no existe en `public`. Evitar mezclar tokens y evitar que un Bearer de plataforma acceda a datos clínicos por error.  

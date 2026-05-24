@@ -115,6 +115,12 @@ TENANT_APPS = [
     # CRM por clínica.
     'apps.crm',
     'apps.crm.reportes',
+
+    # Paquete administrativa y financiera (PUDS §3.10):
+    # CU18 seguros, CU19 descuentos, CU20 facturación clínica.
+    'apps.seguros',
+    'apps.descuentos',
+    'apps.facturacion',
      
 
     # Notificaciones por clínica.
@@ -124,10 +130,10 @@ TENANT_APPS = [
     # Backup y restore por clínica.
     'apps.backup',
 
-    # Reportes QBE — CU21 personalizados / CU22 predefinidos (ORM únicamente).
+    # Paquete reportes (PUDS): CU21 generar/exportar, CU22 informes personalizados.
     'apps.reportes',
 
-    # Inteligencia artificial (NL → QBE, CU23+).
+    # Paquete IA: CU23+ (NL → QBE).
     'apps.ia',
 ]
 

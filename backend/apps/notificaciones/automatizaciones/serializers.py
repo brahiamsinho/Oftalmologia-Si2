@@ -1,17 +1,17 @@
-from datetime import timedelta
-
-from django.utils import timezone
 from rest_framework import serializers
 
+from apps.atencionClinica.citas.models import Cita
 from apps.atencionClinica.postoperatorio.models import Postoperatorio
-from apps.notificaciones.models import Notificacion
 
 from .models import (
-    EstadoTarea,
     LogEjecucionRecordatorio,
-    NivelLog,
     ReglaRecordatorio,
     TareaRecordatorioProgramada,
+    TipoReglaRecordatorio,
+)
+from .services.scheduling import (
+    programar_recordatorio_cita,
+    programar_recordatorio_postoperatorio,
 )
 
 
@@ -33,7 +33,7 @@ class ReglaRecordatorioSerializer(serializers.ModelSerializer):
 
             if qs.exists():
                 raise serializers.ValidationError({
-                    'nombre': 'Ya existe una regla con ese nombre.'
+                    'nombre': 'Ya existe una regla con ese nombre.',
                 })
 
         return attrs
@@ -68,92 +68,64 @@ class LogEjecucionRecordatorioSerializer(serializers.ModelSerializer):
 
 
 class GenerarTareaSerializer(serializers.Serializer):
+    """Genera una tarea manualmente (postoperatorio o cita)."""
+
     id_regla = serializers.PrimaryKeyRelatedField(
         queryset=ReglaRecordatorio.objects.filter(activa=True),
     )
     id_postoperatorio = serializers.PrimaryKeyRelatedField(
         queryset=Postoperatorio.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    id_cita = serializers.PrimaryKeyRelatedField(
+        queryset=Cita.objects.all(),
+        required=False,
+        allow_null=True,
     )
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
 
+        postop = attrs.get('id_postoperatorio')
+        cita = attrs.get('id_cita')
         regla = attrs['id_regla']
-        postoperatorio = attrs['id_postoperatorio']
 
-        if postoperatorio.proximo_control is None:
-            raise serializers.ValidationError({
-                'id_postoperatorio': 'El postoperatorio no tiene próximo control programado.'
-            })
+        if bool(postop) == bool(cita):
+            raise serializers.ValidationError(
+                'Indique exactamente uno: id_postoperatorio o id_cita.',
+            )
 
-        programada_para = postoperatorio.proximo_control - timedelta(hours=regla.horas_antes)
+        if postop is not None:
+            if regla.tipo_regla != TipoReglaRecordatorio.CONTROL_POSTOPERATORIO:
+                raise serializers.ValidationError({
+                    'id_regla': 'La regla debe ser de tipo control postoperatorio.',
+                })
+            if postop.proximo_control is None:
+                raise serializers.ValidationError({
+                    'id_postoperatorio': 'El postoperatorio no tiene próximo control programado.',
+                })
 
-        if programada_para <= timezone.now():
-            raise serializers.ValidationError({
-                'id_postoperatorio': 'No se puede programar en el pasado con la regla seleccionada.'
-            })
+        if cita is not None:
+            if regla.tipo_regla != TipoReglaRecordatorio.RECORDATORIO_CITA:
+                raise serializers.ValidationError({
+                    'id_regla': 'La regla debe ser de tipo recordatorio de cita.',
+                })
 
-        attrs['programada_para'] = programada_para
         return attrs
 
     def create(self, validated_data):
         regla = validated_data['id_regla']
-        postoperatorio = validated_data['id_postoperatorio']
+        postop = validated_data.get('id_postoperatorio')
+        cita = validated_data.get('id_cita')
 
-        return TareaRecordatorioProgramada.objects.create(
-            id_regla=regla,
-            id_paciente=postoperatorio.id_paciente,
-            id_postoperatorio=postoperatorio,
-            programada_para=validated_data['programada_para'],
-            payload={
-                'paciente_id': postoperatorio.id_paciente_id,
-                'postoperatorio_id': postoperatorio.id_postoperatorio,
-                'proximo_control': postoperatorio.proximo_control.isoformat(),
-            },
-        )
+        if postop is not None:
+            tarea = programar_recordatorio_postoperatorio(postop, regla=regla)
+        else:
+            tarea = programar_recordatorio_cita(cita, regla=regla)
 
-
-def procesar_tarea_recordatorio(tarea: TareaRecordatorioProgramada):
-    if tarea.estado != EstadoTarea.PENDIENTE:
-        return tarea
-
-    try:
-        if tarea.payload.get('forzar_error'):
-            raise ValueError('Error forzado para pruebas de resiliencia.')
-
-        paciente = tarea.id_paciente
-        nombre = f'{paciente.nombres} {paciente.apellidos}'.strip()
-
-        titulo = tarea.id_regla.titulo_template.format(paciente=nombre)
-        cuerpo = tarea.id_regla.cuerpo_template.format(
-            paciente=nombre,
-            fecha_control=tarea.id_postoperatorio.proximo_control.strftime('%Y-%m-%d %H:%M'),
-        )
-
-        if paciente.usuario_id:
-            Notificacion.objects.create(
-                usuario=paciente.usuario,
-                titulo=titulo,
-                cuerpo=cuerpo,
-                tipo='recordatorio_control',
+        if tarea is None:
+            raise serializers.ValidationError(
+                'No se pudo programar la tarea (fecha en el pasado o regla inválida).',
             )
-
-        tarea.marcar_procesada()
-
-        LogEjecucionRecordatorio.objects.create(
-            id_tarea=tarea,
-            nivel=NivelLog.INFO,
-            mensaje='Recordatorio procesado correctamente.',
-        )
-
-    except Exception as exc:
-        tarea.marcar_error()
-
-        LogEjecucionRecordatorio.objects.create(
-            id_tarea=tarea,
-            nivel=NivelLog.ERROR,
-            mensaje='Error al procesar recordatorio.',
-            detalle=str(exc),
-        )
-
-    return tarea
+        return tarea

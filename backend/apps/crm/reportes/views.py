@@ -1,6 +1,6 @@
 """
 apps/crm/reportes/views.py
-CU17 — Generar y exportar reportes
+CU21 (PUDS) — Generar y exportar reportes operativos (CSV)
 
 Endpoints:
     GET  /reportes/tipos/       — lista de tipos de reporte disponibles

@@ -30,6 +30,7 @@ import {
   Settings,
   MessageSquare,
   Tags,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
@@ -468,7 +469,19 @@ export default function Sidebar() {
           </ul>
         )}
 
-        {/* Reportes (CU17) — visible siempre; export/plan según backend */}
+        {/* Seguros y convenios (CU18) */}
+        <ul className="space-y-0.5 mt-1">
+          <NavItem
+            href="/seguros"
+            label="Seguros"
+            icon={Shield}
+            active={is("/seguros")}
+            collapsed={isCollapsed}
+            onNavigate={closeMobileDrawer}
+          />
+        </ul>
+
+        {/* Reportes (CU21/CU22) — visible siempre; export/plan según backend */}
         <ul className="space-y-0.5 mt-1">
           <NavItem
             href="/reportes"

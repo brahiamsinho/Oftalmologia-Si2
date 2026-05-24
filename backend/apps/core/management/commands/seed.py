@@ -68,6 +68,22 @@ SEEDERS = {
         'seeders.seed_demo_paciente',
         'Demo paciente + citas',
     ),
+    'recordatorios': (
+        'seeders.seed_recordatorios',
+        'Reglas de recordatorio CU17',
+    ),
+    'seguros': (
+        'seeders.seed_seguros',
+        'Aseguradoras y convenios CU19',
+    ),
+    'descuentos': (
+        'seeders.seed_descuentos',
+        'Promociones y descuentos CU19',
+    ),
+    'facturacion': (
+        'seeders.seed_facturacion',
+        'Catálogo tarifas clínicas CU20',
+    ),
     'platform_admin': (
         'seeders.seed_platform_admin',
         'Superadmin plataforma (schema public)',

@@ -29,3 +29,16 @@ export {
 export type {
   HistorialContacto, HistorialContactoCreate, HistorialContactoParams, CampanaCRM, SegmentacionPaciente,
 } from './crm';
+export { segurosService } from './seguros';
+export type {
+  Aseguradora,
+  Convenio,
+  AfiliacionSeguro,
+  VerificarCoberturaResult,
+} from './seguros';
+export { descuentosService } from './descuentos';
+export type {
+  PromocionDescuento,
+  BeneficiosAplicablesResult,
+  BeneficioAplicableItem,
+} from './descuentos';

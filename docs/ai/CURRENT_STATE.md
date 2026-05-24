@@ -1,5 +1,45 @@
 # CURRENT STATE
 
+**Numeración oficial CU ↔ código:** ver **`docs/ai/PACKAGE_CU_MAP.md`** (alineado a diagramas PUDS §3.10, 2026-05-23).
+
+## Actualizacion 2026-05-23 (CU20 — facturación clínica backend CERRADO)
+
+- **App** `apps.facturacion` (TENANT_APPS, `/t/<slug>/api/facturacion/`).
+- **Cálculo** CU18 seguros + CU19 descuentos → `preview` / `emitir`.
+- **Cobros** presenciales + **pasarela simulada** (`iniciar-pago-en-linea`, `confirmar-pasarela`, `PASARELA_MOCK_SECRET`).
+- **PDF** `GET facturas/{id}/comprobante/` (reportlab).
+- **Notificaciones** push al paciente (emitida, pago pendiente/confirmado/rechazado).
+- **Paciente** `GET facturas/mis-pendientes/`; **cita** `GET citas/{id}/resumen-facturacion/`.
+- **Pendiente solo:** UI web, pasarela real producción, mobile.
+
+## Actualizacion 2026-05-23 (CU19 — descuentos backend + pacientes)
+
+- **App** `apps.descuentos`: `PromocionDescuento`, `BeneficioPaciente`.
+- **API** `/api/descuentos/promociones/`, `beneficios/`, `aplicables/`, `verificar-aplicacion/`.
+- **Seeder** `seed_descuentos` (BIENVENIDA15, CONTROL50).
+- **Pacientes web:** paneles seguro (CU18) y beneficios (CU19) en modal edición.
+- **Pendiente:** UI `/descuentos`, notificación al asignar beneficio, tests tenant.
+
+## Actualizacion 2026-05-23 (CU18 — seguros y convenios)
+
+- **App** `apps.seguros`: aseguradoras, convenios, afiliaciones, `verificar-cobertura`.
+- **Seeder** `seed_seguros` (NSS, MediCorp).
+- **Web:** `/seguros` + `lib/services/seguros.ts`.
+
+## Actualizacion 2026-05-23 (CU17 — recordatorios backend)
+
+- **App** `apps.notificaciones.automatizaciones` (paquete CRM PUDS).
+- **Tipo** `RECORDATORIO_CITA`, FK `id_cita`, señales cita/postop, comando multi-tenant `procesar_recordatorios`.
+- **Pendiente:** cron Docker, UI web, tests tenant.
+
+## Actualizacion 2026-05-23 (CU21/CU22 — reportes web)
+
+- **Backend** `apps.reportes.views.ReportTemplateViewSet`: bitácora en CRUD/ejecutar/exportar; filtro `?is_system_report=true|false`; protección edit/delete en plantillas sistema; acción `POST …/{id}/run/` → `{ qbe, report, template_id }`.
+- **Frontend** `/reportes`: panel **Informes predefinidos** (`PredefinedReportsPanel`), **Mis informes guardados** (`SavedReportsPanel`), diálogo **Guardar informe** (`SaveReportTemplateDialog`), **Exportar Excel** (`ReportExportButton` → `export-excel`).
+- **Servicio** `frontend/src/lib/services/reportes.ts`: list/create/delete/run/export plantillas QBE.
+- **Hook** `useSmartReport.loadReportResult`: carga resultados de plantilla sin pasar por NLP.
+- **Rama:** `sprint3-comienzo` (base `origin/main` 2026-05-10). Mobile reportes IA sigue en stash/rama `f11f9b9`, no en esta rama.
+
 ## Actualizacion 2026-05-10 (build frontend + Fase 0 plan)
 
 - **Lucide:** `Scalpel` → `Slice` en cirugías y sidebar (icono no exportado en lucide 0.460).
