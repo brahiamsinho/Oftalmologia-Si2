@@ -53,6 +53,14 @@ export interface BeneficiosAplicablesResult {
 const BASE = '/descuentos';
 
 export const descuentosService = {
+  async createPromocion(payload: Partial<PromocionDescuento>): Promise<PromocionDescuento> {
+    const { data } = await api.post<PromocionDescuento>(`${BASE}/promociones/`, payload);
+    return data;
+  },
+  async updatePromocion(id: number, payload: Partial<PromocionDescuento>): Promise<PromocionDescuento> {
+    const { data } = await api.patch<PromocionDescuento>(`${BASE}/promociones/${id}/`, payload);
+    return data;
+  },
   async listPromociones(): Promise<PromocionDescuento[]> {
     const { data } = await api.get<PromocionDescuento[] | PaginatedResponse<PromocionDescuento>>(
       `${BASE}/promociones/`,

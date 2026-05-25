@@ -1,9 +1,3 @@
-/**
- * CU18 (PUDS) — Seguros, convenios y afiliaciones de pacientes.
- *
- * Rutas: /seguros/aseguradoras/ | /seguros/convenios/ | /seguros/afiliaciones/
- *        GET /seguros/convenios/verificar-cobertura/?paciente_id=&fecha=
- */
 import api from '@/lib/api';
 import type { PaginatedResponse } from '@/lib/types';
 
@@ -92,10 +86,16 @@ export const segurosService = {
     return unwrapList(data);
   },
 
+  async updateAseguradora(id: number, payload: Partial<Aseguradora>): Promise<Aseguradora> {
+    const { data } = await api.patch|Aseguradora>(`${BASE}/aseguradoras/${id}/`, payload);
+    return data;
+  },
+
   async createAseguradora(payload: Partial<Aseguradora>): Promise<Aseguradora> {
     const { data } = await api.post<Aseguradora>(`${BASE}/aseguradoras/`, payload);
     return data;
   },
+
 
   async listConvenios(params?: {
     search?: string;
@@ -109,10 +109,16 @@ export const segurosService = {
     return unwrapList(data);
   },
 
+  async updateConvenio(id: number, payload: Partial<Convenio>): Promise<Convenio> {
+    const { data } = await api.patch<Convenio>(`${BASE}/convenios/${id}/`, payload);
+    return data;
+  },
+
   async createConvenio(payload: Partial<Convenio>): Promise<Convenio> {
     const { data } = await api.post<Convenio>(`${BASE}/convenios/`, payload);
     return data;
   },
+
 
   async listAfiliaciones(params?: {
     search?: string;
@@ -127,6 +133,11 @@ export const segurosService = {
     return unwrapList(data);
   },
 
+  async updateAfiliacion(id: number, payload: Partial<AfiliacionSeguro>): Promise<AfiliacionSeguro> {
+    const { data } = await api.patch<AfiliacionSeguro>(`${BASE}/afiliaciones/${id}/`, payload);
+    return data;
+  },
+
   async createAfiliacion(payload: Partial<AfiliacionSeguro>): Promise<AfiliacionSeguro> {
     const { data } = await api.post<AfiliacionSeguro>(`${BASE}/afiliaciones/`, payload);
     return data;
@@ -135,6 +146,7 @@ export const segurosService = {
   async deleteAfiliacion(id: number): Promise<void> {
     await api.delete(`${BASE}/afiliaciones/${id}/`);
   },
+
 
   async verificarCobertura(
     pacienteId: number,
