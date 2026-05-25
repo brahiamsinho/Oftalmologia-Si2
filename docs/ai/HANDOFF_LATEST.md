@@ -8,9 +8,9 @@
 
 **Fecha:** 2026-05-23 — **CU20 Facturación clínica backend:** `apps.facturacion`, cálculo CU18+CU19, cobros, `/api/facturacion/`. Sesión `2026-05-23-agent-cu21-facturacion-backend.md` (título histórico). **Pendiente:** pasarela, UI, PDF.
 
-**Fecha:** 2026-05-23 — **CU19 Descuentos + pacientes:** `apps.descuentos`, paneles en modal paciente. Sesión `2026-05-23-agent-cu20-pacientes-descuentos.md`.
+**Fecha:** 2026-05-23 — **CU19 Descuentos + pacientes:** `apps.administracionFinanciera.descuentos`, paneles en modal paciente. Sesión `2026-05-23-agent-cu20-pacientes-descuentos.md`.
 
-**Fecha:** 2026-05-23 — **CU18 Seguros:** `apps.seguros`, web `/seguros`. Sesión `2026-05-23-agent-cu19-seguros-backend.md`.
+**Fecha:** 2026-05-23 — **CU18 Seguros:** `apps.administracionFinanciera.seguros`, web `/seguros`. Sesión `2026-05-23-agent-cu19-seguros-backend.md`.
 
 **Fecha:** 2026-05-23 — **CU17 Recordatorios:** `automatizaciones`, señales, `procesar_recordatorios`. Sesión `2026-05-23-agent-cu18-recordatorios-backend.md`. **Pendiente:** cron, UI, tests.
 

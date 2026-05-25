@@ -11,10 +11,10 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from apps.atencionClinica.citas.models import Cita, TipoCitaNombre
-from apps.descuentos.models import TipoBeneficio
-from apps.descuentos.services import listar_beneficios_aplicables, verificar_aplicacion_promocion
+from apps.administracionFinanciera.descuentos.models import TipoBeneficio
+from apps.administracionFinanciera.descuentos.services import listar_beneficios_aplicables, verificar_aplicacion_promocion
 from apps.pacientes.pacientes.models import Paciente
-from apps.seguros.services import verificar_cobertura_paciente
+from apps.administracionFinanciera.seguros.services import verificar_cobertura_paciente
 
 from ..models import (
     CatalogoServicioClinico,
@@ -192,7 +192,7 @@ def emitir_factura(
 
     promocion = None
     if calculo.get('id_promocion_aplicada'):
-        from apps.descuentos.models import PromocionDescuento
+        from apps.administracionFinanciera.descuentos.models import PromocionDescuento
 
         promocion = PromocionDescuento.objects.filter(pk=calculo['id_promocion_aplicada']).first()
 

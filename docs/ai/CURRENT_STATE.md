@@ -14,7 +14,7 @@
 
 ## Actualizacion 2026-05-23 (CU19 — descuentos backend + pacientes)
 
-- **App** `apps.descuentos`: `PromocionDescuento`, `BeneficioPaciente`.
+- **App** `apps.administracionFinanciera.descuentos`: `PromocionDescuento`, `BeneficioPaciente`.
 - **API** `/api/descuentos/promociones/`, `beneficios/`, `aplicables/`, `verificar-aplicacion/`.
 - **Seeder** `seed_descuentos` (BIENVENIDA15, CONTROL50).
 - **Pacientes web:** paneles seguro (CU18) y beneficios (CU19) en modal edición.
@@ -22,7 +22,7 @@
 
 ## Actualizacion 2026-05-23 (CU18 — seguros y convenios)
 
-- **App** `apps.seguros`: aseguradoras, convenios, afiliaciones, `verificar-cobertura`.
+- **App** `apps.administracionFinanciera.seguros`: aseguradoras, convenios, afiliaciones, `verificar-cobertura`.
 - **Seeder** `seed_seguros` (NSS, MediCorp).
 - **Web:** `/seguros` + `lib/services/seguros.ts`.
 

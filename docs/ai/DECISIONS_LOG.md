@@ -12,7 +12,7 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 ---
 
 **Fecha:** 2026-05-23  
-**Decisión:** Numeración de casos de uso alineada al documento PUDS §3.10 (diagramas de paquetes). Fuente de verdad: `docs/ai/PACKAGE_CU_MAP.md`. Paquete administrativa: CU18 `apps.seguros`, CU19 `apps.descuentos`, CU20 `apps.facturacion`. Paquete CRM: CU17 recordatorios en `apps.notificaciones.automatizaciones` (no confundir con CU21 reportes). Paquete reportes: CU21 generar/exportar (`apps.crm.reportes` + QBE sistema), CU22 informes personalizados (`apps.reportes` plantillas usuario).  
+**Decisión:** Numeración de casos de uso alineada al documento PUDS §3.10 (diagramas de paquetes). Fuente de verdad: `docs/ai/PACKAGE_CU_MAP.md`. Paquete administrativa: CU18 `apps.administracionFinanciera.seguros`, CU19 `apps.administracionFinanciera.descuentos`, CU20 `apps.facturacion`. Paquete CRM: CU17 recordatorios en `apps.notificaciones.automatizaciones` (no confundir con CU21 reportes). Paquete reportes: CU21 generar/exportar (`apps.crm.reportes` + QBE sistema), CU22 informes personalizados (`apps.reportes` plantillas usuario).  
 **Motivo:** Chats y commits previos usaban CU18–CU22 desplazados respecto al PUDS entregado en clase/defensa.  
 **Impacto:** Comentarios en código, seeders, frontend y `docs/ai/` actualizados; nombres de archivos de migración (`0003_cu18_*`) se mantienen por historial git.
 

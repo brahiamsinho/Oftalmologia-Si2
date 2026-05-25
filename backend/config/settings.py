@@ -118,8 +118,8 @@ TENANT_APPS = [
 
     # Paquete administrativa y financiera (PUDS §3.10):
     # CU18 seguros, CU19 descuentos, CU20 facturación clínica.
-    'apps.seguros',
-    'apps.descuentos',
+    'apps.administracionFinanciera.seguros',
+    'apps.administracionFinanciera.descuentos',
     'apps.facturacion',
      
 

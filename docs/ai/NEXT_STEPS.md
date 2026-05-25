@@ -32,8 +32,8 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] CU15 Backend: modulo `postoperatorio` (CRUD + filtros paciente/cirugia/fecha/estado + validaciones + permisos + bitacora + tests minimos).
 - [x] CU16 Backend: CRM pacientes (segmentacion + campanas + historial de contacto + CRUD + permisos + bitacora + tests minimos).
 - [x] **CU17 Backend:** recordatorios (`automatizaciones`). **Pendiente:** cron compose, UI, tests tenant.
-- [x] **CU18 Backend + web:** `apps.seguros`, `/seguros`. Paneles en paciente (modal).
-- [x] **CU19 Backend:** `apps.descuentos`. **Pendiente:** UI `/descuentos`, notificación asignación, tests.
+- [x] **CU18 Backend + web:** `apps.administracionFinanciera.seguros`, `/seguros`. Paneles en paciente (modal).
+- [x] **CU19 Backend:** `apps.administracionFinanciera.descuentos`. **Pendiente:** UI `/descuentos`, notificación asignación, tests.
 - [x] **CU20 Backend (cerrado):** facturación, pasarela mock, PDF, notificaciones, API paciente/cita.
 - [ ] **CU20:** UI `/facturacion`, pasarela real producción, mobile pagos.
 - [ ] **Referencia:** mapa paquetes → `docs/ai/PACKAGE_CU_MAP.md`.

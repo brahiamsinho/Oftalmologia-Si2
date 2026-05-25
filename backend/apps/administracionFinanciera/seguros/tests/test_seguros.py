@@ -4,8 +4,8 @@ from decimal import Decimal
 import pytest
 
 from apps.pacientes.pacientes.models import Paciente
-from apps.seguros.models import AfiliacionSeguroPaciente, Aseguradora, Convenio
-from apps.seguros.services import verificar_cobertura_paciente
+from apps.administracionFinanciera.seguros.models import AfiliacionSeguroPaciente, Aseguradora, Convenio
+from apps.administracionFinanciera.seguros.services import verificar_cobertura_paciente
 
 
 @pytest.fixture
@@ -66,7 +66,7 @@ def test_verificar_cobertura_con_afiliacion_principal(paciente, convenio):
 
 @pytest.mark.django_db
 def test_convenio_fecha_fin_invalida_en_serializer(aseguradora):
-    from apps.seguros.serializers import ConvenioSerializer
+    from apps.administracionFinanciera.seguros.serializers import ConvenioSerializer
 
     ser = ConvenioSerializer(
         data={

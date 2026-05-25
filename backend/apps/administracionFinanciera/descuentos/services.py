@@ -10,7 +10,7 @@ from typing import Any
 from django.utils import timezone
 
 from apps.pacientes.pacientes.models import Paciente
-from apps.seguros.services import verificar_cobertura_paciente
+from apps.administracionFinanciera.seguros.services import verificar_cobertura_paciente
 
 from .models import (
     AlcancePromocion,

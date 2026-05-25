@@ -14,7 +14,7 @@ from django.utils import timezone
 
 
 
-from apps.descuentos.models import (
+from apps.administracionFinanciera.descuentos.models import (
 
     AlcancePromocion,
 

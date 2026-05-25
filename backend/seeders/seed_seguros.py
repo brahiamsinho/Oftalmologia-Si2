@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from django.utils import timezone
 
-from apps.seguros.models import Aseguradora, Convenio
+from apps.administracionFinanciera.seguros.models import Aseguradora, Convenio
 
 ASEGURADORAS = (
     {

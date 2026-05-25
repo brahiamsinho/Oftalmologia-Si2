@@ -63,8 +63,8 @@ No confundir con rutas en `public` (`/api/public/...`) ni con suscripción SaaS 
 
 | CU | Nombre | App Django | API |
 |----|--------|------------|-----|
-| **CU18** | Seguros y convenios | `apps.seguros` | `/api/seguros/` |
-| **CU19** | Descuentos y campañas clínicas | `apps.descuentos` | `/api/descuentos/` |
+| **CU18** | Seguros y convenios | `apps.administracionFinanciera.seguros` | `/api/seguros/` |
+| **CU19** | Descuentos y campañas clínicas | `apps.administracionFinanciera.descuentos` | `/api/descuentos/` |
 | **CU20** | Facturación, cobros y pasarela | `apps.facturacion` | `/api/facturacion/` |
 
 **Estado backend (2026-05-23):** cerrado sin UI — catálogo, preview/emitir, cobros, pasarela mock, PDF, push paciente, resumen por cita.
