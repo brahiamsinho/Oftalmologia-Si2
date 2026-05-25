@@ -1,15 +1,20 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { BookmarkPlus, Sparkles } from 'lucide-react';
 
 import ActiveFilters from '@/components/reportes/ActiveFilters';
 import AIAssistantBar from '@/components/reportes/AIAssistantBar';
 import { buildDefaultVisibility } from '@/components/reportes/columnUtils';
 import DynamicTable from '@/components/reportes/DynamicTable';
+import PredefinedReportsPanel from '@/components/reportes/PredefinedReportsPanel';
 import ReportColumnPicker from '@/components/reportes/ReportColumnPicker';
+import ReportExportButton from '@/components/reportes/ReportExportButton';
+import SaveReportTemplateDialog from '@/components/reportes/SaveReportTemplateDialog';
+import SavedReportsPanel from '@/components/reportes/SavedReportsPanel';
 import { useSmartReport } from '@/hooks/useSmartReport';
 import { useSpeechToText } from '@/hooks/useSpeechToText';
+import type { NlpToReportResponse } from '@/types/reportes';
 
 function ReportSkeleton() {
   return (
@@ -37,12 +42,24 @@ function ReportSkeleton() {
 }
 
 export default function ReportesInteligentesPage() {
-  const { data, loading, updating, error, submitQuery, removeFilterKey } = useSmartReport();
+  const {
+    data,
+    loading,
+    updating,
+    error,
+    submitQuery,
+    loadReportResult,
+    removeFilterKey,
+  } = useSmartReport();
   const speech = useSpeechToText();
 
   const [query, setQuery] = useState('');
-  /** null = aún no hidratado para este set de columnas; se usa buildDefaultVisibility en UI. */
+  const [panelError, setPanelError] = useState<string | null>(null);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [savedRefresh, setSavedRefresh] = useState(0);
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean> | null>(null);
+
+  const displayError = error ?? panelError;
 
   useEffect(() => {
     if (!speech.isListening && speech.transcript) {
@@ -61,10 +78,23 @@ export default function ReportesInteligentesPage() {
 
   const handleSubmit = useCallback(
     (text: string) => {
+      setPanelError(null);
       void submitQuery(text);
     },
     [submitQuery],
   );
+
+  const handleReportLoaded = useCallback(
+    (result: NlpToReportResponse) => {
+      setPanelError(null);
+      loadReportResult(result);
+    },
+    [loadReportResult],
+  );
+
+  const handlePanelError = useCallback((message: string) => {
+    setPanelError(message || null);
+  }, []);
 
   const columns = data?.report?.meta?.columns ?? [];
   const rows = data?.report?.data ?? [];
@@ -104,6 +134,7 @@ export default function ReportesInteligentesPage() {
 
   const busy = loading || updating;
   const hasTableData = columns.length > 0 && rows.length > 0;
+  const canSaveTemplate = Boolean(data?.qbe?.model);
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 pb-10">
@@ -111,15 +142,28 @@ export default function ReportesInteligentesPage() {
         <div className="flex items-center gap-2 text-indigo-600">
           <Sparkles className="h-6 w-6" aria-hidden />
           <span className="text-xs font-semibold uppercase tracking-wide">
-            Consultas en lenguaje natural · Filtros · Exportación
+            CU21 · Predefinidos / export · CU22 · Personalizados · CU23 · IA
           </span>
         </div>
         <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Reportes inteligentes</h1>
         <p className="max-w-3xl text-sm text-gray-600 sm:text-base">
-          Describí qué datos necesitás. La IA propone filtros seguros (QBE); podés quitar condiciones con las
-          etiquetas y la tabla se actualiza al instante sin volver a llamar al modelo de lenguaje.
+          Ejecutá informes predefinidos del sistema, consultá en lenguaje natural con IA, guardá tus
+          plantillas personalizadas y exportá resultados a Excel.
         </p>
       </header>
+
+      <PredefinedReportsPanel
+        onReportLoaded={handleReportLoaded}
+        onError={handlePanelError}
+        disabled={busy}
+      />
+
+      <SavedReportsPanel
+        refreshToken={savedRefresh}
+        onReportLoaded={handleReportLoaded}
+        onError={handlePanelError}
+        disabled={busy}
+      />
 
       <AIAssistantBar
         value={speech.isListening ? speech.transcript : query}
@@ -135,13 +179,13 @@ export default function ReportesInteligentesPage() {
 
       {loading && !data && <ReportSkeleton />}
 
-      {error && !loading && (
+      {displayError && !loading && (
         <div
           className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-sm"
           role="alert"
         >
           <p className="font-semibold">No se pudo completar la solicitud</p>
-          <p className="mt-1">{error}</p>
+          <p className="mt-1">{displayError}</p>
         </div>
       )}
 
@@ -171,12 +215,30 @@ export default function ReportesInteligentesPage() {
                 />
               )}
             </div>
-            {typeof total === 'number' && (
-              <p className="text-sm text-gray-500">
-                {total} registro{total !== 1 ? 's' : ''} coincidente{total !== 1 ? 's' : ''}
-                {data.report.meta?.truncated ? ' (vista parcial)' : ''}
-              </p>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {typeof total === 'number' && (
+                <p className="text-sm text-gray-500">
+                  {total} registro{total !== 1 ? 's' : ''} coincidente{total !== 1 ? 's' : ''}
+                  {data.report.meta?.truncated ? ' (vista parcial)' : ''}
+                </p>
+              )}
+              <ReportExportButton
+                qbe={data.qbe}
+                disabled={busy || !hasTableData}
+                onError={handlePanelError}
+              />
+              {canSaveTemplate && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setSaveDialogOpen(true)}
+                  className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 disabled:opacity-60"
+                >
+                  <BookmarkPlus className="h-4 w-4" aria-hidden />
+                  Guardar informe
+                </button>
+              )}
+            </div>
           </div>
 
           <ActiveFilters
@@ -202,12 +264,19 @@ export default function ReportesInteligentesPage() {
           ) : (
             <div className="mt-8 overflow-hidden rounded-2xl bg-white py-16 text-center shadow-sm ring-1 ring-gray-200/50">
               <p className="mx-auto max-w-sm text-sm text-gray-500">
-                No hay datos para mostrar. Pídele algo a la IA.
+                No hay filas con los filtros actuales. Ajustá condiciones o probá otro informe.
               </p>
             </div>
           )}
         </section>
       )}
+
+      <SaveReportTemplateDialog
+        open={saveDialogOpen}
+        qbe={data?.qbe ?? null}
+        onClose={() => setSaveDialogOpen(false)}
+        onSaved={() => setSavedRefresh((n) => n + 1)}
+      />
     </div>
   );
 }

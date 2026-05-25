@@ -22,6 +22,8 @@ export interface UseSmartReportResult {
   updating: boolean;
   error: string | null;
   submitQuery: (query: string) => Promise<void>;
+  /** Carga resultado ya ejecutado (plantilla predefinida / guardada, sin NLP). */
+  loadReportResult: (result: NlpToReportResponse) => void;
   removeFilterKey: (filterKey: string) => Promise<void>;
   reset: () => void;
 }
@@ -44,6 +46,14 @@ export function useSmartReport(): UseSmartReportResult {
     setData(null);
     dataRef.current = null;
     setError(null);
+  }, []);
+
+  const loadReportResult = useCallback((result: NlpToReportResponse) => {
+    setLoading(false);
+    setUpdating(false);
+    setError(null);
+    setData(result);
+    dataRef.current = result;
   }, []);
 
   const submitQuery = useCallback(async (query: string) => {
@@ -108,6 +118,7 @@ export function useSmartReport(): UseSmartReportResult {
     updating,
     error,
     submitQuery,
+    loadReportResult,
     removeFilterKey,
     reset,
   };

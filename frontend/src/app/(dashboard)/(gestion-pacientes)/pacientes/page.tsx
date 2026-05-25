@@ -8,6 +8,8 @@ import {
   X, ChevronDown, User, AlertTriangle, TrendingUp,
 } from 'lucide-react';
 import { pacientesService } from '@/lib/services';
+import { PatientBeneficiosPanel } from '@/components/descuentos/PatientBeneficiosPanel';
+import { PatientSeguroPanel } from '@/components/seguros/PatientSeguroPanel';
 import { useTenant } from '@/context/TenantContext';
 import type { Paciente, PacienteCreate, EstadoPaciente, TipoDocumento, Sexo } from '@/lib/types';
 
@@ -402,6 +404,18 @@ function PacienteModal({ paciente, onClose, onSaved }: ModalProps) {
                 </Field>
               </div>
             </div>
+
+            {isEdit && paciente && (
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+                  Seguros y beneficios
+                </p>
+                <div className="space-y-3">
+                  <PatientSeguroPanel pacienteId={paciente.id_paciente} />
+                  <PatientBeneficiosPanel pacienteId={paciente.id_paciente} />
+                </div>
+              </div>
+            )}
 
             {/* Sección: Observaciones */}
             <div>

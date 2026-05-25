@@ -4,6 +4,7 @@ from django.utils import timezone
 
 class TipoReglaRecordatorio(models.TextChoices):
     CONTROL_POSTOPERATORIO = 'CONTROL_POSTOPERATORIO', 'Control postoperatorio'
+    RECORDATORIO_CITA = 'RECORDATORIO_CITA', 'Recordatorio de cita'
 
 
 class EstadoTarea(models.TextChoices):
@@ -79,6 +80,14 @@ class TareaRecordatorioProgramada(models.Model):
         'postoperatorio.Postoperatorio',
         on_delete=models.CASCADE,
         db_column='id_postoperatorio',
+        related_name='recordatorios_programados',
+        null=True,
+        blank=True,
+    )
+    id_cita = models.ForeignKey(
+        'citas.Cita',
+        on_delete=models.CASCADE,
+        db_column='id_cita',
         related_name='recordatorios_programados',
         null=True,
         blank=True,

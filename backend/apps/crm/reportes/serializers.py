@@ -1,6 +1,6 @@
 """
 apps/crm/reportes/serializers.py
-CU17 — Generar y exportar reportes
+CU21 (PUDS) — Generar y exportar reportes operativos
 """
 import datetime
 

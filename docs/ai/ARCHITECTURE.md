@@ -58,6 +58,10 @@ Cada clínica/organización tiene su propio **schema de PostgreSQL**. El aislami
 
 Detalle, rutas y mapa de archivos: **`docs/ai/PLATFORM_SAAS.md`**.
 
+## Paquetes PUDS y casos de uso
+
+Trazabilidad **paquete → CU → app Django → endpoint tenant**: ver **`docs/ai/PACKAGE_CU_MAP.md`**.
+
 ## Principios Arquitectónicos
 
 - **Modularidad Total:** Separación por responsabilidades tanto en carpetas como en apps internas de Django.

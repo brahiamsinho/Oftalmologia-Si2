@@ -1,4 +1,3 @@
-from django.utils import timezone
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -14,6 +13,9 @@ from .serializers import (
     LogEjecucionRecordatorioSerializer,
     ReglaRecordatorioSerializer,
     TareaRecordatorioSerializer,
+)
+from .services.processing import (
+    procesar_recordatorios_pendientes,
     procesar_tarea_recordatorio,
 )
 
@@ -85,6 +87,7 @@ class TareaRecordatorioViewSet(
         'id_regla',
         'id_paciente',
         'id_postoperatorio',
+        'id_cita',
     ).all()
     serializer_class = TareaRecordatorioSerializer
     permission_classes = [IsAuthenticated]
@@ -125,17 +128,7 @@ class TareaRecordatorioViewSet(
 
     @action(detail=False, methods=['post'], url_path='procesar')
     def procesar_pendientes(self, request):
-        pendientes = self.get_queryset().filter(
-            estado=EstadoTarea.PENDIENTE,
-            programada_para__lte=timezone.now(),
-        )[:50]
-
-        procesadas = 0
-
-        for tarea in pendientes:
-            procesar_tarea_recordatorio(tarea)
-            procesadas += 1
-
+        procesadas = procesar_recordatorios_pendientes(limit=50)
         return Response({'procesadas': procesadas})
 
 

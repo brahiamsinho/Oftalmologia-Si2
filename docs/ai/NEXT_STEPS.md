@@ -7,7 +7,9 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 ## Corto Plazo
 
 - [x] **Superadmin web:** `/platform/dashboard` — crear clínica (modal), activar, suspender, cambiar plan (modales + confirmación downgrade); **shell** sidebar + header como el dashboard clínica (`dashboard/layout.tsx`, `PlatformSidebar`, `PlatformHeader`). Detalle en `docs/ai/PLATFORM_SAAS.md` §7.
-- [ ] **CU21/CU22 Reportes QBE**: poblar `_QBE_MODEL_REGISTRY` / `_QBE_MODEL_IMPORT_PATH` desde apps de dominio (sin acoplar reglas en `reportes`); ampliar `QBEQueryBuilder` (`Q` anidados, agregaciones por campo); tests del motor y del endpoint `execute`.
+- [x] **CU21/CU22 web (parcial 2026-05-23):** predefinidos (CU21), personalizados/guardar (CU22), export Excel, `run/`. Ver `PACKAGE_CU_MAP.md`. **Pendiente:** E2E, tests, whitelist QBE.
+- [ ] **CU21 motor QBE:** poblar `_QBE_MODEL_REGISTRY`; tests `execute`.
+- [ ] **CU23 mobile:** reportes IA desde stash `f11f9b9` si aplica.
 - [x] Migracion completa a django-tenants con schema-per-tenant (backend).
 - [x] Sistema completo de backup/restore multi-tenant (modelos, API, servicio, scheduler, documentacion, tests).
 - [ ] **URGENTE: Frontend Next.js con URLs de tenant** — **Hecho (2026-05-10):** `lib/api.ts` reescribe `baseURL` a `resolveTenantBaseUrl(slug)` cuando hay `tenant_slug`; refresh usa el mismo prefijo. **Pendiente UX:** pantalla dedicada de selección de clínica / branding si se quiere además del paso 1 del login actual; consumo explícito de `GET /t/<slug>/api/auth/tenant/` donde falte.
@@ -29,7 +31,12 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] CU14 Backend: modulo `cirugias` (CRUD + reprogramacion + estado/fechas/cirujano/resultado/complicaciones + validaciones + permisos + bitacora + tests minimos).
 - [x] CU15 Backend: modulo `postoperatorio` (CRUD + filtros paciente/cirugia/fecha/estado + validaciones + permisos + bitacora + tests minimos).
 - [x] CU16 Backend: CRM pacientes (segmentacion + campanas + historial de contacto + CRUD + permisos + bitacora + tests minimos).
-- [x] CU17 Backend: recordatorios automaticos (management command + cron).
+- [x] **CU17 Backend:** recordatorios (`automatizaciones`). **Pendiente:** cron compose, UI, tests tenant.
+- [x] **CU18 Backend + web:** `apps.administracionFinanciera.seguros`, `/seguros`. Paneles en paciente (modal).
+- [x] **CU19 Backend:** `apps.administracionFinanciera.descuentos`. **Pendiente:** UI `/descuentos`, notificación asignación, tests.
+- [x] **CU20 Backend (cerrado):** facturación, pasarela mock, PDF, notificaciones, API paciente/cita.
+- [ ] **CU20:** UI `/facturacion`, pasarela real producción, mobile pagos.
+- [ ] **Referencia:** mapa paquetes → `docs/ai/PACKAGE_CU_MAP.md`.
 - [x] Backend: CustomUser + JWT (ya existía; login refinado a email + `check_password`).
 - [x] Mobile: Login real + home paciente con `GET /citas/` + tema/rutas base.
 - [x] Frontend: Login con `email` alineado a API.
