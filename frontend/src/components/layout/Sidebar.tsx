@@ -31,6 +31,7 @@ import {
   MessageSquare,
   Tags,
   DatabaseBackup,
+  Bot,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
@@ -499,6 +500,27 @@ export default function Sidebar() {
             collapsed={isCollapsed}
             onNavigate={closeMobileDrawer}
           />
+        </ul>
+
+        {/* IA */}
+        <ul className="space-y-0.5 mt-1">
+          <NavGroup
+            label="Inteligencia Artificial"
+            icon={Bot}
+            active={is("/asistente-virtual")}
+            collapsed={isCollapsed}
+            defaultOpen={is("/asistente-virtual")}
+          >
+            <NavItem
+              href="/asistente-virtual"
+              label="Asistente Virtual"
+              icon={MessageSquare}
+              active={is("/asistente-virtual")}
+              collapsed={false}
+              depth={1}
+              onNavigate={closeMobileDrawer}
+            />
+          </NavGroup>
         </ul>
 
         <div className="my-2 border-t border-gray-100 mx-1" />

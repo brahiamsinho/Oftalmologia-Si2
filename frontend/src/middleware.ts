@@ -9,6 +9,7 @@ const PROTECTED = [
   "/bitacora",
   "/historial",
   "/reportes",
+  "/asistente-virtual",
 ];
 
 export function middleware(request: NextRequest) {
@@ -39,6 +40,8 @@ export const config = {
     "/historial/:path*",
     "/reportes",
     "/reportes/:path*",
+    "/asistente-virtual",
+    "/asistente-virtual/:path*",
     "/login",
   ],
 };

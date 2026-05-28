@@ -7,7 +7,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.ia.serializers import NlpToReportRequestSerializer
+from apps.ia.serializers import ChatbotMessageRequestSerializer, NlpToReportRequestSerializer
+from apps.ia.services.chatbot import GeminiChatbotAssistant, GeminiChatbotError
 from apps.ia.services.nlp_translator import GeminiQBETranslator, GeminiTranslatorError
 from apps.reportes.services.export_intent import parse_export_formats_from_query
 from apps.reportes.services.qbe_engine import QBESafeQueryError, QBEEngine
@@ -73,3 +74,31 @@ class NlpToReportView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class ChatbotMessageView(APIView):
+    """
+    POST ``/api/ia/chatbot/`` (tenant: ``/t/<slug>/api/ia/chatbot/``).
+
+    Recibe mensaje + historial corto y responde con texto del asistente virtual.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        ser = ChatbotMessageRequestSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        message = ser.validated_data['message']
+        history = ser.validated_data.get('history') or []
+
+        try:
+            assistant = GeminiChatbotAssistant()
+            result = assistant.generate_reply(message=message, history=history)
+        except GeminiChatbotError as exc:
+            return Response(
+                {'detail': str(exc), 'reply': ''},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        return Response(result, status=status.HTTP_200_OK)
