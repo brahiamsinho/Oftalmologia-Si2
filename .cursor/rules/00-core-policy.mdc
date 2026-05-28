@@ -1,0 +1,11 @@
+---
+alwaysApply: true
+---
+
+# Core Policy
+
+- Follow `AGENTS.md` as project bible.
+- Read and maintain `docs/ai/` memory for meaningful changes.
+- Respect modular architecture and avoid hardcoded environment values.
+- Prefer reusable patterns, clear validation, and security-safe behavior.
+- For specialized execution, delegate to subagents in `.cursor/agents/`.

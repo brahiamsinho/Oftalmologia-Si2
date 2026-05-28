@@ -1,7 +1,10 @@
 """
 seeders/seed_demo_paciente.py
 
-Datos de demostración: paciente + 2 médicos + 2 citas futuras.
+Datos de demostración:
+- paciente demo realista (perfil clínico básico)
+- 3 médicos (subespecialidades distintas)
+- 3 citas futuras con escenarios clínicos plausibles
 
 Login API:
   Email:    brandon@gmail.com
@@ -23,12 +26,12 @@ from apps.atencionClinica.citas.models import (
 )
 from apps.atencionClinica.especialistas.models import Especialista
 from apps.pacientes.pacientes.models import Paciente
-from apps.pacientes.pacientes.utils import generar_numero_historia
-
-
 DEMO_USERNAME = 'brandon'
 DEMO_EMAIL = 'brandon@gmail.com'
 DEMO_PASSWORD = 'Felipe321'
+DEMO_NUMERO_DOCUMENTO = 'DEMO-BRANDON-001'
+# Fijo para no chocar con HC-YYYY-NNNNNN generados por otros seeders o borrados/restores.
+DEMO_NUMERO_HISTORIA = 'HC-DEMO-BRANDON'
 
 
 def _ensure_tipo_consulta():
@@ -109,6 +112,14 @@ def run():
         'Chen',
         'MEDICO',
     )
+    doc3 = _ensure_user(
+        'javier.montano',
+        'javier.montano@oftalmologia.local',
+        'Medico123!',
+        'Javier',
+        'Montaño',
+        'MEDICO',
+    )
 
     esp1 = _ensure_especialista(
         doc1,
@@ -118,8 +129,13 @@ def run():
 
     esp2 = _ensure_especialista(
         doc2,
-        'Oftalmología general',
+        'Retina y vítreo',
         'MP-DEMO-002',
+    )
+    esp3 = _ensure_especialista(
+        doc3,
+        'Glaucoma',
+        'MP-DEMO-003',
     )
 
     pac_user = _ensure_user(
@@ -131,41 +147,79 @@ def run():
         'PACIENTE',
     )
 
+    # Buscar por documento demo (estable tras restore/DELETE), no solo por usuario:
+    # si borraste el paciente pero quedó el usuario, get_or_create(usuario=...) fallaba
+    # al generar un numero_historia ya usado por otro registro.
     paciente, paciente_created = Paciente.objects.get_or_create(
-        usuario=pac_user,
+        numero_documento=DEMO_NUMERO_DOCUMENTO,
         defaults={
-            'numero_historia': generar_numero_historia(),
-            'tipo_documento': 'DNI',
-            'numero_documento': 'DEMO-BRANDON-001',
+            'usuario': pac_user,
+            'numero_historia': DEMO_NUMERO_HISTORIA,
+            'tipo_documento': 'CI',
             'nombres': 'María',
             'apellidos': 'García López',
             'email': DEMO_EMAIL,
-            'telefono': '+59170000000',
+            'telefono': '+59173456789',
+            'sexo': 'F',
+            'direccion': 'Av. Alemana, Zona Norte, Santa Cruz',
+            'contacto_emergencia_nombre': 'Pedro García',
+            'contacto_emergencia_telefono': '+59172345678',
+            'observaciones_generales': 'Paciente demo para pruebas funcionales de agenda y reportes.',
         },
     )
 
     if paciente_created:
         creados += 1
     else:
+        paciente.usuario = pac_user
         paciente.nombres = 'María'
         paciente.apellidos = 'García López'
         paciente.email = DEMO_EMAIL
-        paciente.telefono = '+59170000000'
-        paciente.save(update_fields=['nombres', 'apellidos', 'email', 'telefono'])
+        paciente.telefono = '+59173456789'
+        paciente.tipo_documento = 'CI'
+        paciente.sexo = 'F'
+        paciente.direccion = 'Av. Alemana, Zona Norte, Santa Cruz'
+        paciente.contacto_emergencia_nombre = 'Pedro García'
+        paciente.contacto_emergencia_telefono = '+59172345678'
+        paciente.observaciones_generales = 'Paciente demo para pruebas funcionales de agenda y reportes.'
+        if not paciente.numero_historia:
+            paciente.numero_historia = DEMO_NUMERO_HISTORIA
+        paciente.save(
+            update_fields=[
+                'usuario',
+                'tipo_documento',
+                'nombres',
+                'apellidos',
+                'email',
+                'telefono',
+                'sexo',
+                'direccion',
+                'contacto_emergencia_nombre',
+                'contacto_emergencia_telefono',
+                'observaciones_generales',
+                'numero_historia',
+            ],
+        )
         existentes += 1
 
     citas_data = [
         {
             'inicio': _fecha_futura(days=3, hour=10, minute=30),
-            'motivo': 'Control anual',
+            'motivo': 'Control anual de refracción',
             'esp': esp1,
-            'obs': 'Consultorio 3 — Piso 2',
+            'obs': 'Consultorio 3 — Piso 2. Traer lentes actuales.',
         },
         {
             'inicio': _fecha_futura(days=15, hour=15, minute=0),
-            'motivo': 'Seguimiento post-tratamiento',
+            'motivo': 'Seguimiento por sospecha de glaucoma',
             'esp': esp2,
-            'obs': 'Consultorio 2 — Piso 1',
+            'obs': 'Consultorio 2 — Piso 1. Revisar campimetría previa.',
+        },
+        {
+            'inicio': _fecha_futura(days=28, hour=9, minute=15),
+            'motivo': 'Control de superficie ocular y ojo seco',
+            'esp': esp3,
+            'obs': 'Consultorio 1 — Piso 1. Evaluar respuesta a lágrimas artificiales.',
         },
     ]
 

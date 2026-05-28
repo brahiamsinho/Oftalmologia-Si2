@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../config/app_config.dart';
 import '../../../../config/auth_listenable.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/notifications/push_notifications.dart';
@@ -18,12 +19,27 @@ class SessionNotifier extends Notifier<AuthUser?> {
   @override
   AuthUser? build() => null;
 
+  Future<String?> getSelectedTenantSlug() async {
+    final slug = await SecureStorageService.getTenantSlug();
+    final clean = slug?.trim();
+    return (clean == null || clean.isEmpty) ? null : clean;
+  }
+
   /// Restaura sesión si hay access token (valida con GET `/auth/me/`).
   Future<void> restoreFromStorage() async {
+    final tenantSlug = await getSelectedTenantSlug();
+    if (tenantSlug == null) {
+      state = null;
+      authListenable.value = AppSessionStatus.needsTenant;
+      return;
+    }
+    AppConfig.setRuntimeTenantSlug(tenantSlug);
+    ApiClient.reset();
+
     final token = await SecureStorageService.getAccessToken();
     if (token == null || token.isEmpty) {
       state = null;
-      authListenable.value = false;
+      authListenable.value = AppSessionStatus.unauthenticated;
       return;
     }
     try {
@@ -33,13 +49,27 @@ class SessionNotifier extends Notifier<AuthUser?> {
         throw StateError('empty me');
       }
       state = AuthUser.fromJson(Map<String, dynamic>.from(data));
-      authListenable.value = true;
+      authListenable.value = AppSessionStatus.authenticated;
       await PushNotifications.syncTokenWithBackend();
     } catch (_) {
       await SecureStorageService.clearTokens();
       state = null;
-      authListenable.value = false;
+      authListenable.value = AppSessionStatus.unauthenticated;
     }
+  }
+
+  Future<void> selectTenantSlug(String slug) async {
+    await ref.read(authRepositoryProvider).saveTenantWorkspace(slug);
+    state = null;
+    authListenable.value = AppSessionStatus.unauthenticated;
+  }
+
+  Future<void> clearTenantSelection() async {
+    await PushNotifications.unregisterFromBackend();
+    await SecureStorageService.clearTokens();
+    await ref.read(authRepositoryProvider).clearTenantWorkspace();
+    state = null;
+    authListenable.value = AppSessionStatus.needsTenant;
   }
 
   Future<void> signIn(String email, String password) async {
@@ -50,7 +80,7 @@ class SessionNotifier extends Notifier<AuthUser?> {
           fcmPayload: fcm,
         );
     state = user;
-    authListenable.value = true;
+    authListenable.value = AppSessionStatus.authenticated;
     // Sincronizar token FCM en segundo plano.
     // Cubre el caso en que el token no estaba disponible durante el login.
     PushNotifications.syncTokenWithBackend();
@@ -59,7 +89,7 @@ class SessionNotifier extends Notifier<AuthUser?> {
   /// Tras [AuthRepository.register] (tokens ya persistidos).
   void setAuthenticatedUser(AuthUser user) {
     state = user;
-    authListenable.value = true;
+    authListenable.value = AppSessionStatus.authenticated;
     // Registrar token FCM en backend y enviar push de bienvenida si aún no se hizo.
     PushNotifications.syncTokenWithBackend();
   }
@@ -68,6 +98,6 @@ class SessionNotifier extends Notifier<AuthUser?> {
     await PushNotifications.unregisterFromBackend();
     await ref.read(authRepositoryProvider).logout();
     state = null;
-    authListenable.value = false;
+    authListenable.value = AppSessionStatus.unauthenticated;
   }
 }

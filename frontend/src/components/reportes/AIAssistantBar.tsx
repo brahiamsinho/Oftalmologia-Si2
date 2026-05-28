@@ -9,6 +9,8 @@ interface Props {
   isListening: boolean;
   onToggleListen: () => void;
   loading: boolean;
+  speechSupported?: boolean;
+  speechError?: string | null;
 }
 
 export default function AIAssistantBar({
@@ -18,9 +20,12 @@ export default function AIAssistantBar({
   isListening,
   onToggleListen,
   loading,
+  speechSupported = true,
+  speechError = null,
 }: Props) {
   return (
-    <div className="relative mx-auto flex w-full max-w-4xl items-center rounded-full bg-white shadow-sm ring-1 ring-gray-200 transition-all focus-within:ring-2 focus-within:ring-indigo-500/50">
+    <div className="mx-auto w-full max-w-4xl space-y-2">
+    <div className="relative flex w-full items-center rounded-full bg-white shadow-sm ring-1 ring-gray-200 transition-all focus-within:ring-2 focus-within:ring-indigo-500/50">
       <input
         type="text"
         placeholder="Ej: Mostrame los pacientes registrados este mes..."
@@ -35,10 +40,17 @@ export default function AIAssistantBar({
         <button
           onClick={onToggleListen}
           type="button"
+          disabled={!speechSupported || loading}
           className={`rounded-full p-2 transition-colors ${
             isListening ? 'animate-pulse bg-red-100 text-red-600' : 'text-gray-500 hover:bg-gray-100'
-          }`}
-          title="Dictar por voz"
+          } disabled:cursor-not-allowed disabled:opacity-40`}
+          title={
+            speechSupported
+              ? isListening
+                ? 'Detener dictado'
+                : 'Dictar por voz'
+              : 'Voz no disponible en este navegador'
+          }
         >
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -72,6 +84,13 @@ export default function AIAssistantBar({
           )}
         </button>
       </div>
+    </div>
+    {(speechError || !speechSupported) && (
+      <p className="px-2 text-xs text-amber-800" role="status">
+        {speechError ??
+          'Dictado por voz no disponible aquí. Usá Chrome/Edge o escribí la consulta.'}
+      </p>
+    )}
     </div>
   );
 }

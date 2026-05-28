@@ -8,6 +8,7 @@ import '../../data/staff_dashboard_repository.dart';
 import '../../domain/cita_resumen.dart';
 import '../providers/patient_citas_provider.dart';
 import '../providers/staff_pacientes_list_provider.dart';
+import '../../../reportes/presentation/screens/smart_reports_screen.dart';
 import 'patient_home_screen.dart';
 
 /// Enruta: paciente → [PatientHomeScreen]; resto → panel staff con datos del API.
@@ -43,6 +44,7 @@ class _StaffHomeShellState extends ConsumerState<_StaffHomeShell> {
           _StaffDashboardTab(),
           _StaffCitasTab(),
           _StaffPacientesTab(),
+          SmartReportsScreen(),
           _StaffProfileTab(),
         ],
       ),
@@ -64,6 +66,11 @@ class _StaffHomeShellState extends ConsumerState<_StaffHomeShell> {
             icon: Icon(Icons.people_outline),
             selectedIcon: Icon(Icons.people),
             label: 'Pacientes',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.insights_outlined),
+            selectedIcon: Icon(Icons.insights),
+            label: 'Reportes',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

@@ -15,6 +15,25 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+# Modelo GA recomendado (1.5-flash fue retirado de la API en 2025 — devuelve 404).
+_GEMINI_MODEL_DEFAULT = 'gemini-2.5-flash'
+
+# Nombres legacy del .env o tutoriales viejos → modelo vigente.
+_GEMINI_MODEL_ALIASES: dict[str, str] = {
+    'gemini-1.5-flash': _GEMINI_MODEL_DEFAULT,
+    'gemini-1.5-flash-latest': _GEMINI_MODEL_DEFAULT,
+    'gemini-1.5-flash-8b-latest': _GEMINI_MODEL_DEFAULT,
+    'gemini-1.5-pro-latest': 'gemini-2.5-pro',
+    'gemini-2.0-flash': _GEMINI_MODEL_DEFAULT,
+}
+
+# Si el primario falla (404 cuota, etc.), se prueba en orden.
+_GEMINI_MODEL_FALLBACKS: tuple[str, ...] = (
+    'gemini-2.5-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-2.0-flash',
+)
+
 _ALLOWED_MODELS = frozenset({'Paciente', 'Cita'})
 _ALLOWED_JSON_KEYS = frozenset({'model', 'fields', 'filters'})
 
@@ -54,6 +73,74 @@ EJEMPLO de salida (solo el JSON, sin markdown):
 
 class GeminiTranslatorError(Exception):
     """Error de configuración, llamada a Gemini o formato de salida."""
+
+
+def _friendly_gemini_api_error(
+    exc: Exception,
+    model_name: str,
+    *,
+    tried_models: list[str] | None = None,
+) -> str:
+    """Mensaje corto para UI cuando falla la API de Google."""
+    text = str(exc)
+    lower = text.lower()
+    if '404' in text and 'not found' in lower:
+        tried = ', '.join(tried_models) if tried_models else model_name
+        return (
+            f'El modelo "{model_name}" no existe o fue retirado por Google (404). '
+            f'Probados: {tried}. Poné GEMINI_MODEL={_GEMINI_MODEL_DEFAULT} en .env y ejecutá: '
+            'docker compose up -d --force-recreate backend'
+        )
+    if '429' in text or 'quota' in lower or 'rate' in lower:
+        return (
+            'Cuota de Gemini agotada (plan gratuito o límite por minuto/día). '
+            'Esperá ~1 minuto y reintentá. Revisá https://ai.dev/rate-limit '
+            f'o activá facturación en Google AI Studio. Último modelo: {model_name}.'
+        )
+    if '401' in text or '403' in text or 'api key' in lower:
+        return 'GEMINI_API_KEY inválida o sin permisos. Generá una clave en https://aistudio.google.com/apikey'
+    return f'Error al contactar la API de Gemini: {text[:500]}'
+
+
+def _resolve_gemini_model_name(raw: str | None, *, warn_obsolete: bool = False) -> str:
+    name = (raw or '').strip() or _GEMINI_MODEL_DEFAULT
+    mapped = _GEMINI_MODEL_ALIASES.get(name)
+    if mapped:
+        if warn_obsolete:
+            logger.warning('GEMINI_MODEL=%s obsoleto; usando %s', name, mapped)
+        return mapped
+    if name.endswith('-latest'):
+        fallback = name[: -len('-latest')]
+        if warn_obsolete:
+            logger.warning('GEMINI_MODEL=%s usa sufijo -latest; usando %s', name, fallback)
+        return fallback
+    return name
+
+
+def normalize_gemini_model_name(raw: str | None) -> str:
+    """Normaliza GEMINI_MODEL: quita alias -latest obsoletos y mapea nombres retirados."""
+    return _resolve_gemini_model_name(raw, warn_obsolete=True)
+
+
+def _candidate_models(primary: str) -> list[str]:
+    """Lista única de modelos a intentar (primario + fallbacks normalizados)."""
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for raw in (primary, *_GEMINI_MODEL_FALLBACKS):
+        name = _resolve_gemini_model_name(raw, warn_obsolete=False)
+        if name not in seen:
+            seen.add(name)
+            ordered.append(name)
+    return ordered
+
+
+def _is_retryable_gemini_error(exc: Exception) -> bool:
+    text = str(exc).lower()
+    if '404' in str(exc) or 'not found' in text:
+        return True
+    if '429' in str(exc) or 'quota' in text or 'rate limit' in text:
+        return True
+    return False
 
 
 def _strip_code_fences(text: str) -> str:
@@ -111,7 +198,9 @@ class GeminiQBETranslator:
 
     def __init__(self) -> None:
         self._api_key = (getattr(settings, 'GEMINI_API_KEY', None) or '').strip()
-        self._model_name = (getattr(settings, 'GEMINI_MODEL', None) or 'gemini-1.5-flash').strip()
+        self._model_name = normalize_gemini_model_name(
+            getattr(settings, 'GEMINI_MODEL', None) or _GEMINI_MODEL_DEFAULT,
+        )
         if not self._api_key:
             raise GeminiTranslatorError(
                 'GEMINI_API_KEY no está configurada. Defina la variable de entorno o settings.',
@@ -138,30 +227,59 @@ class GeminiQBETranslator:
 
         genai.configure(api_key=self._api_key)
 
-        model = genai.GenerativeModel(
-            model_name=self._model_name,
-            system_instruction=_GEMINI_SYSTEM_PROMPT,
-        )
-        try:
+        candidates = _candidate_models(self._model_name)
+        last_exc: Exception | None = None
+        response = None
+        used_model = self._model_name
+
+        for model_name in candidates:
+            used_model = model_name
+            model = genai.GenerativeModel(
+                model_name=model_name,
+                system_instruction=_GEMINI_SYSTEM_PROMPT,
+            )
             try:
-                response = model.generate_content(
-                    query,
-                    generation_config={
-                        'temperature': 0.0,
-                        'response_mime_type': 'application/json',
-                    },
-                )
-            except (TypeError, ValueError):
-                response = model.generate_content(
-                    query,
-                    generation_config={'temperature': 0.0},
-                )
-        except google_exceptions.GoogleAPIError as exc:
-            logger.warning('Gemini API error: %s', exc, exc_info=False)
-            raise GeminiTranslatorError(f'Error al contactar la API de Gemini: {exc}') from exc
-        except Exception as exc:
-            logger.exception('Fallo inesperado al llamar a Gemini')
-            raise GeminiTranslatorError(f'Error al generar la consulta QBE: {exc}') from exc
+                try:
+                    response = model.generate_content(
+                        query,
+                        generation_config={
+                            'temperature': 0.0,
+                            'response_mime_type': 'application/json',
+                        },
+                    )
+                except (TypeError, ValueError):
+                    response = model.generate_content(
+                        query,
+                        generation_config={'temperature': 0.0},
+                    )
+                break
+            except google_exceptions.GoogleAPIError as exc:
+                last_exc = exc
+                logger.warning('Gemini API error (%s): %s', model_name, exc, exc_info=False)
+                if model_name != candidates[-1] and _is_retryable_gemini_error(exc):
+                    continue
+                raise GeminiTranslatorError(
+                    _friendly_gemini_api_error(
+                        exc,
+                        model_name,
+                        tried_models=candidates,
+                    ),
+                ) from exc
+            except Exception as exc:
+                logger.exception('Fallo inesperado al llamar a Gemini (%s)', model_name)
+                raise GeminiTranslatorError(f'Error al generar la consulta QBE: {exc}') from exc
+
+        if response is None:
+            raise GeminiTranslatorError(
+                _friendly_gemini_api_error(
+                    last_exc or Exception('Sin respuesta de Gemini'),
+                    used_model,
+                    tried_models=candidates,
+                ),
+            )
+
+        if used_model != self._model_name:
+            logger.info('Gemini respondió con modelo alternativo: %s', used_model)
 
         text = (response.text or '').strip()
         if not text:

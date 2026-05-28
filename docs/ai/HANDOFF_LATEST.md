@@ -1,5 +1,61 @@
 # HANDOFF LATEST
 
+## Resumen
+
+**Fecha:** 2026-05-28 — **Credenciales demo + platform admin seed-only (sin .env):**
+- Nuevo archivo de referencia: `docs/ai/DEMO_CREDENTIALS.md` con todas las credenciales demo actuales.
+- `seeders/seed_platform_admin.py` ahora usa credenciales demo fijas (sin leer `PLATFORM_ADMIN_EMAIL/PASSWORD` del entorno).
+- `backend/entrypoint.sh` eliminó el bloque opcional que creaba platform admin desde `.env`.
+- Verificado con:
+  - `python manage.py seed --schema public --only platform_admin` -> `0 creados, 1 ya existían`.
+
+**Fecha:** 2026-05-28 — **Fix backup-scheduler multi-tenant (`hora_backup` string):**
+- Se corrigió el crash `'str' object has no attribute 'hour'` en `backup_automatico`.
+- `hora_backup` ahora se normaliza de forma segura (`time`, `HH:MM`, `HH:MM:SS`; fallback a `03:00`).
+- Se ajustó creación default de config para guardar `time(3,0)` en lugar de string.
+- Se agregaron tests de regresión en `apps.backup.tests` (parse y fallback).
+- Validación:
+  - `python manage.py test apps.backup` -> 18 OK
+  - `python manage.py backup_automatico --force` -> 4 ejecutados, 0 errores.
+
+**Fecha:** 2026-05-28 — **Flota SaaS demo (5 clínicas + planes + seed 6 meses):**
+- Se agregó `seed_saas_demo_fleet` y registro en `apps/core/management/commands/seed.py`.
+- Provisiona 5 tenants demo con distribución de planes (2 FREE, 2 PLUS, 1 PRO), admin por clínica y datos históricos de 6 meses por tenant.
+- Comando:
+  - `python manage.py seed --schema public --only saas_demo_fleet`
+- Credenciales generadas:
+  - `admin.norte@oftalmologia.local / AdminNorte123!`
+  - `admin.sur@oftalmologia.local / AdminSur123!`
+  - `admin.andina@oftalmologia.local / AdminAndina123!`
+  - `admin.pacifico@oftalmologia.local / AdminPacifico123!`
+  - `admin.prime@oftalmologia.local / AdminPrime123!`
+
+**Fecha:** 2026-05-28 — **Seeders realistas (demo + reportes 6 meses):**
+- `seed_demo_paciente` ahora crea datos clínicos más creíbles (3 especialistas con subespecialidad, paciente con perfil completo y 3 citas futuras más verosímiles).
+- `seed_reporting_6months` ahora siembra dataset más rico para analítica (48 pacientes, 3 citas por paciente, motivos/observaciones variadas, distribución de estados más realista).
+- Fix de idempotencia: `numero_historia` en seeder histórico cambió a formato determinístico por documento (`HC-RPT6M-...`) para evitar `IntegrityError` por choques tras restores.
+- Verificado con `python manage.py seed --tenant clinica-demo --only demo_paciente` y `--only reporting_6months` (OK).
+
+**Fecha:** 2026-05-28 — **Mobile multi-tenant runtime (paso slug):** se implementó flujo de 2 pasos en app mobile (`/workspace` -> `/login`) con selección de clínica por slug y lookup público (`/api/public/tenants/<slug>/`). Se persiste `tenant_slug` en `SecureStorage`, se agrega estado de sesión (`needsTenant/unauthenticated/authenticated`) para routing, y `ApiClient.reset()` para reconfigurar base URL al cambiar tenant.
+
+**Fecha:** 2026-05-28 — **Hardening multi-tenant (anti-cruce):** se agrego suite de aislamiento por schemas en `backend/apps/tenant/tests/test_multitenant_isolation.py` para validar que datos de `Paciente`, `Cita` y `Consulta` no se mezclan entre dos tenants. Verificacion en Docker: `3 passed`.
+
+**Fecha:** 2026-05-28 — **Gemini reportes NLP:** corregido modelo obsoleto `gemini-1.5-flash` (404). Usar `GEMINI_MODEL=gemini-2.5-flash` + `docker compose up -d --force-recreate backend`. Fallback automático en `backend/apps/ia/services/nlp_translator.py`.
+
+**Fecha:** 2026-05-27 — **Pagos de planes (Stripe) + data histórica para reportes:** se agregó checkout real para upgrades (`organization/change-plan/checkout`), confirmación de sesión (`organization/change-plan/confirm-stripe`) y webhook público (`/api/public/stripe/webhook/`). En frontend `planes` ahora redirige a Stripe y confirma al retorno. Se añadió seeder `seed_reporting_6months` (6 meses de pacientes/citas) e integración en `seed.py` + `entrypoint.sh`.
+
+**Fecha:** 2026-05-27 — **SaaS crear clínica + admin obligatorio:** el alta de tenant en `TenantCreateSerializer` ahora requiere y crea administrador inicial dentro del schema de la clínica (`admin_email`, `admin_password`, `admin_nombres`, `admin_apellidos`, `admin_username` opcional). UI de `/platform/dashboard` actualizada para capturar estos campos en “Nueva clínica”.
+
+**Fecha:** 2026-05-27 — **Fix logs rojos en Docker local:** corregido `next/image` (host `images.unsplash.com` no permitido) en `frontend/next.config.js`; agregado guard en `backup_automatico` para bootstrap temprano (tablas aún no creadas) y ajuste en `frontend/docker-entrypoint.sh` para tolerar `rm -rf .next` cuando el recurso está ocupado.
+
+**Fecha:** 2026-05-27 — **Sanitizacion de `.env` para local:** se reemplazaron valores de produccion por defaults de desarrollo (`localhost`/`10.0.2.2`, rutas `/api`), y se removieron secretos reales embebidos (DuckDNS, Azure/LE, Gemini, Stripe secret).
+
+**Fecha:** 2026-05-27 — **Rutas canonicas para orquestacion:** se actualizo `.cursor/agents/orchestrator.md` con roots explicitos de `backend`, `frontend`, `mobile` y `docs` para delegacion consistente en Cursor.
+
+**Fecha:** 2026-05-27 — **Ajuste final `.cursor` con doc oficial:** se migro de esquema "subagentes por rules" a esquema recomendado de Cursor con **subagentes reales** en `.cursor/agents/` y rules minimas de politica/routing en `.cursor/rules/00-core-policy.mdc` y `10-routing-hints.mdc`. Se eliminaron rules duplicadas `agent-*.mdc` para evitar solapamientos.
+
+**Fecha:** 2026-05-27 — **Migracion OpenCode -> Cursor subagentes:** se creo `.cursor/rules/` con reglas `agent-*` (orchestrator, backend, frontend, mobile, ui-ux, architecture, architect-planner, code-review, qa-testing, devops, infra), mas indice en `.cursor/rules/README.md` y puntero `.cursor/agents/README.md`. Se resolvio conflicto en `.opencode/README.md` y se dejo la integracion OpenCode <-> Cursor documentada.
+
 **Memoria SaaS / superadmin:** documento único de referencia **`docs/ai/PLATFORM_SAAS.md`** (rutas, JWT, env, privacidad, **frontend plataforma §7–§9** incluye shell sidebar/navbar y mapa de archivos). Índice actualizado en **`docs/ai/CURRENT_STATE.md`** (sección “Memoria / índice para agentes”).
 
 ## Resumen

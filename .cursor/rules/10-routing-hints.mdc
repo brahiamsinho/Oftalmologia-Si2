@@ -1,0 +1,19 @@
+---
+description: Routing hints for selecting the right project subagent.
+alwaysApply: false
+---
+
+# Routing Hints
+
+When a task is clear and specialized, prefer one subagent:
+- Backend/API -> `backend`
+- Web UI/Next.js -> `frontend`
+- Flutter/mobile -> `mobile`
+- UX/accessibility -> `ui-ux`
+- Architecture/PUDS -> `architecture`
+- Large ambiguous work -> `architect-planner`
+- Review-only -> `code-review`
+- Test/validation -> `qa-testing`
+- Docker/deploy/ops -> `devops` or `infra`
+
+For mixed tasks, use `orchestrator` to split and consolidate.

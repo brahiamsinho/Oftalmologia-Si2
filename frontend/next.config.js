@@ -16,7 +16,13 @@ function normalizeNextPublicApiUrl(value) {
 const rawApi = normalizeNextPublicApiUrl(process.env.NEXT_PUBLIC_API_URL);
 
 function buildImageRemotePatterns() {
-  if (!rawApi) return [];
+  const patterns = [
+    {
+      protocol: "https",
+      hostname: "images.unsplash.com",
+    },
+  ];
+  if (!rawApi) return patterns;
   try {
     const u = new URL(rawApi);
     const pattern = {
@@ -26,9 +32,10 @@ function buildImageRemotePatterns() {
     if (u.port) {
       pattern.port = u.port;
     }
-    return [pattern];
+    patterns.push(pattern);
+    return patterns;
   } catch {
-    return [];
+    return patterns;
   }
 }
 

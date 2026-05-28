@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 
 from apps.ia.serializers import NlpToReportRequestSerializer
 from apps.ia.services.nlp_translator import GeminiQBETranslator, GeminiTranslatorError
+from apps.reportes.services.export_intent import parse_export_formats_from_query
 from apps.reportes.services.qbe_engine import QBESafeQueryError, QBEEngine
 
 
@@ -62,10 +63,13 @@ class NlpToReportView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        export_formats = parse_export_formats_from_query(text)
+
         return Response(
             {
                 'qbe': qbe,
                 'report': report,
+                'export_formats': export_formats,
             },
             status=status.HTTP_200_OK,
         )

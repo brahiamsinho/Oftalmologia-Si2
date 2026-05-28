@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Check, X, Loader2, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import api from '@/lib/api';
 import type { TenantSubscriptionPlan } from '@/lib/types';
@@ -22,6 +23,8 @@ interface TenantOrgResponse {
 
 // ── Componente ────────────────────────────────────────────────────────────────
 export default function PlanesPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [planes,       setPlanes]       = useState<PlanAPI[]>([]);
   const [planActual,   setPlanActual]   = useState<PlanAPI | null>(null);
   const [loading,      setLoading]      = useState(true);
@@ -32,6 +35,7 @@ export default function PlanesPage() {
   const [upgradeOk,    setUpgradeOk]    = useState(false);
   const [upgradeError, setUpgradeError] = useState('');
   const [confirmarDowngrade, setConfirmarDowngrade] = useState(false);
+  const [checkoutConfirming, setCheckoutConfirming] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -53,19 +57,77 @@ export default function PlanesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const esDowngrade = (plan: PlanAPI) =>
-    planActual !== null && plan.precio_mensual < planActual.precio_mensual;
+  useEffect(() => {
+    const checkoutStatus = searchParams.get('checkout');
+    const sessionId = searchParams.get('session_id');
+    if (checkoutStatus !== 'success' || !sessionId) return;
+    if (checkoutConfirming) return;
+
+    const confirm = async () => {
+      setCheckoutConfirming(true);
+      try {
+        await api.post('organization/change-plan/confirm-stripe/', {
+          session_id: sessionId,
+        });
+        const res = await api.get<TenantOrgResponse>('organization/me/');
+        setPlanActual(res.data.subscription?.plan ?? null);
+        setUpgradeOk(true);
+        setTimeout(() => setUpgradeOk(false), 2500);
+      } catch {
+        setUpgradeError('Pago registrado, pero no se pudo confirmar el plan. Intentá recargar la página.');
+      } finally {
+        setCheckoutConfirming(false);
+        router.replace('/planes');
+      }
+    };
+
+    void confirm();
+  }, [searchParams, router, checkoutConfirming]);
+
+  const planPrice = (plan: PlanAPI): number => {
+    const value = Number(plan.precio_mensual);
+    return Number.isFinite(value) ? value : 0;
+  };
+
+  const getPlanActionLabel = (current: PlanAPI | null, target: PlanAPI): string => {
+    const currentPrice = current ? planPrice(current) : 0;
+    const targetPrice = planPrice(target);
+    if (current?.codigo === target.codigo) return 'Plan actual';
+    if (targetPrice > currentPrice) return 'Mejorar plan';
+    if (targetPrice < currentPrice) return 'Bajar a este plan';
+    return 'Cambiar plan';
+  };
+
+  const isPlanDowngrade = (target: PlanAPI): boolean => {
+    if (!planActual) return false;
+    return planPrice(target) < planPrice(planActual);
+  };
 
   const handleCambiarPlan = async () => {
     if (!upgradePlan) return;
     setUpgrading(true);
     setUpgradeError('');
     try {
+      const isPaidPlan = planPrice(upgradePlan) > 0;
+      const currentPrice = planActual ? planPrice(planActual) : 0;
+      const isDowngrade = planActual !== null && planPrice(upgradePlan) < currentPrice;
+
+      if (!isDowngrade && isPaidPlan) {
+        const { data } = await api.post<{ checkout_url: string }>(
+          'organization/change-plan/checkout/',
+          { plan: upgradePlan.codigo },
+        );
+        if (!data.checkout_url) {
+          throw new Error('No se recibió checkout_url de Stripe.');
+        }
+        window.location.href = data.checkout_url;
+        return;
+      }
+
       await api.post('organization/change-plan/', {
         plan: upgradePlan.codigo,
-        confirmar_downgrade: esDowngrade(upgradePlan) ? confirmarDowngrade : undefined,
+        confirmar_downgrade: isDowngrade ? confirmarDowngrade : undefined,
       });
-      // Refrescar plan actual
       const res = await api.get<TenantOrgResponse>('organization/me/');
       setPlanActual(res.data.subscription?.plan ?? null);
       setUpgradeOk(true);
@@ -135,9 +197,12 @@ export default function PlanesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {planes.map(plan => {
-            const esPlanActual   = planActual?.codigo === plan.codigo;
-            const esPopular      = plan.codigo === 'PLUS';
-            const esEsteDowngrade = esDowngrade(plan);
+            const esPlanActual = planActual?.codigo === plan.codigo;
+            const esPopular = plan.codigo === 'PLUS';
+            const currentPrice = planActual ? planPrice(planActual) : 0;
+            const targetPrice = planPrice(plan);
+            const actionLabel = getPlanActionLabel(planActual, plan);
+            const isDowngrade = targetPrice < currentPrice;
 
             return (
               <div
@@ -185,11 +250,11 @@ export default function PlanesPage() {
                         ? 'bg-gray-100 text-gray-600 cursor-not-allowed'
                         : esPopular
                           ? 'bg-blue-600 text-white hover:bg-blue-700'
-                          : esEsteDowngrade
+                          : isDowngrade
                             ? 'bg-orange-500 text-white hover:bg-orange-600'
                             : 'bg-gray-900 text-white hover:bg-gray-800'}`}
                   >
-                    {esPlanActual ? 'Plan Actual' : esEsteDowngrade ? 'Bajar a este plan' : 'Mejorar Plan'}
+                    {actionLabel}
                   </button>
                 </div>
 
@@ -235,7 +300,7 @@ export default function PlanesPage() {
             <div className="px-6 py-5 border-b border-gray-100">
               <h3 className="text-[17px] font-bold text-gray-900 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-blue-600" />
-                {esDowngrade(upgradePlan) ? 'Bajar de plan' : 'Mejorar plan'}
+                {isPlanDowngrade(upgradePlan) ? 'Bajar de plan' : 'Mejorar plan'}
               </h3>
               <p className="text-[13px] text-gray-500 mt-1">
                 {planActual
@@ -257,7 +322,7 @@ export default function PlanesPage() {
                 </div>
               ) : (
                 <>
-                  {esDowngrade(upgradePlan) && (
+                  {isPlanDowngrade(upgradePlan) && (
                     <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
                       <p className="text-[13px] text-orange-800 font-semibold flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 text-orange-500" />
@@ -307,11 +372,11 @@ export default function PlanesPage() {
                 </button>
                 <button
                   onClick={handleCambiarPlan}
-                  disabled={upgrading || (esDowngrade(upgradePlan) && !confirmarDowngrade)}
+                  disabled={upgrading || (isPlanDowngrade(upgradePlan) && !confirmarDowngrade)}
                   className={`flex items-center gap-2 px-5 py-2 text-white text-[13.5px] font-semibold rounded-lg transition-colors shadow-sm disabled:opacity-60
-                    ${esDowngrade(upgradePlan) ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                    ${isPlanDowngrade(upgradePlan) ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'}`}>
                   {upgrading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  {esDowngrade(upgradePlan) ? 'Confirmar bajada' : 'Confirmar mejora'}
+                  {isPlanDowngrade(upgradePlan) ? 'Confirmar bajada' : 'Confirmar mejora'}
                 </button>
               </div>
             )}

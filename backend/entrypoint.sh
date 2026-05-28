@@ -300,7 +300,11 @@ def run_seed(module_path):
         print(f"⚠️ Seeder {module_path} does not have run().")
         return
 
-    result = module.run()
+    try:
+        result = module.run()
+    except Exception as exc:
+        print(f"⚠️ {module_path} falló (el arranque continúa): {exc}")
+        return
 
     if isinstance(result, tuple) and len(result) == 2:
         creados, existentes = result
@@ -324,6 +328,7 @@ tenant_seeders = [
     "seeders.seed_roles",
     "seeders.seed_tipos_cita",
     "seeders.seed_demo_paciente",
+    "seeders.seed_reporting_6months",
 ]
 
 
@@ -342,15 +347,6 @@ with schema_context(DEMO_SCHEMA):
 
 print("✅ Seeders completed.")
 PY
-fi
-
-
-# -------------------------------------------------------------------
-# 6b. Superadmin plataforma (schema public) — opcional vía .env
-# -------------------------------------------------------------------
-if [ -n "${PLATFORM_ADMIN_EMAIL:-}" ] && [ -n "${PLATFORM_ADMIN_PASSWORD:-}" ]; then
-  echo "👤 Ensuring platform administrator (PLATFORM_ADMIN_EMAIL)..."
-  python manage.py ensure_platform_admin || true
 fi
 
 

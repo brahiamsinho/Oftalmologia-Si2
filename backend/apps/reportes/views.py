@@ -11,7 +11,11 @@ from rest_framework.response import Response
 
 from apps.reportes.models import ReportTemplate
 from apps.reportes.serializers import ReportExecutionSerializer, ReportTemplateSerializer
-from apps.reportes.services.export_engine import qbe_result_to_excel_bytes
+from apps.reportes.services.export_engine import (
+    qbe_result_to_csv_bytes,
+    qbe_result_to_excel_bytes,
+    qbe_result_to_pdf_bytes,
+)
 from apps.reportes.services.qbe_engine import QBESafeQueryError, QBEEngine
 
 
@@ -22,6 +26,8 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
     - Lista / crea / actualiza / elimina plantillas con `qbe_payload`.
     - ``POST .../execute/`` — ejecuta QBE on-the-fly.
     - ``POST .../export-excel/`` — mismo JSON QBE, respuesta .xlsx en memoria.
+    - ``POST .../export-pdf/`` — mismo JSON QBE, respuesta .pdf en memoria.
+    - ``POST .../export-csv/`` — mismo JSON QBE, respuesta .csv en memoria.
     """
 
     serializer_class = ReportTemplateSerializer
@@ -93,3 +99,47 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
         )
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
+
+    def _export_file_response(self, result: dict, *, ext: str, content_type: str, builder):
+        buffer = builder(result)
+        model_slug = slugify(result.get('meta', {}).get('model') or 'reporte') or 'reporte'
+        filename = f'reporte-{model_slug}.{ext}'
+        response = HttpResponse(buffer.getvalue(), content_type=content_type)
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+    @action(detail=False, methods=['post'], url_path='export-pdf')
+    def export_pdf(self, request):
+        """Ejecuta QBE y devuelve un PDF en memoria."""
+        payload_in, _data = self._validated_qbe_payload(request)
+        try:
+            result = QBEEngine().execute(payload_in)
+        except DjangoValidationError as exc:
+            detail = getattr(exc, 'message_dict', None) or list(getattr(exc, 'messages', [str(exc)]))
+            return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
+        except QBESafeQueryError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return self._export_file_response(
+            result,
+            ext='pdf',
+            content_type='application/pdf',
+            builder=qbe_result_to_pdf_bytes,
+        )
+
+    @action(detail=False, methods=['post'], url_path='export-csv')
+    def export_csv(self, request):
+        """Ejecuta QBE y devuelve un CSV en memoria."""
+        payload_in, _data = self._validated_qbe_payload(request)
+        try:
+            result = QBEEngine().execute(payload_in)
+        except DjangoValidationError as exc:
+            detail = getattr(exc, 'message_dict', None) or list(getattr(exc, 'messages', [str(exc)]))
+            return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
+        except QBESafeQueryError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return self._export_file_response(
+            result,
+            ext='csv',
+            content_type='text/csv; charset=utf-8',
+            builder=qbe_result_to_csv_bytes,
+        )

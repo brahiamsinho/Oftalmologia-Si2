@@ -58,6 +58,10 @@ class ApiClient {
     return _instance!;
   }
 
+  static void reset() {
+    _instance = null;
+  }
+
   Dio get dio => _dio;
 
   Future<bool> _refreshToken() async {

@@ -3,10 +3,13 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     PublicTenantLookupView,
+    StripeWebhookPublicView,
     SubscriptionPlanViewSet,
     TenantChangePlanView,
     TenantCurrentView,
     TenantManagementViewSet,
+    TenantStripeCheckoutView,
+    TenantStripeConfirmView,
     TenantSettingsCurrentView,
 )
 
@@ -29,6 +32,21 @@ urlpatterns = [
         'organization/change-plan/',
         TenantChangePlanView.as_view(),
         name='tenant-change-plan',
+    ),
+    path(
+        'organization/change-plan/checkout/',
+        TenantStripeCheckoutView.as_view(),
+        name='tenant-change-plan-checkout',
+    ),
+    path(
+        'organization/change-plan/confirm-stripe/',
+        TenantStripeConfirmView.as_view(),
+        name='tenant-change-plan-confirm-stripe',
+    ),
+    path(
+        'stripe/webhook/',
+        StripeWebhookPublicView.as_view(),
+        name='stripe-webhook',
     ),
 
     path(

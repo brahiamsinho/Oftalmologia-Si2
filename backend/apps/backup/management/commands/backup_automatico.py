@@ -6,9 +6,10 @@ Se ejecuta cada hora vía cron o Docker scheduler.
 Usa django-tenants schema context para ejecutar backups en cada schema.
 """
 import logging
-from datetime import timedelta
+from datetime import time, timedelta
 
 from django.core.management.base import BaseCommand
+from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
 from django_tenants.utils import tenant_context, get_tenant_model
 
@@ -22,6 +23,41 @@ logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     help = 'Ejecuta backups automáticos para cada tenant (America/La_Paz)'
+
+    @staticmethod
+    def _normalize_backup_time(value):
+        """
+        Normaliza `hora_backup` para tolerar datos legacy (str) y evitar crash.
+        Acepta:
+          - datetime.time
+          - "HH:MM"
+          - "HH:MM:SS"
+        Si no es parseable, usa fallback 03:00 y deja warning.
+        """
+        if isinstance(value, time):
+            return value.replace(second=0, microsecond=0)
+
+        if isinstance(value, str):
+            raw = value.strip()
+            for fmt in ('%H:%M:%S', '%H:%M'):
+                try:
+                    parsed = timezone.datetime.strptime(raw, fmt).time()
+                    return parsed.replace(second=0, microsecond=0)
+                except ValueError:
+                    continue
+
+            logger.warning(
+                'hora_backup inválida como string, usando fallback 03:00. value=%s',
+                value,
+            )
+            return time(3, 0)
+
+        logger.warning(
+            'hora_backup con tipo no esperado, usando fallback 03:00. type=%s value=%s',
+            type(value).__name__,
+            value,
+        )
+        return time(3, 0)
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -43,7 +79,15 @@ class Command(BaseCommand):
 
         # Obtener todos los tenants
         Tenant = get_tenant_model()
-        tenants = Tenant.objects.filter(activo=True)
+        try:
+            tenants = Tenant.objects.filter(activo=True)
+        except (ProgrammingError, OperationalError) as e:
+            self.stdout.write(
+                self.style.WARNING(
+                    f'⏳ Esquema base aún no listo para backups automáticos ({e.__class__.__name__}). Reintentará en el próximo ciclo.'
+                )
+            )
+            return
 
         if tenant_slug:
             tenants = tenants.filter(slug=tenant_slug)
@@ -71,7 +115,7 @@ class Command(BaseCommand):
                         # Crear config por defecto
                         config = TenantBackupConfig.objects.create(
                             backup_automatico=True,
-                            hora_backup='03:00:00',
+                            hora_backup=time(3, 0),
                             frecuencia='daily',
                             retencion_dias=7,
                         )
@@ -82,7 +126,7 @@ class Command(BaseCommand):
 
                     # Verificar hora (a menos que --force)
                     if not force:
-                        config_hora = config.hora_backup
+                        config_hora = self._normalize_backup_time(config.hora_backup)
                         diff = abs(
                             (hora_actual.hour * 60 + hora_actual.minute) -
                             (config_hora.hour * 60 + config_hora.minute)
@@ -171,7 +215,11 @@ class Command(BaseCommand):
         # Esta función se ejecuta en el schema public
         # Necesita iterar por tenants para limpiar en cada schema
         Tenant = get_tenant_model()
-        tenants = Tenant.objects.filter(activo=True)
+        try:
+            tenants = Tenant.objects.filter(activo=True)
+        except (ProgrammingError, OperationalError):
+            # Durante bootstrap inicial pueden no existir tablas aún.
+            return
 
         total_limpiados = 0
 

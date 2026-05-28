@@ -6,6 +6,19 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 
 ## Corto Plazo
 
+- [x] Integrar pasarela Stripe para upgrades de plan (checkout + confirmación + webhook opcional).
+- [x] Agregar seed histórico mínimo de 6 meses para mejorar reportes y pruebas IA/QBE.
+- [x] Exigir y crear administrador inicial al crear clínica desde SaaS (`/platform/dashboard` + `TenantCreateSerializer`).
+- [x] Corregir `next/image` en landing (`images.unsplash.com`) para eliminar `GET / 500` en frontend local.
+- [x] Evitar tracebacks tempranos del `backup-scheduler` cuando el bootstrap de tablas aún no termina.
+- [x] Limpiar `/.env` para desarrollo local y retirar datos/secrets de produccion incrustados.
+- [x] Fijar rutas canonicas del monorepo en `.cursor/agents/orchestrator.md` (backend/frontend/mobile/docs) para delegacion estable.
+- [ ] Revisar uso real de cada subagente en `.cursor/agents/` durante 1 sprint y ajustar prompts de rol segun fricciones observadas.
+- [ ] Definir si `infra` se mantiene por compatibilidad o se consolida en `devops` para reducir solapamiento.
+- [x] **Migrar OpenCode a Cursor (subagentes por rules):** crear `.cursor/rules/agent-*.mdc` + indice `.cursor/rules/README.md` y puntero `.cursor/agents/README.md`.
+- [x] **Ajustar a doc oficial Cursor:** subagentes reales en `.cursor/agents/*.md` + rules ligeras (`00-core-policy`, `10-routing-hints`) y limpieza de duplicacion `agent-*.mdc`.
+- [ ] Afinar textos operativos de cada subagente en `.cursor/agents/*.md` segun evolucion real de backend/frontend/mobile y nuevos workflows.
+- [ ] Evaluar si conviene agregar rules equivalentes para workflows tipo comando (`check-project`, `update-memory`, `puds-status`) como shortcuts de equipo en Cursor.
 - [x] **Superadmin web:** `/platform/dashboard` — crear clínica (modal), activar, suspender, cambiar plan (modales + confirmación downgrade); **shell** sidebar + header como el dashboard clínica (`dashboard/layout.tsx`, `PlatformSidebar`, `PlatformHeader`). Detalle en `docs/ai/PLATFORM_SAAS.md` §7.
 - [ ] **CU21/CU22 Reportes QBE**: poblar `_QBE_MODEL_REGISTRY` / `_QBE_MODEL_IMPORT_PATH` desde apps de dominio (sin acoplar reglas en `reportes`); ampliar `QBEQueryBuilder` (`Q` anidados, agregaciones por campo); tests del motor y del endpoint `execute`.
 - [x] Migracion completa a django-tenants con schema-per-tenant (backend).
@@ -55,6 +68,8 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [ ] Mobile: vista **médico** / staff (si aplica mismo app o build flavor).
 - [ ] Frontend: pantalla de seleccion de clinica + branding dinamico por tenant.
 - [ ] Mobile: pantalla de seleccion de clinica + branding dinamico por tenant.
+- [x] Mobile: pantalla de seleccion de clinica (slug) + enrutamiento multi-tenant runtime.
+- [ ] Mobile: enriquecer pantalla de selección de clínica con branding completo (logo/color) y “clínicas recientes”.
 - [ ] Validar flujo completo end-to-end con Docker: crear tenant nuevo → seed → login → operaciones.
 
 ## Largo Plazo
@@ -74,8 +89,11 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [ ] Tests automatizados en flujos auth + citas (backend + widget mobile crítico).
 - [ ] Infra: programar cron real para `manage.py procesar_recordatorios` en entorno Docker/VM y monitorear logs.
 - [ ] Mobile iOS push: agregar `GoogleService-Info.plist` en `mobile/ios/Runner/` y validar permisos/canales en dispositivo real.
-- [ ] Multi-tenant: crear tests de aislamiento cross-schema para verificar que datos de un tenant no son accesibles desde otro.
+- [x] Multi-tenant: crear tests de aislamiento cross-schema para verificar que datos de un tenant no son accesibles desde otro.
+- [ ] Multi-tenant: extender pruebas anti-cruce al plano HTTP tenant (`/t/<slug>/api/...`) en entorno de test, ajustando configuración de URL/middleware para evitar `404` en pytest.
 - [ ] Multi-tenant: documentar procedimiento para crear nuevo tenant en produccion (comando o endpoint + seeders).
+- [x] Multi-tenant: escenario demo con múltiples clínicas (2 FREE, 2 PLUS, 1 PRO) y dataset histórico por tenant.
+- [ ] Multi-tenant: exponer selector de clínica en frontend web igual que mobile (slug -> login) para operar la flota demo sin cambiar URLs manualmente.
 - [ ] Multi-tenant: validar que seeders se ejecutan correctamente en schema del tenant y no en `public`.
 - [ ] Backup: rebuild Docker backend para incluir `postgresql-client` (pg_dump/psql).
 - [ ] Backup: ejecutar migraciones en Docker tras rebuild.
@@ -83,6 +101,8 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] Backup: agregar pruebas automatizadas para casos de regresion corregidos (`timedelta` en validadores y restore sin FK tenant).
 - [x] Backup: estabilizar suite `apps.backup` para entorno `django-tenants` y dejar `python manage.py test apps.backup` en verde.
 - [x] Backup: cubrir scheduler con tests de `tenant_context` (`backup_automatico`: tenant activo y tenant_slug inexistente).
+- [x] Backup: corregir scheduler ante `hora_backup` en formato string (normalización `time|HH:MM|HH:MM:SS`, fallback seguro y tests de regresión).
+- [x] SaaS: centralizar credenciales demo en `docs/ai/DEMO_CREDENTIALS.md` y dejar `platform_admin` como creación seed-only (sin dependencia de `.env`).
 - [ ] Backup: actualizar seeders para crear `TenantBackupConfig` por defecto en cada tenant nuevo.
 - [ ] Backup: implementar panel frontend para gestion de backups (lista, crear, restaurar, descargar, configurar automatico).
 - [ ] Backup: validar limites por plan en seed (agregar campos backup a SubscriptionPlan o usar settings).

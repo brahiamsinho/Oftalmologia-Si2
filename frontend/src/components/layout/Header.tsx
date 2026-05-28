@@ -25,6 +25,7 @@ const BREADCRUMB: Record<string, string> = {
   '/roles':          'Roles',
   '/permisos':       'Permisos',
   '/bitacora':       'Bitácora',
+  '/backups':        'Backups',
   '/perfil':              'Mi perfil',
   '/planes':                    'Planes y Suscripción',
   '/configuracion-org':         'Configuración de la Organización',

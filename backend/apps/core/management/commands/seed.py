@@ -68,9 +68,17 @@ SEEDERS = {
         'seeders.seed_demo_paciente',
         'Demo paciente + citas',
     ),
+    'reporting_6months': (
+        'seeders.seed_reporting_6months',
+        'Datos históricos de 6 meses para reportes',
+    ),
     'platform_admin': (
         'seeders.seed_platform_admin',
         'Superadmin plataforma (schema public)',
+    ),
+    'saas_demo_fleet': (
+        'seeders.seed_saas_demo_fleet',
+        'Flota SaaS demo (5 clinicas + planes + datos 6 meses)',
     ),
 }
 

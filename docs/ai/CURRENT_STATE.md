@@ -1,5 +1,181 @@
 # CURRENT STATE
 
+## Actualizacion 2026-05-28 (Reportes inteligentes / Gemini)
+
+- **Causa del 503:** `gemini-1.5-flash` fue retirado de la API (404 en v1beta). El mensaje de “cuota agotada” en UI era engañoso cuando en realidad era 404.
+- **Fix:** modelo por defecto `gemini-2.5-flash` en `settings.py`, `.env`, `.env.example`; alias legacy (`1.5-flash`, `2.0-flash`) → `2.5-flash`; cadena de fallback (`2.5-flash`, `2.0-flash-lite`, `2.0-flash`) en `nlp_translator.py`.
+- **Docker:** tras cambiar `.env` usar `docker compose up -d --force-recreate backend` (no basta `restart`).
+- **Verificado:** `GeminiQBETranslator.translate_to_qbe('listar pacientes activos')` OK en contenedor con `GEMINI_MODEL=gemini-2.5-flash`.
+- **Pendiente:** migrar SDK de `google.generativeai` a `google.genai` (deprecation warning).
+- **Exportación NL:** si la consulta incluye `excel`, `pdf` o `csv`, el backend devuelve `export_formats` y el frontend descarga automáticamente (`export-excel`, `export-pdf`, `export-csv`). Botones manuales Excel/PDF/Ambos en `/reportes`.
+- **Mobile reportes:** pestaña staff «Reportes» (`features/reportes/`), NL + voz (`speech_to_text`), export vía `share_plus`. `TENANT_SLUG` en `mobile/.env` arma `/t/<slug>/api/` si `API_BASE_URL` no lo trae.
+- **Web voz reportes:** dictado continuo es-ES, texto sincronizado al campo, mensajes si falta permiso de micrófono.
+
+## Actualizacion 2026-05-28 (hardening multi-tenant: pruebas anti-cruce)
+
+- Se agregaron pruebas automatizadas de aislamiento por schema en `backend/apps/tenant/tests/test_multitenant_isolation.py`.
+- Cobertura nueva:
+  - `Paciente` (lectura en tenant A no ve documentos de tenant B).
+  - `Cita` (lectura en tenant A no ve pacientes de tenant B).
+  - `Consulta` (lectura en tenant A no ve motivos de tenant B).
+- Validacion ejecutada en Docker:
+  - `docker compose exec backend pytest apps/tenant/tests/test_multitenant_isolation.py -q`
+  - Resultado: **3 passed**.
+- Nota: en el entorno de tests actual las rutas HTTP tenant (`/t/<slug>/...`) no estaban resolviendo (`404`), por lo que la verificacion de aislamiento se implemento a nivel de schema/ORM (que es la barrera real de aislamiento en `django-tenants`).
+
+## Actualizacion 2026-05-28 (mobile multi-tenant runtime: paso slug -> login)
+
+- Mobile ahora soporta seleccion de tenant en runtime (sin recompilar ni editar `.env` cada vez):
+  - Nueva pantalla previa: `TenantWorkspaceScreen` (`/workspace`) para ingresar `slug`.
+  - Lookup público de clínica desde mobile: `GET /api/public/tenants/<slug>/`.
+  - Si existe/activa, guarda `tenant_slug` en storage seguro y recién habilita login.
+- Router mobile actualizado con estado de sesión explícito:
+  - `needsTenant` -> fuerza `/workspace`
+  - `unauthenticated` -> `/login`
+  - `authenticated` -> `/home`
+- `ApiClient` ahora puede reinicializarse (`ApiClient.reset()`) cuando cambia tenant para evitar usar base URL vieja.
+- `AppConfig` ahora:
+  - mantiene `runtimeTenantSlug`,
+  - calcula tenant API base dinámica (`/t/<slug>/api/`),
+  - calcula base pública (`/api/public/`) para lookup de clínica.
+- Login muestra clínica activa y botón **Cambiar** para limpiar sesión + tenant y volver al paso de slug.
+
+## Actualizacion 2026-05-28 (seeders más realistas para demo/reportes)
+
+- Seeder demo actualizado (`backend/seeders/seed_demo_paciente.py`):
+  - 3 médicos con subespecialidad (general, retina/vítreo, glaucoma).
+  - Paciente demo con datos más completos (tipo doc, sexo, dirección, contacto de emergencia, observaciones).
+  - 3 citas futuras con motivos clínicos y observaciones más verosímiles.
+- Seeder histórico 6 meses mejorado (`backend/seeders/seed_reporting_6months.py`):
+  - 48 pacientes (8 por mes) con nombres/apellidos realistas, sexo, fecha de nacimiento, teléfono, dirección y notas.
+  - 3 citas por paciente con motivos/observaciones clínicos variados y distribución de estados más cercana a operación real.
+  - Se corrigió colisión de `numero_historia` ante restores/borrados:
+    - ahora usa formato determinístico por documento `HC-RPT6M-<token>` (idempotente).
+- Verificación en Docker:
+  - `seed --only demo_paciente` OK.
+  - `seed --only reporting_6months` OK (`174 creados, 18 existentes`).
+
+## Actualizacion 2026-05-28 (flota SaaS demo: 5 clínicas con planes y data 6 meses)
+
+- Nuevo seeder maestro: `backend/seeders/seed_saas_demo_fleet.py`.
+- Integrado en comando seed con key `saas_demo_fleet`:
+  - `python manage.py seed --schema public --only saas_demo_fleet`
+- Provisiona 5 clínicas demo con distribución de planes:
+  - 2 `FREE`: `clinica-norte`, `clinica-sur`
+  - 2 `PLUS`: `clinica-andina`, `clinica-pacifico`
+  - 1 `PRO`: `clinica-prime`
+- Por cada clínica:
+  - crea/actualiza tenant, domain, settings, subscription, usage,
+  - asegura schema,
+  - crea/actualiza admin de tenant (credenciales definidas),
+  - corre `seed_tipos_cita` y `seed_reporting_6months` en su schema.
+- Ejecución validada en Docker:
+  - `seed --schema public --only saas_demo_fleet` -> **990 creados, 0 existentes** (primera corrida).
+
+## Actualizacion 2026-05-28 (fix backup-scheduler multi-tenant: hora string)
+
+- Se corrigió fallo del scheduler automático:
+  - Error previo: `'str' object has no attribute 'hour'` en tenants al evaluar `hora_backup`.
+- Cambios en `backend/apps/backup/management/commands/backup_automatico.py`:
+  - helper `_normalize_backup_time(...)` para tolerar:
+    - `datetime.time`
+    - `str` con formato `HH:MM` o `HH:MM:SS`
+    - fallback seguro `03:00` en valores inválidos.
+  - `hora_backup` por defecto ahora se crea como `time(3, 0)` (no string).
+- Tests nuevos en `backend/apps/backup/tests.py`:
+  - parse `HH:MM:SS`
+  - parse `HH:MM`
+  - fallback en string inválido
+- Validación:
+  - `python manage.py test apps.backup` -> **18 tests OK**.
+  - `python manage.py backup_automatico --force` -> **4 ejecutados, 0 errores** (FREE se salta por política de plan).
+
+## Actualizacion 2026-05-27 (Stripe para cambio de plan + seed histórico 6 meses)
+
+- Planes / pasarela:
+  - Se implementó flujo de Stripe para upgrades de plan.
+  - Backend nuevo:
+    - `POST /t/<slug>/api/organization/change-plan/checkout/` crea sesión Checkout.
+    - `POST /t/<slug>/api/organization/change-plan/confirm-stripe/` confirma pago y aplica plan.
+    - `POST /api/public/stripe/webhook/` webhook opcional para confirmación server-side.
+  - Config agregada en settings:
+    - `STRIPE_SECRET_KEY`
+    - `STRIPE_WEBHOOK_SECRET`
+    - `STRIPE_CURRENCY` (default `usd`)
+  - Dependencia agregada: `stripe` en `requirements/base.txt`.
+- Frontend:
+  - `planes/page.tsx` ahora redirige a Checkout en upgrades pagados.
+  - Al volver de Stripe (`?checkout=success&session_id=...`) confirma sesión y refresca plan actual.
+ - Hardening de errores Stripe:
+   - `organization/change-plan/checkout` y `confirm-stripe` ahora capturan `AuthenticationError/StripeError` y devuelven 400 con mensaje útil (sin 500).
+- Datos para reportes:
+  - Nuevo seeder `seed_reporting_6months` con pacientes+citas distribuidos en 6 meses (histórico mínimo para análisis/reportería).
+  - Integrado al comando `manage.py seed --only reporting_6months` y al `entrypoint` tenant seeders.
+
+## Actualizacion 2026-05-27 (SaaS: crear clinica con administrador obligatorio)
+
+- Se extendio el alta de organización en SaaS para crear administrador inicial de clínica en el mismo flujo.
+- Backend:
+  - `TenantCreateSerializer` ahora exige:
+    - `admin_email`
+    - `admin_password`
+    - `admin_nombres`
+    - `admin_apellidos`
+    - `admin_username` opcional
+  - Luego de crear tenant/settings/subscription/usage, crea el usuario admin dentro del schema del tenant usando `schema_context(...)` y `create_superuser(...)`.
+  - Se valida nombre/apellido admin no vacíos y se controla unicidad de correo dentro del tenant.
+- Frontend:
+  - Modal “Nueva clínica” (`platform/dashboard`) ahora solicita datos del administrador inicial y los envía al endpoint de creación.
+  - Mensajería del modal actualizada para dejar explícito que también se crea el admin inicial.
+
+## Actualizacion 2026-05-27 (fix errores de arranque Docker: frontend + scheduler)
+
+- Frontend:
+  - Se ajusto `frontend/next.config.js` para permitir `images.unsplash.com` en `images.remotePatterns`.
+  - Con esto se corrige el `500` en `/` por `next/image` host no configurado.
+- Scheduler backup:
+  - Se hardenizo `backend/apps/backup/management/commands/backup_automatico.py` para no lanzar traceback al iniciar si las tablas base aun no existen durante bootstrap.
+  - Ahora, ante `ProgrammingError`/`OperationalError` al consultar tenants, el comando sale con warning y reintenta en el siguiente ciclo.
+- Frontend entrypoint:
+  - `frontend/docker-entrypoint.sh` ahora usa `rm -rf .next || true` para evitar ruido por `Resource busy` durante limpieza de cache.
+
+## Actualizacion 2026-05-27 (.env local limpio sin datos de produccion)
+
+- Se normalizo `/.env` para desarrollo local:
+  - Hosts/origenes movidos a `localhost` (`DJANGO_ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `FRONTEND_URL`).
+  - API web a `NEXT_PUBLIC_API_URL=http://localhost:8000/api` (sin `/api/v1`).
+  - API mobile dev emulador Android a `API_BASE_URL=http://10.0.2.2:8000/api`.
+- Se retiraron del `.env` valores de produccion y secretos reales expuestos (DuckDNS, Azure domain, email Let's Encrypt, API key Gemini y claves Stripe).
+- Se dejaron placeholders seguros para desarrollo y comentarios para separar claramente entorno local vs produccion.
+
+## Actualizacion 2026-05-27 (rutas canonicas para subagente orchestrator)
+
+- Se actualizo `.cursor/agents/orchestrator.md` para fijar rutas canonicas del monorepo:
+  - Backend: `.../backend`
+  - Frontend: `.../frontend`
+  - Mobile: `.../mobile`
+  - Memoria/contexto: `.../docs`
+- Objetivo: reducir ambiguedad en delegacion y asegurar que el orquestador use siempre las carpetas correctas.
+
+## Actualizacion 2026-05-27 (Cursor subagentes reales + rules ligeras)
+
+- Se reordeno `.cursor/` siguiendo documentacion de Cursor:
+  - **Subagentes reales** en `.cursor/agents/*.md` (`orchestrator`, `backend`, `frontend`, `mobile`, `ui-ux`, `architecture`, `architect-planner`, `code-review`, `qa-testing`, `devops`, `infra`).
+  - **Rules** en `.cursor/rules/` solo para politica/routing:
+    - `00-core-policy.mdc` (`alwaysApply: true`)
+    - `10-routing-hints.mdc` (sugerencias de delegacion)
+- Se removio la duplicacion previa de `agent-*.mdc` para evitar conflicto entre roles de rules y roles de subagentes.
+- `README` actualizado en:
+  - `.cursor/agents/README.md`
+  - `.cursor/rules/README.md`
+
+## Actualizacion 2026-05-27 (migracion OpenCode -> Cursor subagentes/rules)
+
+- Se creo la equivalencia oficial en Cursor usando **Project Rules** en `.cursor/rules/agent-*.mdc` (orchestrator + 10 especialistas), invocables por `@agent-*`.
+- Se agrego `.cursor/rules/README.md` como indice operativo y `.cursor/agents/README.md` como puntero.
+- Se mantuvo `.opencode/agents/` como fuente original compatible con OpenCode y se dejo trazado el puente OpenCode <-> Cursor en `.opencode/README.md`.
+- Se corrigio conflicto de merge en `.opencode/README.md` (marcadores `<<<<<<<`, `=======`, `>>>>>>>`).
+
 ## Actualizacion 2026-05-10 (build frontend + Fase 0 plan)
 
 - **Lucide:** `Scalpel` → `Slice` en cirugías y sidebar (icono no exportado en lucide 0.460).
@@ -36,7 +212,7 @@
 
 ## Actualizacion 2026-05-10 (seeder superadmin plataforma)
 
-- **Seeder:** `seeders/seed_platform_admin.py` — crea `PlatformAdministrator` en schema `public`; integrado en `manage.py seed --schema public --only platform_admin` y en `entrypoint.sh` (`public_seeders`). Si `PLATFORM_ADMIN_*` no están en `.env` y `DEBUG=True`, usa credenciales solo desarrollo (`platform@oftalmologia.local` / `platform123`, ver README). `ensure_platform_admin` reutiliza la misma lógica.
+- **Seeder:** `seeders/seed_platform_admin.py` — crea `PlatformAdministrator` en schema `public`; integrado en `manage.py seed --schema public --only platform_admin` y en `entrypoint.sh` (`public_seeders`). `ensure_platform_admin` reutiliza la misma lógica.
 
 ## Actualizacion 2026-05-10 (dashboard plataforma — acciones CRUD tenants)
 
@@ -49,7 +225,18 @@
 - **JWT:** tokens de plataforma con `token_scope=platform`; tokens de clínica con `token_scope=tenant` (emitidos en `_jwt_response`). Auth por defecto: `TenantScopedJWTAuthentication` rechaza Bearer de plataforma en APIs `/t/<slug>/`.
 - **Gestión tenants:** `GET/POST …/api/public/tenants/` y acciones sólo con JWT plataforma (`TenantManagementViewSet`).
 - **Frontend:** rutas `/platform/login` y `/platform/dashboard`; tokens en `platform_access_token` (separados del panel clínica).
-- **Ops:** `.env` `PLATFORM_ADMIN_EMAIL`, `PLATFORM_ADMIN_PASSWORD`, `PLATFORM_JWT_ACCESS_MINUTES`; `manage.py ensure_platform_admin`; entrypoint ejecuta el seeder `seed_platform_admin` en arranque y además `ensure_platform_admin` si las variables están definidas (idempotente).
+- **Ops:** `manage.py ensure_platform_admin`; entrypoint ejecuta el seeder `seed_platform_admin` en arranque (`public_seeders`).
+
+## Actualizacion 2026-05-28 (credenciales demo centralizadas + platform admin seed-only)
+
+- Se creó `docs/ai/DEMO_CREDENTIALS.md` con credenciales demo centralizadas:
+  - platform admin (`public`)
+  - flota SaaS 5 clínicas
+  - admin/paciente/médicos de `clinica-demo`.
+- `seed_platform_admin` quedó **seed-only** (sin dependencia de `.env` para email/password).
+- `entrypoint.sh` eliminó bloque opcional `6b` que creaba platform admin vía variables `.env`.
+- Verificación ejecutada:
+  - `python manage.py seed --schema public --only platform_admin` -> `0 creados, 1 ya existían`.
 
 ## Actualizacion 2026-05-09 (hardening reportes/ia post-merge main)
 

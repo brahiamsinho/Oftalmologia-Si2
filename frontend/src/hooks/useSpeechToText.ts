@@ -26,7 +26,6 @@ interface SpeechRecognitionErrorEvent {
   error: string;
 }
 
-/** Expuesto por Chromium / Safari con prefijo webkit. */
 function getRecognitionCtor(): SpeechRecognitionCtor | null {
   if (typeof window === 'undefined') return null;
   const w = window as unknown as {
@@ -35,6 +34,16 @@ function getRecognitionCtor(): SpeechRecognitionCtor | null {
   };
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
+
+const ERROR_MESSAGES: Record<string, string> = {
+  'not-allowed': 'Permiso de micrófono denegado. Activá el micrófono en el navegador.',
+  'service-not-allowed': 'El micrófono está bloqueado en este sitio.',
+  'no-speech': 'No se detectó voz. Intentá de nuevo.',
+  'audio-capture': 'No se encontró micrófono en el dispositivo.',
+  'network': 'Error de red del servicio de voz.',
+  aborted: '',
+  no_start: 'No se pudo iniciar el dictado. Probá de nuevo.',
+};
 
 export interface UseSpeechToTextResult {
   transcript: string;
@@ -47,7 +56,7 @@ export interface UseSpeechToTextResult {
 
 /**
  * Dictado por micrófono → texto (es-ES).
- * Devuelve handlers seguros si el navegador no soporta la API.
+ * Acumula resultados parciales y finales para consultas largas.
  */
 export function useSpeechToText(): UseSpeechToTextResult {
   const [transcript, setTranscript] = useState('');
@@ -55,6 +64,7 @@ export function useSpeechToText(): UseSpeechToTextResult {
   const [recognitionError, setRecognitionError] = useState<string | null>(null);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const listeningRef = useRef(false);
 
   const browserSupportsSpeechRecognition = useMemo(() => getRecognitionCtor() !== null, []);
 
@@ -64,30 +74,42 @@ export function useSpeechToText(): UseSpeechToTextResult {
 
     const recognition = new Ctor();
     recognition.lang = 'es-ES';
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let text = '';
-      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+      for (let i = 0; i < event.results.length; i += 1) {
         text += event.results[i][0]?.transcript ?? '';
       }
-      setTranscript((prev) => (event.resultIndex === 0 ? text : prev + text));
+      setTranscript(text.trim());
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      if (event.error === 'aborted' || event.error === 'no-speech') return;
-      setRecognitionError(event.error);
+      if (event.error === 'aborted') return;
+      const msg = ERROR_MESSAGES[event.error];
+      if (msg) setRecognitionError(msg);
+      listeningRef.current = false;
       setIsListening(false);
     };
 
     recognition.onend = () => {
+      if (listeningRef.current) {
+        try {
+          recognition.start();
+        } catch {
+          listeningRef.current = false;
+          setIsListening(false);
+        }
+        return;
+      }
       setIsListening(false);
     };
 
     recognitionRef.current = recognition;
 
     return () => {
+      listeningRef.current = false;
       recognition.abort();
       recognitionRef.current = null;
     };
@@ -96,19 +118,25 @@ export function useSpeechToText(): UseSpeechToTextResult {
   const startListening = useCallback(() => {
     setRecognitionError(null);
     const r = recognitionRef.current;
-    if (!r) return;
+    if (!r) {
+      setRecognitionError('Tu navegador no soporta dictado por voz. Usá Chrome o Edge.');
+      return;
+    }
     try {
       setTranscript('');
+      listeningRef.current = true;
       setIsListening(true);
       r.start();
     } catch {
+      listeningRef.current = false;
       setIsListening(false);
-      setRecognitionError('no_start');
+      setRecognitionError(ERROR_MESSAGES.no_start);
     }
   }, []);
 
   const stopListening = useCallback(() => {
     const r = recognitionRef.current;
+    listeningRef.current = false;
     if (!r) return;
     try {
       r.stop();

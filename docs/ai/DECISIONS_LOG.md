@@ -11,6 +11,21 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+**Fecha:** 2026-05-27
+**Decisión:** Adoptar estructura oficial de Cursor con subagentes reales en `.cursor/agents/*.md` y dejar `.cursor/rules/` solo para politicas/routing (core policy + routing hints).
+**Motivo:** Reducir solapamientos entre instrucciones de rol y reglas, y alinearse con el mecanismo nativo de delegacion de Cursor para tareas especializadas.
+**Impacto:** Se eliminan rules `agent-*.mdc` duplicadas, se crean subagentes dedicados por dominio y se mantiene compatibilidad OpenCode en `.opencode/agents/`.
+
+---
+
+**Fecha:** 2026-05-27
+**Decisión:** Estandarizar en Cursor la capa de "subagentes" usando **Project Rules** `@agent-*` en `.cursor/rules/agent-*.mdc`, manteniendo `.opencode/agents/` como compatibilidad OpenCode.
+**Motivo:** Unificar operación diaria en Cursor sin perder la inversión previa de OpenCode, manteniendo una traducción 1:1 de roles (orchestrator + especialistas) y reglas de memoria del proyecto.
+**Impacto:** El equipo puede invocar especialistas por `@agent-*` directamente en Cursor; se agrega índice `.cursor/rules/README.md`, puntero `.cursor/agents/README.md` y se resuelve conflicto de merge en `.opencode/README.md`.
+**Estado:** Superada el mismo dia por decision posterior (subagentes reales en `.cursor/agents/`).
+
+---
+
 **Fecha:** 2026-05-10  
 **Decisión:** Identidad de **superadmin SaaS** separada de `Usuario` de clínica: modelo **`PlatformAdministrator`** en app shared `apps.platform_admin` (tabla `platform_administrator` en schema `public`). JWT de plataforma con claim `token_scope=platform` (`PlatformAccessToken`); autenticación DRF por defecto **`TenantScopedJWTAuthentication`** rechaza tokens plataforma en APIs `/t/<slug>/`. **`TenantManagementViewSet`** usa **`PlatformJWTAuthentication`** + **`IsPlatformAdministrator`**. Sin refresh JWT plataforma en MVP (sesión larga vía `PLATFORM_JWT_ACCESS_MINUTES`); bootstrap con `ensure_platform_admin` + variables `PLATFORM_ADMIN_*` en entrypoint.  
 **Motivo:** Los usuarios clínicos viven solo en schemas tenant; `IsAdminUser` sobre `Usuario` no existe en `public`. Evitar mezclar tokens y evitar que un Bearer de plataforma acceda a datos clínicos por error.  

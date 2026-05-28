@@ -22,9 +22,10 @@ PLATFORM_JWT_ACCESS_MINUTES = config(
     cast=int,
 )
 
-# Bootstrap superadmin SaaS (schema public). Usar solo en entornos controlados.
-PLATFORM_ADMIN_EMAIL = config('PLATFORM_ADMIN_EMAIL', default='').strip().lower()
-PLATFORM_ADMIN_PASSWORD = config('PLATFORM_ADMIN_PASSWORD', default='')
+# Stripe (pasarela de pagos para upgrades de plan)
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='').strip()
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='').strip()
+STRIPE_CURRENCY = config('STRIPE_CURRENCY', default='usd').strip().lower()
 
 SECRET_KEY = config('DJANGO_SECRET_KEY', default='INSECURE-change-me-in-production')
 DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
