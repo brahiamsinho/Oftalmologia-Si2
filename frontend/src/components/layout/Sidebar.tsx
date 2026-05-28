@@ -469,7 +469,27 @@ export default function Sidebar() {
           </ul>
         )}
 
-        {/* Reportes (CU17) — visible siempre; export/plan según backend */}
+        {/* Seguros y convenios (CU18) y Descuentos (CU20) */}
+        <ul className="space-y-0.5 mt-1">
+          <NavItem
+            href="/administracionFinanciera/seguros"
+            label="Seguros"
+            icon={Shield}
+            active={is("/administracionFinanciera/seguros")}
+            collapsed={isCollapsed}
+            onNavigate={closeMobileDrawer}
+          />
+          <NavItem
+            href="/administracionFinanciera/descuentos"
+            label="Campañas & Descuentos"
+            icon={Tag}
+            active={is("/administracionFinanciera/descuentos")}
+            collapsed={isCollapsed}
+            onNavigate={closeMobileDrawer}
+          />
+        </ul>
+
+        {/* Reportes (CU21/CU22) — visible siempre; export/plan según backend */}
         <ul className="space-y-0.5 mt-1">
           <NavItem
             href="/reportes"

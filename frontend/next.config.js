@@ -15,6 +15,15 @@ function normalizeNextPublicApiUrl(value) {
 
 const rawApi = normalizeNextPublicApiUrl(process.env.NEXT_PUBLIC_API_URL);
 
+/** Hosts permitidos para `<Image src="https://…">` (landing, media del backend, etc.). */
+const STATIC_IMAGE_REMOTE_PATTERNS = [
+  {
+    protocol: "https",
+    hostname: "images.unsplash.com",
+    pathname: "/**",
+  },
+];
+
 function buildImageRemotePatterns() {
   const patterns = [
     {

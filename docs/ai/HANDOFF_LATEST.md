@@ -60,6 +60,18 @@
 
 ## Resumen
 
+**Numeración CU:** **`docs/ai/PACKAGE_CU_MAP.md`** (PUDS §3.10 — paquetes Usuarios, Pacientes, Atención, CRM, Administrativa, Reportes, IA).
+
+**Fecha:** 2026-05-23 — **CU20 Facturación clínica backend:** `apps.facturacion`, cálculo CU18+CU19, cobros, `/api/facturacion/`. Sesión `2026-05-23-agent-cu21-facturacion-backend.md` (título histórico). **Pendiente:** pasarela, UI, PDF.
+
+**Fecha:** 2026-05-23 — **CU19 Descuentos + pacientes:** `apps.administracionFinanciera.descuentos`, paneles en modal paciente. Sesión `2026-05-23-agent-cu20-pacientes-descuentos.md`.
+
+**Fecha:** 2026-05-23 — **CU18 Seguros:** `apps.administracionFinanciera.seguros`, web `/seguros`. Sesión `2026-05-23-agent-cu19-seguros-backend.md`.
+
+**Fecha:** 2026-05-23 — **CU17 Recordatorios:** `automatizaciones`, señales, `procesar_recordatorios`. Sesión `2026-05-23-agent-cu18-recordatorios-backend.md`. **Pendiente:** cron, UI, tests.
+
+**Fecha:** 2026-05-23 — **CU21/CU22 Reportes web (rama `sprint3-comienzo`):** Backend `ReportTemplateViewSet` con bitácora, filtro `is_system_report`, `POST …/run/`, bloqueo edición/eliminación de predefinidos. Frontend `/reportes`: paneles predefinidos y guardados, guardar plantilla, export Excel, servicio `lib/services/reportes.ts`, hook `loadReportResult`. Sesión `docs/ai/sessions/2026-05-23-agent-cu22-reportes-web.md`. **Validar en Docker** antes de commit. Mobile reportes IA no está en esta rama (stash `WIP: mobile reportes IA…`).
+
 **Fecha:** 2026-05-10 — **UI/UX logins:** `/login` (clínica): `main`/aside, labels `htmlFor`, `role="alert"`, inputs `min-h-[48px]`, toggle contraseña accesible, copy “portal de clínica” vs “Acceso plataforma”, Suspense fallback alineado al gradiente. `/platform/login`: tema oscuro índigo/violeta, `ShieldCheck`, show password, CTAs 48px, enlaces a clínica e inicio.
 
 **Fecha:** 2026-05-10 — **Build frontend (plan Fase 0):** `Scalpel`→`Slice`; `pacientesService.listAll()`; import `Paciente` en CRM; ESLint/citas-agenda; `api.ts` fallback `NEXT_PUBLIC_API_URL` + warning único; login `Suspense`+`useSearchParams`; `npm run build` OK. Sesión `docs/ai/sessions/2026-05-10-agent-plan-build-hardening.md`. `NEXT_STEPS` actualizado (URLs tenant en axios ya hechas).

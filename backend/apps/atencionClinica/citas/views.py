@@ -127,6 +127,14 @@ class CitaViewSet(viewsets.ModelViewSet):
         )
         super().perform_destroy(instance)
 
+    @action(detail=True, methods=['get'], url_path='resumen-facturacion')
+    def resumen_facturacion(self, request, pk=None):
+        """CU20 — Especialista/admin: cálculo y facturas ligadas a la cita."""
+        cita = self.get_object()
+        from apps.facturacion.services import resumen_facturacion_cita
+
+        return Response(resumen_facturacion_cita(cita.pk))
+
     @action(detail=True, methods=['post'])
     def confirmar(self, request, pk=None):
         cita = self.get_object()

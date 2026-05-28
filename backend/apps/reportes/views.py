@@ -6,9 +6,12 @@ from django.http import HttpResponse
 from django.utils.text import slugify
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.bitacora.models import AccionBitacora
+from apps.core.utils import get_client_ip, registrar_bitacora
 from apps.reportes.models import ReportTemplate
 from apps.reportes.serializers import ReportExecutionSerializer, ReportTemplateSerializer
 from apps.reportes.services.export_engine import (
@@ -19,11 +22,29 @@ from apps.reportes.services.export_engine import (
 from apps.reportes.services.qbe_engine import QBESafeQueryError, QBEEngine
 
 
-class ReportTemplateViewSet(viewsets.ModelViewSet):
+class ReportesBitacoraMixin:
+    modulo_bitacora = 'reportes'
+    tabla_bitacora = 'reportes_plantilla'
+
+    def _registrar_bitacora(self, accion: str, descripcion: str, id_registro=None):
+        registrar_bitacora(
+            usuario=self.request.user,
+            modulo=self.modulo_bitacora,
+            accion=accion,
+            descripcion=descripcion,
+            tabla_afectada=self.tabla_bitacora,
+            id_registro_afectado=id_registro,
+            ip_origen=get_client_ip(self.request),
+            user_agent=self.request.META.get('HTTP_USER_AGENT', ''),
+        )
+
+
+class ReportTemplateViewSet(ReportesBitacoraMixin, viewsets.ModelViewSet):
     """
     CRUD de `ReportTemplate`.
 
-    - Lista / crea / actualiza / elimina plantillas con `qbe_payload`.
+    - CU22: plantillas con `is_system_report=True` (predefinidas, solo lectura/ejecución).
+    - CU21: plantillas personalizadas (`is_system_report=False`).
     - ``POST .../execute/`` — ejecuta QBE on-the-fly.
     - ``POST .../export-excel/`` — mismo JSON QBE, respuesta .xlsx en memoria.
     - ``POST .../export-pdf/`` — mismo JSON QBE, respuesta .pdf en memoria.
@@ -34,15 +55,52 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        """Schema actual = tenant (django-tenants); sin filtrado extra en el esqueleto."""
-        return ReportTemplate.objects.all().select_related('created_by')
+        qs = ReportTemplate.objects.all().select_related('created_by')
+        raw = self.request.query_params.get('is_system_report')
+        if raw is None:
+            return qs
+        normalized = raw.strip().lower()
+        if normalized in ('true', '1', 'yes'):
+            return qs.filter(is_system_report=True)
+        if normalized in ('false', '0', 'no'):
+            return qs.filter(is_system_report=False)
+        return qs
 
     def perform_create(self, serializer):
-        user = self.request.user
-        serializer.save(created_by=user if user.is_authenticated else None)
+        instance = serializer.save(
+            created_by=self.request.user if self.request.user.is_authenticated else None,
+            is_system_report=False,
+        )
+        self._registrar_bitacora(
+            AccionBitacora.CREAR,
+            f'Creó plantilla de reporte personalizado: {instance.nombre}',
+            instance.pk,
+        )
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        if instance.is_system_report:
+            raise PermissionDenied('Los reportes predefinidos del sistema no se pueden modificar.')
+        instance = serializer.save()
+        self._registrar_bitacora(
+            AccionBitacora.EDITAR,
+            f'Editó plantilla de reporte: {instance.nombre}',
+            instance.pk,
+        )
+
+    def perform_destroy(self, instance):
+        if instance.is_system_report:
+            raise PermissionDenied('Los reportes predefinidos del sistema no se pueden eliminar.')
+        nombre = instance.nombre
+        pk = instance.pk
+        super().perform_destroy(instance)
+        self._registrar_bitacora(
+            AccionBitacora.ELIMINAR,
+            f'Eliminó plantilla de reporte: {nombre}',
+            pk,
+        )
 
     def _validated_qbe_payload(self, request):
-        """Parsea y valida el cuerpo igual que ``execute`` / ``export_excel``."""
         serializer = ReportExecutionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = dict(serializer.validated_data)
@@ -54,40 +112,46 @@ class ReportTemplateViewSet(viewsets.ModelViewSet):
         }
         return payload_in, data
 
-    @action(detail=False, methods=['post'], url_path='execute')
-    def execute(self, request):
-        """
-        Ejecuta un documento QBE validado contra ``QBEEngine`` (whitelist + ORM).
-
-        No acepta SQL ni texto libre: solo el JSON validado por
-        `ReportExecutionSerializer`.
-        """
-        payload_in, data = self._validated_qbe_payload(request)
+    def _execute_payload(self, payload_in: dict, *, descripcion_bitacora: str):
         try:
             result = QBEEngine().execute(payload_in)
         except DjangoValidationError as exc:
-            detail = getattr(exc, 'message_dict', None) or list(getattr(exc, 'messages', [str(exc)]))
-            return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
+            detail = getattr(exc, 'message_dict', None) or list(
+                getattr(exc, 'messages', [str(exc)]),
+            )
+            return None, Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
         except QBESafeQueryError as exc:
-            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return None, Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        self._registrar_bitacora(AccionBitacora.CREAR, descripcion_bitacora)
+        return result, None
+
+    @action(detail=False, methods=['post'], url_path='execute')
+    def execute(self, request):
+        """Ejecuta un documento QBE validado contra ``QBEEngine``."""
+        payload_in, data = self._validated_qbe_payload(request)
+        model_label = payload_in.get('model', 'reporte')
+        result, error_response = self._execute_payload(
+            payload_in,
+            descripcion_bitacora=f'Ejecutó reporte personalizado (modelo {model_label})',
+        )
+        if error_response:
+            return error_response
         if data.get('aggregations'):
             result.setdefault('meta', {})['aggregations_requested'] = list(data['aggregations'])
         return Response(result, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['post'], url_path='export-excel')
     def export_excel(self, request):
-        """
-        Recibe el mismo JSON que ``execute``, ejecuta ``QBEEngine`` y devuelve un .xlsx.
-        Todo el flujo es en memoria (sin guardar en disco).
-        """
+        """Recibe el mismo JSON que ``execute``, ejecuta y devuelve un .xlsx."""
         payload_in, _data = self._validated_qbe_payload(request)
-        try:
-            result = QBEEngine().execute(payload_in)
-        except DjangoValidationError as exc:
-            detail = getattr(exc, 'message_dict', None) or list(getattr(exc, 'messages', [str(exc)]))
-            return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
-        except QBESafeQueryError as exc:
-            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        model_label = payload_in.get('model', 'reporte')
+        result, error_response = self._execute_payload(
+            payload_in,
+            descripcion_bitacora=f'Exportó reporte a Excel (modelo {model_label})',
+        )
+        if error_response:
+            return error_response
 
         buffer = qbe_result_to_excel_bytes(result)
         model_slug = slugify(result.get('meta', {}).get('model') or 'reporte') or 'reporte'

@@ -25,6 +25,8 @@ export interface UseSmartReportResult {
   exportNotice: string | null;
   error: string | null;
   submitQuery: (query: string) => Promise<void>;
+  /** Carga resultado ya ejecutado (plantilla predefinida / guardada, sin NLP). */
+  loadReportResult: (result: NlpToReportResponse) => void;
   removeFilterKey: (filterKey: string) => Promise<void>;
   downloadFormats: (formats: ReportExportFormat[]) => Promise<void>;
   reset: () => void;
@@ -152,6 +154,7 @@ export function useSmartReport(): UseSmartReportResult {
     exportNotice,
     error,
     submitQuery,
+    loadReportResult,
     removeFilterKey,
     downloadFormats,
     reset,

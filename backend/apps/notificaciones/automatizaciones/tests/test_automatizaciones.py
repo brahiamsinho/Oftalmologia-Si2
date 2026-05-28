@@ -6,11 +6,19 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.atencionClinica.cirugias.models import Cirugia
+from apps.atencionClinica.citas.models import Cita, EstadoCita, TipoCita, TipoCitaNombre
 from apps.atencionClinica.postoperatorio.models import Postoperatorio
-from apps.tenant.models import Tenant
-from apps.notificaciones.automatizaciones.models import EstadoTarea, LogEjecucionRecordatorio, TareaRecordatorioProgramada
+from apps.atencionClinica.especialistas.models import Especialista
+from apps.notificaciones.automatizaciones.models import (
+    EstadoTarea,
+    LogEjecucionRecordatorio,
+    ReglaRecordatorio,
+    TareaRecordatorioProgramada,
+    TipoReglaRecordatorio,
+)
 from apps.pacientes.historial_clinico.models import HistoriaClinica
 from apps.pacientes.pacientes.models import Paciente
+from apps.tenant.models import Tenant
 from apps.usuarios.users.models import TipoUsuario, Usuario
 
 
@@ -64,6 +72,16 @@ def medico(db, tenant_uno):
 
 
 @pytest.fixture
+def especialista(db, medico):
+    return Especialista.objects.create(
+        usuario=medico,
+        codigo_profesional='COL-CU18-001',
+        especialidad='Oftalmología',
+        activo=True,
+    )
+
+
+@pytest.fixture
 def paciente(db, paciente_user, tenant_uno):
     return Paciente.objects.create(
         tenant=tenant_uno,
@@ -74,6 +92,15 @@ def paciente(db, paciente_user, tenant_uno):
         nombres='Paciente',
         apellidos='Notif',
     )
+
+
+@pytest.fixture
+def tipo_cita(db):
+    tipo, _ = TipoCita.objects.get_or_create(
+        nombre=TipoCitaNombre.CONSULTA,
+        defaults={'descripcion': 'Consulta'},
+    )
+    return tipo
 
 
 @pytest.fixture
@@ -108,7 +135,12 @@ def test_crear_regla_recordatorio(api_client, administrativo):
         'cuerpo_template': 'Tu control es el {fecha_control}',
         'activa': True,
     }
-    response = api_client.post('/api/notificaciones/reglas/', payload, format='json', HTTP_X_TENANT_SLUG=administrativo.tenant.slug)
+    response = api_client.post(
+        '/api/notificaciones/reglas/',
+        payload,
+        format='json',
+        HTTP_X_TENANT_SLUG=administrativo.tenant.slug,
+    )
     assert response.status_code == 201
     assert response.data['nombre'] == 'Control 24h'
 
@@ -141,11 +173,74 @@ def test_generar_tarea_programada(api_client, administrativo, postoperatorio, te
 
 
 @pytest.mark.django_db
-def test_procesamiento_genera_log_exitoso(postoperatorio):
-    from apps.notificaciones.automatizaciones.models import ReglaRecordatorio
-
+def test_autoprogramar_tarea_al_crear_cita(paciente, especialista, tipo_cita):
     regla = ReglaRecordatorio.objects.create(
-        tenant=postoperatorio.id_paciente.tenant,
+        nombre='Cita 24h test',
+        tipo_regla=TipoReglaRecordatorio.RECORDATORIO_CITA,
+        horas_antes=24,
+        titulo_template='Cita {paciente}',
+        cuerpo_template='El {fecha_cita}',
+        activa=True,
+    )
+
+    inicio = timezone.now() + timedelta(days=3)
+    cita = Cita.objects.create(
+        id_paciente=paciente,
+        id_especialista=especialista,
+        id_tipo_cita=tipo_cita,
+        fecha_hora_inicio=inicio,
+        fecha_hora_fin=inicio + timedelta(hours=1),
+        estado=EstadoCita.CONFIRMADA,
+        motivo='Control',
+    )
+
+    tareas = TareaRecordatorioProgramada.objects.filter(
+        id_cita=cita,
+        id_regla=regla,
+        estado=EstadoTarea.PENDIENTE,
+    )
+    assert tareas.exists()
+
+
+@pytest.mark.django_db
+def test_cancelar_tareas_si_cita_cancelada(paciente, especialista, tipo_cita):
+    ReglaRecordatorio.objects.create(
+        nombre='Cita cancel test',
+        tipo_regla=TipoReglaRecordatorio.RECORDATORIO_CITA,
+        horas_antes=24,
+        titulo_template='Cita {paciente}',
+        cuerpo_template='El {fecha_cita}',
+        activa=True,
+    )
+
+    inicio = timezone.now() + timedelta(days=3)
+    cita = Cita.objects.create(
+        id_paciente=paciente,
+        id_especialista=especialista,
+        id_tipo_cita=tipo_cita,
+        fecha_hora_inicio=inicio,
+        fecha_hora_fin=inicio + timedelta(hours=1),
+        estado=EstadoCita.CONFIRMADA,
+        motivo='Control',
+    )
+
+    cita.estado = EstadoCita.CANCELADA
+    cita.save(update_fields=['estado'])
+
+    pendientes = TareaRecordatorioProgramada.objects.filter(
+        id_cita=cita,
+        estado=EstadoTarea.PENDIENTE,
+    )
+    assert not pendientes.exists()
+    assert TareaRecordatorioProgramada.objects.filter(
+        id_cita=cita,
+        estado=EstadoTarea.CANCELADA,
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_procesamiento_genera_log_exitoso(postoperatorio):
+    regla = ReglaRecordatorio.objects.create(
         nombre='Control 1h',
         horas_antes=1,
         titulo_template='Recordatorio para {paciente}',
@@ -153,7 +248,6 @@ def test_procesamiento_genera_log_exitoso(postoperatorio):
         activa=True,
     )
     TareaRecordatorioProgramada.objects.create(
-        tenant=postoperatorio.id_paciente.tenant,
         id_regla=regla,
         id_paciente=postoperatorio.id_paciente,
         id_postoperatorio=postoperatorio,
@@ -170,10 +264,7 @@ def test_procesamiento_genera_log_exitoso(postoperatorio):
 
 @pytest.mark.django_db
 def test_fallo_controlado_registra_error(postoperatorio):
-    from apps.notificaciones.automatizaciones.models import ReglaRecordatorio
-
     regla = ReglaRecordatorio.objects.create(
-        tenant=postoperatorio.id_paciente.tenant,
         nombre='Control error',
         horas_antes=1,
         titulo_template='Recordatorio para {paciente}',
@@ -181,7 +272,6 @@ def test_fallo_controlado_registra_error(postoperatorio):
         activa=True,
     )
     tarea = TareaRecordatorioProgramada.objects.create(
-        tenant=postoperatorio.id_paciente.tenant,
         id_regla=regla,
         id_paciente=postoperatorio.id_paciente,
         id_postoperatorio=postoperatorio,
@@ -195,3 +285,14 @@ def test_fallo_controlado_registra_error(postoperatorio):
     assert tarea.estado == EstadoTarea.ERROR
     assert tarea.intentos == 1
     assert LogEjecucionRecordatorio.objects.filter(id_tarea=tarea, nivel='ERROR').exists()
+
+
+@pytest.mark.django_db
+def test_seed_recordatorios():
+    from seeders import seed_recordatorios
+
+    creados, actualizados = seed_recordatorios.run()
+    assert creados + actualizados >= 2
+    assert ReglaRecordatorio.objects.filter(
+        tipo_regla=TipoReglaRecordatorio.RECORDATORIO_CITA,
+    ).exists()

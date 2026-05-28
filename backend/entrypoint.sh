@@ -327,6 +327,10 @@ tenant_seeders = [
     "seeders.seed_permisos",
     "seeders.seed_roles",
     "seeders.seed_tipos_cita",
+    "seeders.seed_recordatorios",
+    "seeders.seed_seguros",
+    "seeders.seed_descuentos",
+    "seeders.seed_facturacion",
     "seeders.seed_demo_paciente",
     "seeders.seed_reporting_6months",
 ]
