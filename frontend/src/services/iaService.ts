@@ -8,6 +8,24 @@ import type { NlpToReportResponse, QBEPayload, ReportBundle } from '@/types/repo
 
 const NLP_REPORT_TIMEOUT_MS = 120_000;
 const QBE_EXECUTE_TIMEOUT_MS = 90_000;
+const CHATBOT_TIMEOUT_MS = 90_000;
+
+export type ChatRole = 'user' | 'assistant';
+
+export interface ChatHistoryItem {
+  role: ChatRole;
+  content: string;
+}
+
+export interface ChatbotRequest {
+  message: string;
+  history?: ChatHistoryItem[];
+}
+
+export interface ChatbotResponse {
+  reply: string;
+  model: string;
+}
 
 export async function postNlpToReport(query: string): Promise<NlpToReportResponse> {
   const trimmed = query.trim();
@@ -42,5 +60,27 @@ export async function postExecuteQbe(payload: QBEPayload): Promise<ExecuteReport
     { timeout: QBE_EXECUTE_TIMEOUT_MS },
   );
 
+  return data;
+}
+
+export async function postChatbotMessage(payload: ChatbotRequest): Promise<ChatbotResponse> {
+  const message = payload.message.trim();
+  if (!message) {
+    throw new Error('El mensaje no puede estar vacío.');
+  }
+
+  const history = (payload.history ?? [])
+    .map((item) => ({
+      role: item.role,
+      content: item.content.trim(),
+    }))
+    .filter((item) => item.content.length > 0)
+    .slice(-20);
+
+  const { data } = await api.post<ChatbotResponse>(
+    '/ia/chatbot/',
+    { message, history },
+    { timeout: CHATBOT_TIMEOUT_MS },
+  );
   return data;
 }
