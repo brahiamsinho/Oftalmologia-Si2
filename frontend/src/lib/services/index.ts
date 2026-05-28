@@ -8,6 +8,13 @@ export { pacientesService } from './pacientes';
 export { usuariosService }  from './usuarios';
 export { rolesService }     from './roles';
 export { bitacoraService }  from './bitacora';
+export { backupService }    from './backup';
+export type {
+  TenantBackup,
+  BackupPlanInfo,
+  BackupConfig,
+  BackupEstado,
+} from './backup';
 export { permisosService }  from './permisos';
 export { historialService } from './historial';
 export { especialistasService } from './especialistas';

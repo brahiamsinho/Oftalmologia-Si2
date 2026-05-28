@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../../config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../domain/auth_user.dart';
@@ -19,6 +20,39 @@ class AuthRepository {
   AuthRepository({Dio? dio}) : _dio = dio ?? ApiClient().dio;
 
   final Dio _dio;
+
+  Future<Map<String, dynamic>> lookupTenantBySlug(String slug) async {
+    final clean = slug.trim();
+    if (clean.isEmpty) {
+      throw Exception('Ingresá el slug de la clínica.');
+    }
+
+    try {
+      final publicDio = Dio(
+        BaseOptions(
+          baseUrl: AppConfig.publicApiBaseUrl,
+          connectTimeout: const Duration(milliseconds: AppConfig.httpTimeout),
+          receiveTimeout: const Duration(milliseconds: AppConfig.httpTimeout),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      final response = await publicDio.get<Map<String, dynamic>>('tenants/$clean/');
+      final data = response.data;
+      if (data == null) {
+        throw Exception('Respuesta vacía al consultar la clínica.');
+      }
+      return data;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        throw Exception('No existe una clínica activa con ese slug.');
+      }
+      throw Exception(_messageFromDio(e));
+    }
+  }
 
   /// POST `/auth/login/` — body: `email` + `password` (solo correo).
   /// Opcional: [fcmPayload] con `fcm_token` y `plataforma` (registro push en el mismo request).
@@ -103,6 +137,19 @@ class AuthRepository {
       }
     }
     await SecureStorageService.clearTokens();
+  }
+
+  Future<void> saveTenantWorkspace(String slug) async {
+    final clean = slug.trim();
+    await SecureStorageService.saveTenantSlug(clean);
+    AppConfig.setRuntimeTenantSlug(clean);
+    ApiClient.reset();
+  }
+
+  Future<void> clearTenantWorkspace() async {
+    await SecureStorageService.clearTenantSlug();
+    AppConfig.setRuntimeTenantSlug(null);
+    ApiClient.reset();
   }
 
   /// POST `/auth/reset-password/` — solicita envío de email con token de recuperación.

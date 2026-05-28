@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AxiosError } from 'axios';
 
+import { downloadQbeExports, isReportExportFormat } from '@/lib/reportExport';
 import { postExecuteQbe, postNlpToReport } from '@/services/iaService';
-import type { NlpToReportResponse, QBEPayload } from '@/types/reportes';
+import type { NlpToReportResponse, QBEPayload, ReportExportFormat } from '@/types/reportes';
 
 function extractAxiosMessage(err: unknown): string | null {
   if (!(err instanceof AxiosError)) return null;
@@ -20,11 +21,14 @@ export interface UseSmartReportResult {
   data: NlpToReportResponse | null;
   loading: boolean;
   updating: boolean;
+  exporting: boolean;
+  exportNotice: string | null;
   error: string | null;
   submitQuery: (query: string) => Promise<void>;
   /** Carga resultado ya ejecutado (plantilla predefinida / guardada, sin NLP). */
   loadReportResult: (result: NlpToReportResponse) => void;
   removeFilterKey: (filterKey: string) => Promise<void>;
+  downloadFormats: (formats: ReportExportFormat[]) => Promise<void>;
   reset: () => void;
 }
 
@@ -35,6 +39,8 @@ export function useSmartReport(): UseSmartReportResult {
   const [data, setData] = useState<NlpToReportResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const dataRef = useRef<NlpToReportResponse | null>(null);
@@ -46,24 +52,52 @@ export function useSmartReport(): UseSmartReportResult {
     setData(null);
     dataRef.current = null;
     setError(null);
+    setExportNotice(null);
   }, []);
 
-  const loadReportResult = useCallback((result: NlpToReportResponse) => {
-    setLoading(false);
-    setUpdating(false);
-    setError(null);
-    setData(result);
-    dataRef.current = result;
+  const runExports = useCallback(async (formats: ReportExportFormat[], qbe: QBEPayload) => {
+    if (!formats.length) return;
+    setExporting(true);
+    setExportNotice(`Descargando ${formats.join(' y ').toUpperCase()}…`);
+    try {
+      await downloadQbeExports(formats, qbe);
+      setExportNotice(`Archivos descargados: ${formats.join(', ').toUpperCase()}.`);
+    } catch (e: unknown) {
+      const msg =
+        extractAxiosMessage(e) ??
+        (e instanceof Error ? e.message : null) ??
+        'No se pudo exportar el reporte.';
+      setError(msg);
+      setExportNotice(null);
+    } finally {
+      setExporting(false);
+    }
   }, []);
+
+  const downloadFormats = useCallback(
+    async (formats: ReportExportFormat[]) => {
+      const current = dataRef.current;
+      if (!current?.qbe || !formats.length) return;
+      await runExports(formats, current.qbe);
+    },
+    [runExports],
+  );
 
   const submitQuery = useCallback(async (query: string) => {
     setLoading(true);
     setUpdating(false);
+    setExportNotice(null);
     setError(null);
     setData(null);
     try {
       const result = await postNlpToReport(query);
       setData(result);
+      dataRef.current = result;
+
+      const requested = (result.export_formats ?? []).filter(isReportExportFormat);
+      if (requested.length > 0 && result.qbe) {
+        await runExports(requested, result.qbe);
+      }
     } catch (e: unknown) {
       const msg =
         extractAxiosMessage(e) ??
@@ -73,7 +107,7 @@ export function useSmartReport(): UseSmartReportResult {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [runExports]);
 
   const removeFilterKey = useCallback(async (filterKey: string) => {
     const current = dataRef.current;
@@ -116,10 +150,13 @@ export function useSmartReport(): UseSmartReportResult {
     data,
     loading,
     updating,
+    exporting,
+    exportNotice,
     error,
     submitQuery,
     loadReportResult,
     removeFilterKey,
+    downloadFormats,
     reset,
   };
 }

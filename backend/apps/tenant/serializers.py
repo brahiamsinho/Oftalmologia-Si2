@@ -1,9 +1,11 @@
 from datetime import timedelta
 import re
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
+from django_tenants.utils import schema_context
 
 from .models import (
     Domain,
@@ -279,6 +281,56 @@ class TenantCreateSerializer(serializers.Serializer):
         default=PlanCodigo.FREE,
     )
     trial_days = serializers.IntegerField(required=False, min_value=0, max_value=365, default=14)
+    admin_email = serializers.EmailField(required=True)
+    admin_password = serializers.CharField(required=True, min_length=8, max_length=128, write_only=True)
+    admin_nombres = serializers.CharField(required=True, max_length=100)
+    admin_apellidos = serializers.CharField(required=True, max_length=100)
+    admin_username = serializers.CharField(required=False, max_length=50, allow_blank=True)
+
+    def _build_admin_username(self, raw_username, email):
+        if raw_username:
+            base = raw_username.strip().lower()
+        else:
+            base = email.split('@')[0].strip().lower()
+
+        base = re.sub(r'[^a-z0-9._-]', '', base)
+        if not base:
+            base = 'admin'
+
+        return base[:50]
+
+    def _create_tenant_admin(self, tenant, validated_data):
+        User = get_user_model()
+        username = self._build_admin_username(
+            validated_data.get('admin_username', ''),
+            validated_data['admin_email'],
+        )
+
+        with schema_context(tenant.schema_name):
+            candidate = username
+            suffix = 1
+            while User.objects.filter(username=candidate).exists():
+                suffix += 1
+                candidate = f'{username[:46]}-{suffix}'
+
+            if User.objects.filter(email__iexact=validated_data['admin_email']).exists():
+                raise serializers.ValidationError(
+                    {
+                        'admin_email': (
+                            'Ya existe un usuario con ese correo en la clínica creada. '
+                            'Usa otro correo para el administrador.'
+                        )
+                    }
+                )
+
+            User.objects.create_superuser(
+                username=candidate,
+                email=validated_data['admin_email'].strip().lower(),
+                password=validated_data['admin_password'],
+                nombres=validated_data['admin_nombres'].strip(),
+                apellidos=validated_data['admin_apellidos'].strip(),
+                tipo_usuario='ADMIN',
+            )
 
     def validate_slug(self, value):
         slug = value.strip().lower()
@@ -298,10 +350,29 @@ class TenantCreateSerializer(serializers.Serializer):
 
         return slug
 
+    def validate_admin_nombres(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('El nombre del administrador es obligatorio.')
+        return value
+
+    def validate_admin_apellidos(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError('El apellido del administrador es obligatorio.')
+        return value
+
     @transaction.atomic
     def create(self, validated_data):
         plan_codigo = validated_data.pop('plan', PlanCodigo.FREE)
         trial_days = validated_data.pop('trial_days', 14)
+        admin_payload = {
+            'admin_email': validated_data.pop('admin_email').strip().lower(),
+            'admin_password': validated_data.pop('admin_password'),
+            'admin_nombres': validated_data.pop('admin_nombres').strip(),
+            'admin_apellidos': validated_data.pop('admin_apellidos').strip(),
+            'admin_username': (validated_data.pop('admin_username', '') or '').strip(),
+        }
 
         slug = validated_data['slug']
         schema_name = normalizar_schema_desde_slug(slug)
@@ -334,6 +405,7 @@ class TenantCreateSerializer(serializers.Serializer):
         )
 
         TenantUsage.objects.create(tenant=tenant)
+        self._create_tenant_admin(tenant, admin_payload)
 
         return tenant
 
@@ -535,3 +607,14 @@ class TenantChangePlanSerializer(serializers.Serializer):
         TenantUsage.objects.get_or_create(tenant=tenant)
 
         return suscripcion
+
+
+class TenantStripeCheckoutSerializer(serializers.Serializer):
+    plan = serializers.ChoiceField(
+        choices=[choice[0] for choice in PlanCodigo.choices],
+        help_text='Código del plan objetivo para checkout Stripe.',
+    )
+
+
+class TenantStripeConfirmSerializer(serializers.Serializer):
+    session_id = serializers.CharField(max_length=255)

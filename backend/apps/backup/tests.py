@@ -381,3 +381,18 @@ class BackupAutomaticoCommandTest(TestCase):
 
         mock_tenant_context.assert_not_called()
         mock_cleanup.assert_not_called()
+
+    def test_normalize_backup_time_accepts_string_hhmmss(self):
+        cmd = BackupAutomaticoCommand()
+        result = cmd._normalize_backup_time('03:15:00')
+        self.assertEqual(result, time(3, 15))
+
+    def test_normalize_backup_time_accepts_string_hhmm(self):
+        cmd = BackupAutomaticoCommand()
+        result = cmd._normalize_backup_time('08:45')
+        self.assertEqual(result, time(8, 45))
+
+    def test_normalize_backup_time_fallback_on_invalid(self):
+        cmd = BackupAutomaticoCommand()
+        result = cmd._normalize_backup_time('hora_invalida')
+        self.assertEqual(result, time(3, 0))

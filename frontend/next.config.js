@@ -25,7 +25,12 @@ const STATIC_IMAGE_REMOTE_PATTERNS = [
 ];
 
 function buildImageRemotePatterns() {
-  const patterns = [...STATIC_IMAGE_REMOTE_PATTERNS];
+  const patterns = [
+    {
+      protocol: "https",
+      hostname: "images.unsplash.com",
+    },
+  ];
   if (!rawApi) return patterns;
   try {
     const u = new URL(rawApi);

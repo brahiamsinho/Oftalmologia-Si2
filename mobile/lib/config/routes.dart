@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'auth_listenable.dart';
 import '../features/auth/presentation/screens/mobile_login_screen.dart';
+import '../features/auth/presentation/screens/tenant_workspace_screen.dart';
 import '../features/auth/presentation/screens/register_screen.dart';
 import '../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../features/auth/presentation/screens/reset_password_screen.dart';
@@ -11,20 +12,38 @@ import '../features/home/presentation/screens/schedule_appointment_screen.dart';
 
 /// Configuración de rutas de la aplicación.
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/login',
+  initialLocation: '/workspace',
   refreshListenable: authListenable,
   redirect: (BuildContext context, GoRouterState state) {
     final loc = state.matchedLocation;
+    final isWorkspaceRoute = loc == '/workspace';
     final isAuthRoute = loc == '/login' ||
         loc == '/register' ||
         loc == '/forgot-password' ||
         loc == '/reset-password';
-    final loggedIn = authListenable.value;
-    if (!loggedIn && !isAuthRoute) return '/login';
-    if (loggedIn && isAuthRoute) return '/home';
+    final status = authListenable.value;
+
+    if (status == AppSessionStatus.needsTenant && !isWorkspaceRoute) {
+      return '/workspace';
+    }
+
+    if (status == AppSessionStatus.unauthenticated) {
+      if (isWorkspaceRoute) return '/login';
+      if (!isAuthRoute) return '/login';
+    }
+
+    if (status == AppSessionStatus.authenticated && (isAuthRoute || isWorkspaceRoute)) {
+      return '/home';
+    }
+
     return null;
   },
   routes: [
+    GoRoute(
+      path: '/workspace',
+      name: 'workspace',
+      builder: (context, state) => const TenantWorkspaceScreen(),
+    ),
     GoRoute(
       path: '/login',
       name: 'login',

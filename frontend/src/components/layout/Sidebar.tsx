@@ -30,8 +30,7 @@ import {
   Settings,
   MessageSquare,
   Tags,
-  Tag,
-  Shield,
+  DatabaseBackup,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
@@ -546,6 +545,14 @@ export default function Sidebar() {
             label="Bitácora"
             icon={ScrollText}
             active={is("/bitacora")}
+            collapsed={isCollapsed}
+            onNavigate={closeMobileDrawer}
+          />
+          <NavItem
+            href="/backups"
+            label="Backups"
+            icon={DatabaseBackup}
+            active={is("/backups")}
             collapsed={isCollapsed}
             onNavigate={closeMobileDrawer}
           />

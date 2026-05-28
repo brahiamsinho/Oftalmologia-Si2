@@ -29,3 +29,8 @@ Estas skills viven en `.agents/skills/` y fueron instaladas por el sistema de sk
 - El `orchestrator` debe preferir skills locales antes de pedir al usuario que repita instrucciones largas.
 - Si una capacidad reusable no existe, usar `find-skills` antes de inventar un workflow grande.
 - Las skills no deben leer secretos ni reemplazar validaciones reales del sistema.
+
+## Equivalencia Cursor (2026-05-27)
+
+- Los roles de agentes de `.opencode/agents/` tienen espejo en Cursor como rules `@agent-*` dentro de `.cursor/rules/`.
+- Las skills siguen en `.opencode/skills/` (OpenCode) y `.agents/skills/` (workspace). Cursor usa esas guías como contexto operativo, mientras que el routing por rol vive en `@agent-*`.

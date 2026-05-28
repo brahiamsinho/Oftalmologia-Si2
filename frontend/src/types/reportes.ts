@@ -34,9 +34,14 @@ export interface ReportBundle {
  * Respuesta de POST `/ia/nlp-to-report/`.
  * Incluye el JSON QBE interpretado y el resultado ejecutado en tenant.
  */
+/** Formatos detectados en la consulta NL (excel, pdf, csv). */
+export type ReportExportFormat = 'excel' | 'pdf' | 'csv';
+
 export interface NlpToReportResponse {
   qbe: QBEPayload;
   report: ReportBundle;
+  /** Presente si el usuario pidió exportar en la consulta. */
+  export_formats?: ReportExportFormat[];
 }
 
 /** Alias útil cuando se describe solo la capa “report”. */

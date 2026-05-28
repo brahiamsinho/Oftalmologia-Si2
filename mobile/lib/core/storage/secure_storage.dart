@@ -9,6 +9,7 @@ class SecureStorageService {
   // Keys
   static const String _accessTokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
+  static const String _tenantSlugKey = 'tenant_slug';
 
   // ---- Tokens ----
   static Future<void> saveTokens({
@@ -30,6 +31,19 @@ class SecureStorageService {
   static Future<void> clearTokens() async {
     await _storage.delete(key: _accessTokenKey);
     await _storage.delete(key: _refreshTokenKey);
+  }
+
+  // ---- Tenant workspace ----
+  static Future<void> saveTenantSlug(String slug) async {
+    await _storage.write(key: _tenantSlugKey, value: slug);
+  }
+
+  static Future<String?> getTenantSlug() async {
+    return await _storage.read(key: _tenantSlugKey);
+  }
+
+  static Future<void> clearTenantSlug() async {
+    await _storage.delete(key: _tenantSlugKey);
   }
 
   // ---- General ----

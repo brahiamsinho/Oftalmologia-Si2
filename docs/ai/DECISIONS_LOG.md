@@ -11,10 +11,18 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
-**Fecha:** 2026-05-23  
-**Decisión:** Numeración de casos de uso alineada al documento PUDS §3.10 (diagramas de paquetes). Fuente de verdad: `docs/ai/PACKAGE_CU_MAP.md`. Paquete administrativa: CU18 `apps.administracionFinanciera.seguros`, CU19 `apps.administracionFinanciera.descuentos`, CU20 `apps.facturacion`. Paquete CRM: CU17 recordatorios en `apps.notificaciones.automatizaciones` (no confundir con CU21 reportes). Paquete reportes: CU21 generar/exportar (`apps.crm.reportes` + QBE sistema), CU22 informes personalizados (`apps.reportes` plantillas usuario).  
-**Motivo:** Chats y commits previos usaban CU18–CU22 desplazados respecto al PUDS entregado en clase/defensa.  
-**Impacto:** Comentarios en código, seeders, frontend y `docs/ai/` actualizados; nombres de archivos de migración (`0003_cu18_*`) se mantienen por historial git.
+**Fecha:** 2026-05-27
+**Decisión:** Adoptar estructura oficial de Cursor con subagentes reales en `.cursor/agents/*.md` y dejar `.cursor/rules/` solo para politicas/routing (core policy + routing hints).
+**Motivo:** Reducir solapamientos entre instrucciones de rol y reglas, y alinearse con el mecanismo nativo de delegacion de Cursor para tareas especializadas.
+**Impacto:** Se eliminan rules `agent-*.mdc` duplicadas, se crean subagentes dedicados por dominio y se mantiene compatibilidad OpenCode en `.opencode/agents/`.
+
+---
+
+**Fecha:** 2026-05-27
+**Decisión:** Estandarizar en Cursor la capa de "subagentes" usando **Project Rules** `@agent-*` en `.cursor/rules/agent-*.mdc`, manteniendo `.opencode/agents/` como compatibilidad OpenCode.
+**Motivo:** Unificar operación diaria en Cursor sin perder la inversión previa de OpenCode, manteniendo una traducción 1:1 de roles (orchestrator + especialistas) y reglas de memoria del proyecto.
+**Impacto:** El equipo puede invocar especialistas por `@agent-*` directamente en Cursor; se agrega índice `.cursor/rules/README.md`, puntero `.cursor/agents/README.md` y se resuelve conflicto de merge en `.opencode/README.md`.
+**Estado:** Superada el mismo dia por decision posterior (subagentes reales en `.cursor/agents/`).
 
 ---
 

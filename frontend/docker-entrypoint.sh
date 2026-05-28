@@ -25,7 +25,7 @@ if [ "$need_install" = "1" ]; then
   fi
   touch "$STAMP"
   # Evita CSS/layout rotos por caché de Tailwind/PostCSS de un build anterior
-  rm -rf .next
+  rm -rf .next || true
   echo "[frontend] Dependencias listas."
 fi
 

@@ -14,8 +14,12 @@ from apps.bitacora.models import AccionBitacora
 from apps.core.utils import get_client_ip, registrar_bitacora
 from apps.reportes.models import ReportTemplate
 from apps.reportes.serializers import ReportExecutionSerializer, ReportTemplateSerializer
-from apps.reportes.services.export_engine import qbe_result_to_excel_bytes
-from apps.reportes.services.qbe_engine import QBEEngine, QBESafeQueryError
+from apps.reportes.services.export_engine import (
+    qbe_result_to_csv_bytes,
+    qbe_result_to_excel_bytes,
+    qbe_result_to_pdf_bytes,
+)
+from apps.reportes.services.qbe_engine import QBESafeQueryError, QBEEngine
 
 
 class ReportesBitacoraMixin:
@@ -42,8 +46,9 @@ class ReportTemplateViewSet(ReportesBitacoraMixin, viewsets.ModelViewSet):
     - CU22: plantillas con `is_system_report=True` (predefinidas, solo lectura/ejecución).
     - CU21: plantillas personalizadas (`is_system_report=False`).
     - ``POST .../execute/`` — ejecuta QBE on-the-fly.
-    - ``POST .../export-excel/`` — mismo JSON QBE, respuesta .xlsx.
-    - ``POST .../{id}/run/`` — ejecuta el `qbe_payload` guardado de una plantilla.
+    - ``POST .../export-excel/`` — mismo JSON QBE, respuesta .xlsx en memoria.
+    - ``POST .../export-pdf/`` — mismo JSON QBE, respuesta .pdf en memoria.
+    - ``POST .../export-csv/`` — mismo JSON QBE, respuesta .csv en memoria.
     """
 
     serializer_class = ReportTemplateSerializer
@@ -159,45 +164,46 @@ class ReportTemplateViewSet(ReportesBitacoraMixin, viewsets.ModelViewSet):
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
 
-    @action(detail=True, methods=['post'], url_path='run')
-    def run(self, request, pk=None):
-        """
-        CU22/CU21: ejecuta la plantilla guardada (predefinida o personalizada).
+    def _export_file_response(self, result: dict, *, ext: str, content_type: str, builder):
+        buffer = builder(result)
+        model_slug = slugify(result.get('meta', {}).get('model') or 'reporte') or 'reporte'
+        filename = f'reporte-{model_slug}.{ext}'
+        response = HttpResponse(buffer.getvalue(), content_type=content_type)
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
 
-        Respuesta alineada con NLP: ``{ qbe, report }``.
-        """
-        template = self.get_object()
-        payload = template.qbe_payload or {}
-        if not isinstance(payload, dict) or not payload.get('model'):
-            return Response(
-                {'detail': 'La plantilla no tiene un payload QBE válido.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        payload_in = {
-            'model': payload['model'],
-            'filters': payload.get('filters') or {},
-            'fields': payload.get('fields'),
-            'order_by': payload.get('order_by') or [],
-        }
-
-        tipo = 'predefinido' if template.is_system_report else 'personalizado'
-        result, error_response = self._execute_payload(
-            payload_in,
-            descripcion_bitacora=(
-                f'Ejecutó reporte {tipo}: {template.nombre} (modelo {payload_in["model"]})'
-            ),
+    @action(detail=False, methods=['post'], url_path='export-pdf')
+    def export_pdf(self, request):
+        """Ejecuta QBE y devuelve un PDF en memoria."""
+        payload_in, _data = self._validated_qbe_payload(request)
+        try:
+            result = QBEEngine().execute(payload_in)
+        except DjangoValidationError as exc:
+            detail = getattr(exc, 'message_dict', None) or list(getattr(exc, 'messages', [str(exc)]))
+            return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
+        except QBESafeQueryError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return self._export_file_response(
+            result,
+            ext='pdf',
+            content_type='application/pdf',
+            builder=qbe_result_to_pdf_bytes,
         )
-        if error_response:
-            return error_response
 
-        qbe_response = {
-            'model': payload_in['model'],
-            'filters': payload_in['filters'],
-            'fields': payload_in.get('fields'),
-            'order_by': payload_in.get('order_by'),
-        }
-        return Response(
-            {'qbe': qbe_response, 'report': result, 'template_id': template.pk},
-            status=status.HTTP_200_OK,
+    @action(detail=False, methods=['post'], url_path='export-csv')
+    def export_csv(self, request):
+        """Ejecuta QBE y devuelve un CSV en memoria."""
+        payload_in, _data = self._validated_qbe_payload(request)
+        try:
+            result = QBEEngine().execute(payload_in)
+        except DjangoValidationError as exc:
+            detail = getattr(exc, 'message_dict', None) or list(getattr(exc, 'messages', [str(exc)]))
+            return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
+        except QBESafeQueryError as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return self._export_file_response(
+            result,
+            ext='csv',
+            content_type='text/csv; charset=utf-8',
+            builder=qbe_result_to_csv_bytes,
         )

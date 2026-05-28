@@ -63,6 +63,10 @@ export default function PlatformDashboardPage() {
     slug: '',
     nombre: '',
     email_contacto: '',
+    admin_email: '',
+    admin_password: '',
+    admin_nombres: '',
+    admin_apellidos: '',
     plan: 'FREE' as PlanCodigo,
     trial_days: 14,
   });
@@ -179,6 +183,10 @@ export default function PlatformDashboardPage() {
         slug: createForm.slug.trim().toLowerCase().replace(/\s+/g, '-'),
         nombre: createForm.nombre.trim(),
         email_contacto: createForm.email_contacto.trim() || undefined,
+        admin_email: createForm.admin_email.trim(),
+        admin_password: createForm.admin_password,
+        admin_nombres: createForm.admin_nombres.trim(),
+        admin_apellidos: createForm.admin_apellidos.trim(),
         plan: createForm.plan,
         trial_days: createForm.trial_days,
       });
@@ -187,6 +195,10 @@ export default function PlatformDashboardPage() {
         slug: '',
         nombre: '',
         email_contacto: '',
+        admin_email: '',
+        admin_password: '',
+        admin_nombres: '',
+        admin_apellidos: '',
         plan: 'FREE',
         trial_days: 14,
       });
@@ -350,7 +362,7 @@ export default function PlatformDashboardPage() {
           <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-xl">
             <h2 className="text-lg font-semibold text-gray-900">Nueva clínica</h2>
             <p className="mt-1 text-sm text-gray-600">
-              Se crea el tenant, dominio y suscripción. El schema se genera en el servidor.
+              Se crea el tenant, dominio, suscripción y el administrador inicial de la clínica.
             </p>
             <form onSubmit={submitCreate} className="mt-4 space-y-3">
               {createError ? (
@@ -387,6 +399,54 @@ export default function PlatformDashboardPage() {
                   className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
                   placeholder="contacto@clinica.com"
                 />
+              </div>
+              <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-3">
+                <p className="text-xs font-semibold text-blue-800">Administrador inicial (obligatorio)</p>
+                <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600">Nombres</label>
+                    <input
+                      required
+                      value={createForm.admin_nombres}
+                      onChange={(ev) => setCreateForm((f) => ({ ...f, admin_nombres: ev.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                      placeholder="María"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600">Apellidos</label>
+                    <input
+                      required
+                      value={createForm.admin_apellidos}
+                      onChange={(ev) => setCreateForm((f) => ({ ...f, admin_apellidos: ev.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                      placeholder="Pérez"
+                    />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <label className="block text-xs font-medium text-gray-600">Email admin</label>
+                  <input
+                    required
+                    type="email"
+                    value={createForm.admin_email}
+                    onChange={(ev) => setCreateForm((f) => ({ ...f, admin_email: ev.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                    placeholder="admin@clinicax.com"
+                  />
+                </div>
+                <div className="mt-3">
+                  <label className="block text-xs font-medium text-gray-600">Password admin</label>
+                  <input
+                    required
+                    minLength={8}
+                    type="password"
+                    value={createForm.admin_password}
+                    onChange={(ev) => setCreateForm((f) => ({ ...f, admin_password: ev.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                    placeholder="Mínimo 8 caracteres"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

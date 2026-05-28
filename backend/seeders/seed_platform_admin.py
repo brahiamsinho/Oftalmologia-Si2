@@ -3,30 +3,22 @@ seeders/seed_platform_admin.py
 
 Crea el PlatformAdministrator en el schema public (SHARED_APPS).
 
-Credenciales:
-  - Preferencia: PLATFORM_ADMIN_EMAIL / PLATFORM_ADMIN_PASSWORD (settings → .env).
-  - Solo si DEBUG=True y faltan ambas variables: fallback de desarrollo documentado
-    en README (no usar en producción sin .env).
+Importante:
+- Este seeder NO depende de variables .env para credenciales.
+- Usa credenciales demo fijas e idempotentes para entornos de desarrollo/demo.
 """
-from django.conf import settings
 from django.db import IntegrityError, connection
 from django_tenants.utils import get_public_schema_name
 
 from apps.platform_admin.models import PlatformAdministrator
 
-# Solo desarrollo cuando DEBUG=True y no hay variables en .env
-DEV_FALLBACK_EMAIL = 'platform@oftalmologia.local'
-DEV_FALLBACK_PASSWORD = 'platform123'
+# Credenciales demo (seeders)
+PLATFORM_ADMIN_EMAIL = 'platform@oftalmologia.local'
+PLATFORM_ADMIN_PASSWORD = 'platform123'
 
 
 def _resolve_credentials():
-    email = (getattr(settings, 'PLATFORM_ADMIN_EMAIL', '') or '').strip().lower()
-    password = getattr(settings, 'PLATFORM_ADMIN_PASSWORD', '') or ''
-    if email and password:
-        return email, password
-    if getattr(settings, 'DEBUG', False):
-        return DEV_FALLBACK_EMAIL.lower(), DEV_FALLBACK_PASSWORD
-    return None, None
+    return PLATFORM_ADMIN_EMAIL.lower(), PLATFORM_ADMIN_PASSWORD
 
 
 def ensure_platform_admin_credentials():
@@ -40,9 +32,6 @@ def ensure_platform_admin_credentials():
         return ('skipped', 'wrong_schema')
 
     email, password = _resolve_credentials()
-    if not email or not password:
-        return ('skipped', 'no_credentials')
-
     existing = PlatformAdministrator.objects.filter(email__iexact=email).first()
     if existing is not None:
         return ('exists', email)

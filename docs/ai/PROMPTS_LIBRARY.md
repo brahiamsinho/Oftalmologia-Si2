@@ -32,3 +32,9 @@ Estos comandos viven en `.opencode/commands/*.md`.
 - `/update-memory` preserva continuidad y trazabilidad del proceso.
 - `/validate-stack` aporta evidencia para la fase de pruebas.
 - `/handoff` aporta mantenimiento y continuidad entre sesiones/agentes.
+
+## Equivalencia Cursor (2026-05-27)
+
+- Subagentes en Cursor se invocan por reglas `@agent-*` definidas en `.cursor/rules/agent-*.mdc`.
+- Indice operativo: `.cursor/rules/README.md`.
+- Puntero de compatibilidad: `.cursor/agents/README.md`.

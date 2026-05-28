@@ -26,6 +26,19 @@ class _MobileLoginScreenState extends ConsumerState<MobileLoginScreen> {
 
   bool _isLoading = false;
   String? _errorMessage;
+  String? _tenantSlug;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTenantSlug();
+  }
+
+  Future<void> _loadTenantSlug() async {
+    final slug = await ref.read(sessionNotifierProvider.notifier).getSelectedTenantSlug();
+    if (!mounted) return;
+    setState(() => _tenantSlug = slug);
+  }
 
   @override
   void dispose() {
@@ -131,6 +144,36 @@ class _MobileLoginScreenState extends ConsumerState<MobileLoginScreen> {
                   onForgotPassword: () => context.push('/forgot-password'),
                 ),
                 const SizedBox(height: 28),
+                if (_tenantSlug != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFBFDBFE)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.business, size: 18, color: Color(0xFF1D4ED8)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text('Clínica: $_tenantSlug'),
+                        ),
+                        TextButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () async {
+                                  await ref.read(sessionNotifierProvider.notifier).clearTenantSelection();
+                                  if (!mounted) return;
+                                  context.go('/workspace');
+                                },
+                          child: const Text('Cambiar'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
                 LoginActions(
                   onCreateAccount: () => context.push('/register'),
                   onTerms: () => _openOptionalUrl(

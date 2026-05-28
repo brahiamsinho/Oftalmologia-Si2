@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BookmarkPlus, Sparkles } from 'lucide-react';
+import { Download, FileSpreadsheet, FileText, Sparkles } from 'lucide-react';
 
 import ActiveFilters from '@/components/reportes/ActiveFilters';
 import AIAssistantBar from '@/components/reportes/AIAssistantBar';
@@ -46,10 +46,12 @@ export default function ReportesInteligentesPage() {
     data,
     loading,
     updating,
+    exporting,
+    exportNotice,
     error,
     submitQuery,
-    loadReportResult,
     removeFilterKey,
+    downloadFormats,
   } = useSmartReport();
   const speech = useSpeechToText();
 
@@ -62,8 +64,14 @@ export default function ReportesInteligentesPage() {
   const displayError = error ?? panelError;
 
   useEffect(() => {
-    if (!speech.isListening && speech.transcript) {
+    if (speech.isListening && speech.transcript) {
       setQuery(speech.transcript);
+    }
+  }, [speech.isListening, speech.transcript]);
+
+  useEffect(() => {
+    if (!speech.isListening && speech.transcript.trim()) {
+      setQuery(speech.transcript.trim());
     }
   }, [speech.isListening, speech.transcript]);
 
@@ -71,6 +79,9 @@ export default function ReportesInteligentesPage() {
     if (!speech.browserSupportsSpeechRecognition) return;
     if (speech.isListening) {
       speech.stopListening();
+      if (speech.transcript.trim()) {
+        setQuery(speech.transcript.trim());
+      }
     } else {
       speech.startListening();
     }
@@ -132,8 +143,9 @@ export default function ReportesInteligentesPage() {
     [columns],
   );
 
-  const busy = loading || updating;
+  const busy = loading || updating || exporting;
   const hasTableData = columns.length > 0 && rows.length > 0;
+  const canExport = Boolean(data?.qbe) && hasTableData;
   const canSaveTemplate = Boolean(data?.qbe?.model);
 
   return (
@@ -147,8 +159,8 @@ export default function ReportesInteligentesPage() {
         </div>
         <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Reportes inteligentes</h1>
         <p className="max-w-3xl text-sm text-gray-600 sm:text-base">
-          Ejecutá informes predefinidos del sistema, consultá en lenguaje natural con IA, guardá tus
-          plantillas personalizadas y exportá resultados a Excel.
+          Describí qué datos necesitás y, si querés archivos, indicá el formato (por ejemplo: «en excel y pdf»).
+          La IA propone filtros seguros (QBE); al generar, se descargan automáticamente los formatos pedidos.
         </p>
       </header>
 
@@ -166,15 +178,18 @@ export default function ReportesInteligentesPage() {
       />
 
       <AIAssistantBar
-        value={speech.isListening ? speech.transcript : query}
+        value={query}
         onChange={(v) => setQuery(v)}
         onSubmit={() => {
-          const text = (speech.isListening ? speech.transcript : query).trim();
+          if (speech.isListening) speech.stopListening();
+          const text = query.trim();
           if (text) void handleSubmit(text);
         }}
         isListening={speech.isListening}
         onToggleListen={handleMicClick}
         loading={busy}
+        speechSupported={speech.browserSupportsSpeechRecognition}
+        speechError={speech.recognitionError}
       />
 
       {loading && !data && <ReportSkeleton />}
@@ -222,24 +237,49 @@ export default function ReportesInteligentesPage() {
                   {data.report.meta?.truncated ? ' (vista parcial)' : ''}
                 </p>
               )}
-              <ReportExportButton
-                qbe={data.qbe}
-                disabled={busy || !hasTableData}
-                onError={handlePanelError}
-              />
-              {canSaveTemplate && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => setSaveDialogOpen(true)}
-                  className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 disabled:opacity-60"
-                >
-                  <BookmarkPlus className="h-4 w-4" aria-hidden />
-                  Guardar informe
-                </button>
+              {canExport && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void downloadFormats(['excel'])}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 text-emerald-600" aria-hidden />
+                    Excel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void downloadFormats(['pdf'])}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <FileText className="h-4 w-4 text-red-600" aria-hidden />
+                    PDF
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void downloadFormats(['excel', 'pdf'])}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-800 shadow-sm hover:bg-indigo-100 disabled:opacity-50"
+                  >
+                    <Download className="h-4 w-4" aria-hidden />
+                    Ambos
+                  </button>
+                </div>
               )}
             </div>
           </div>
+
+          {exportNotice && (
+            <p
+              className="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-2 text-sm text-indigo-900"
+              role="status"
+              aria-live="polite"
+            >
+              {exportNotice}
+            </p>
+          )}
 
           <ActiveFilters
             filters={filters}
