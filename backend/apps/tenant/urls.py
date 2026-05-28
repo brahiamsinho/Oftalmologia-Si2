@@ -2,6 +2,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    PlatformPlanManagementViewSet,
     PublicTenantLookupView,
     StripeWebhookPublicView,
     SubscriptionPlanViewSet,
@@ -16,6 +17,7 @@ from .views import (
 router = DefaultRouter()
 router.register('tenants', TenantManagementViewSet, basename='tenants')
 router.register('plans', SubscriptionPlanViewSet, basename='subscription-plans')
+router.register('platform/plans', PlatformPlanManagementViewSet, basename='platform-plan-management')
 
 urlpatterns = [
     path('platform/', include('apps.platform_admin.urls')),

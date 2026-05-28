@@ -20,6 +20,7 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [ ] Afinar textos operativos de cada subagente en `.cursor/agents/*.md` segun evolucion real de backend/frontend/mobile y nuevos workflows.
 - [ ] Evaluar si conviene agregar rules equivalentes para workflows tipo comando (`check-project`, `update-memory`, `puds-status`) como shortcuts de equipo en Cursor.
 - [x] **Superadmin web:** `/platform/dashboard` — crear clínica (modal), activar, suspender, cambiar plan (modales + confirmación downgrade); **shell** sidebar + header como el dashboard clínica (`dashboard/layout.tsx`, `PlatformSidebar`, `PlatformHeader`). Detalle en `docs/ai/PLATFORM_SAAS.md` §7.
+- [x] **Platform admin planes:** CRUD de planes desde `/platform/dashboard` conectado a `/api/public/platform/plans/` con auth de plataforma.
 - [x] **CU21/CU22 web (parcial 2026-05-23):** predefinidos (CU21), personalizados/guardar (CU22), export Excel, `run/`. Ver `PACKAGE_CU_MAP.md`. **Pendiente:** E2E, tests, whitelist QBE.
 - [ ] **CU21 motor QBE:** poblar `_QBE_MODEL_REGISTRY`; tests `execute`.
 - [ ] **CU23 mobile:** reportes IA desde stash `f11f9b9` si aplica.
@@ -27,6 +28,7 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] Sistema completo de backup/restore multi-tenant (modelos, API, servicio, scheduler, documentacion, tests).
 - [ ] **URGENTE: Frontend Next.js con URLs de tenant** — **Hecho (2026-05-10):** `lib/api.ts` reescribe `baseURL` a `resolveTenantBaseUrl(slug)` cuando hay `tenant_slug`; refresh usa el mismo prefijo. **Pendiente UX:** pantalla dedicada de selección de clínica / branding si se quiere además del paso 1 del login actual; consumo explícito de `GET /t/<slug>/api/auth/tenant/` donde falte.
 - [ ] **URGENTE: Mobile Flutter con URLs de tenant** — adaptar Dio client para usar `/t/<tenantSlug>/api/...`, crear flujo de seleccion de clinica, consumir endpoints de tenant antes del login.
+- [x] Mobile Android Firebase: alinear `google-services.json` con `applicationId` actual para desbloquear `:app:processDebugGoogleServices`.
 - [x] OpenCode workflows: crear comandos reutilizables (`/check-project`, `/commit`, `/update-memory`, `/review-security`, `/validate-stack`, `/puds-status`, `/handoff`, `/todo-start`).
 - [x] OpenCode workflows: crear comandos reutilizables (`/check-project`, `/commit`, `/update-memory`, `/review-security`, `/validate-stack`, `/puds-status`, `/handoff`, `/todo-start`).
 - [x] Artefacto de diseno vivo: crear `docs/ai/DESING.md` para registrar decisiones UI/UX y backlog mobile paciente.

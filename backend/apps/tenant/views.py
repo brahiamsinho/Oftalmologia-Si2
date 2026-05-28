@@ -501,13 +501,25 @@ class SubscriptionPlanViewSet(
     ese backend rechaza token_scope=platform → 401 y el frontend cerraba sesión.
     """
 
+    serializer_class = SubscriptionPlanSerializer
+
     queryset = SubscriptionPlan.objects.filter(activo=True).order_by(
         'precio_mensual',
         'codigo',
     )
-    serializer_class = SubscriptionPlanSerializer
     authentication_classes = []
     permission_classes = [AllowAny]
+
+
+class PlatformPlanManagementViewSet(viewsets.ModelViewSet):
+    """
+    Gestión completa de planes para el panel de plataforma.
+    """
+
+    queryset = SubscriptionPlan.objects.all().order_by('precio_mensual', 'codigo')
+    serializer_class = SubscriptionPlanSerializer
+    authentication_classes = [PlatformJWTAuthentication]
+    permission_classes = [IsAuthenticated, IsPlatformAdministrator]
 
 
 class TenantManagementViewSet(viewsets.ModelViewSet):

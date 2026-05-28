@@ -2,6 +2,22 @@
 
 ## Resumen
 
+**Fecha:** 2026-05-28 — **Fix mobile Firebase Android (google-services):**
+- Se ajustó `mobile/android/app/google-services.json` para que el `package_name` coincida con el package Android compilado (`com.example.oftalmologia_si2`).
+- Esto corrige el error de Gradle `No matching client found for package name` en `:app:processDebugGoogleServices`.
+- Se confirma continuidad de rutas de credenciales:
+  - Android cliente: `mobile/android/app/google-services.json`
+  - Backend admin SDK: `backend/firebase-credentials.json` (default activo en settings).
+
+**Fecha:** 2026-05-28 — **Platform admin: gestión completa de planes:**
+- Se agregó `PlatformPlanManagementViewSet` en backend para CRUD de planes:
+  - `GET/POST /api/public/platform/plans/`
+  - `GET/PATCH/DELETE /api/public/platform/plans/<id>/`
+- Seguridad aplicada: `PlatformJWTAuthentication` + `IsPlatformAdministrator`.
+- Se mantuvo `SubscriptionPlanViewSet` público (`/api/public/plans/`) solo lectura y solo activos.
+- Dashboard plataforma (`frontend/src/app/platform/dashboard/page.tsx`) ahora incluye sección **Planes** con listado y modal crear/editar (límites, features y estado activo).
+- Verificación: `docker compose exec backend python manage.py check` -> OK.
+
 **Fecha:** 2026-05-28 — **Reportes predefinidos 404 + limpieza de textos CU:**
 - Se corrigió el 404 de `POST /t/<slug>/api/reportes-qbe/plantillas/<id>/run/` agregando acción `run_template` en `backend/apps/reportes/views.py`.
 - La acción nueva ejecuta `qbe_payload` de la plantilla usando `_execute_payload`, registra bitácora y retorna `{ qbe, report }`.

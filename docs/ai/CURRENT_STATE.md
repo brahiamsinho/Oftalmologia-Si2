@@ -1,5 +1,26 @@
 # CURRENT STATE
 
+## Actualizacion 2026-05-28 (platform admin: gestión de planes)
+
+## Actualizacion 2026-05-28 (mobile Firebase Android: alineacion package_name)
+
+- Se alineo `mobile/android/app/google-services.json` para que `client[0].client_info.android_client_info.package_name` coincida con el `applicationId` Android actual (`com.example.oftalmologia_si2`).
+- Objetivo: evitar el fallo de compilacion `:app:processDebugGoogleServices` con error `No matching client found for package name`.
+- Se mantiene el uso de archivos solicitados:
+  - mobile: `mobile/android/app/google-services.json`
+  - backend: `backend/firebase-credentials.json` (ruta default ya vigente en `backend/config/settings.py`).
+
+- **Backend:** se habilitó gestión CRUD de planes para superadmin de plataforma vía endpoint nuevo:
+  - `GET/POST /api/public/platform/plans/`
+  - `GET/PATCH/DELETE /api/public/platform/plans/<id>/`
+- **Seguridad:** estas rutas usan `PlatformJWTAuthentication` + `IsPlatformAdministrator`.
+- **Catálogo público se mantiene:** `GET /api/public/plans/` sigue siendo `AllowAny` y devuelve solo planes activos.
+- **Frontend plataforma:** en `platform/dashboard` se agregó sección **Planes** con:
+  - listado de límites/features,
+  - modal para crear/editar plan,
+  - activación/desactivación del plan desde el mismo formulario.
+- **Validación:** `python manage.py check` OK y sin lints en archivos modificados.
+
 ## Actualizacion 2026-05-28 (fix reportes predefinidos + limpieza textos CU)
 
 - **Incidente UI reportes:** botón "Ejecutar informe" en predefinidos devolvía `404` porque frontend llamaba `POST /reportes-qbe/plantillas/<id>/run/` y el backend no tenía esa acción en el `ViewSet`.

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Loader2, Plus, Power, PowerOff, RefreshCw, Settings2,
+  Loader2, Pencil, Plus, Power, PowerOff, RefreshCw, Settings2,
 } from 'lucide-react';
 import { AxiosError } from 'axios';
 import { PlatformTokenStorage, fetchPlatformAll, platformApi } from '@/lib/platformApi';
@@ -32,7 +32,18 @@ interface PlanOption {
   id_plan?: number;
   codigo: PlanCodigo;
   nombre: string;
+  descripcion?: string;
   precio_mensual: number;
+  moneda?: string;
+  max_usuarios?: number;
+  max_pacientes?: number;
+  max_citas_mes?: number;
+  max_almacenamiento_mb?: number;
+  permite_crm?: boolean;
+  permite_notificaciones?: boolean;
+  permite_reportes_avanzados?: boolean;
+  permite_soporte_prioritario?: boolean;
+  activo?: boolean;
 }
 
 function apiErrorMessage(err: unknown): string {
@@ -79,6 +90,27 @@ export default function PlatformDashboardPage() {
   const [planError, setPlanError] = useState('');
 
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [plansLoading, setPlansLoading] = useState(false);
+  const [planEditorOpen, setPlanEditorOpen] = useState(false);
+  const [planEditorSubmitting, setPlanEditorSubmitting] = useState(false);
+  const [planEditorError, setPlanEditorError] = useState('');
+  const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
+  const [planForm, setPlanForm] = useState({
+    codigo: 'FREE' as PlanCodigo,
+    nombre: '',
+    descripcion: '',
+    precio_mensual: 0,
+    moneda: 'BOB',
+    max_usuarios: 3,
+    max_pacientes: 100,
+    max_citas_mes: 100,
+    max_almacenamiento_mb: 500,
+    permite_crm: false,
+    permite_notificaciones: false,
+    permite_reportes_avanzados: false,
+    permite_soporte_prioritario: false,
+    activo: true,
+  });
 
   const load = useCallback(async () => {
     if (!PlatformTokenStorage.getAccess()) {
@@ -90,7 +122,7 @@ export default function PlatformDashboardPage() {
     try {
       const [list, planList] = await Promise.all([
         fetchPlatformAll<TenantRow>('tenants/'),
-        fetchPlatformAll<PlanOption>('plans/'),
+        fetchPlatformAll<PlanOption>('platform/plans/'),
       ]);
       const visible = list.filter((row) => row.slug !== 'public');
       setTenants(visible);
@@ -101,6 +133,16 @@ export default function PlatformDashboardPage() {
       setLoading(false);
     }
   }, [router]);
+
+  const reloadPlans = useCallback(async () => {
+    setPlansLoading(true);
+    try {
+      const planRows = await fetchPlatformAll<PlanOption>('platform/plans/');
+      setPlans(planRows.sort((a, b) => a.precio_mensual - b.precio_mensual));
+    } finally {
+      setPlansLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     load();
@@ -215,6 +257,77 @@ export default function PlatformDashboardPage() {
     if (fromList != null) return Number(fromList);
     if (fallbackFromTenant != null) return Number(fallbackFromTenant);
     return 0;
+  };
+
+  const resetPlanForm = () => {
+    setEditingPlanId(null);
+    setPlanForm({
+      codigo: 'FREE',
+      nombre: '',
+      descripcion: '',
+      precio_mensual: 0,
+      moneda: 'BOB',
+      max_usuarios: 3,
+      max_pacientes: 100,
+      max_citas_mes: 100,
+      max_almacenamiento_mb: 500,
+      permite_crm: false,
+      permite_notificaciones: false,
+      permite_reportes_avanzados: false,
+      permite_soporte_prioritario: false,
+      activo: true,
+    });
+  };
+
+  const openCreatePlan = () => {
+    setPlanEditorError('');
+    resetPlanForm();
+    setPlanEditorOpen(true);
+  };
+
+  const openEditPlan = (plan: PlanOption) => {
+    setPlanEditorError('');
+    setEditingPlanId(plan.id_plan ?? null);
+    setPlanForm({
+      codigo: plan.codigo,
+      nombre: plan.nombre ?? '',
+      descripcion: plan.descripcion ?? '',
+      precio_mensual: Number(plan.precio_mensual ?? 0),
+      moneda: plan.moneda ?? 'BOB',
+      max_usuarios: Number(plan.max_usuarios ?? 0),
+      max_pacientes: Number(plan.max_pacientes ?? 0),
+      max_citas_mes: Number(plan.max_citas_mes ?? 0),
+      max_almacenamiento_mb: Number(plan.max_almacenamiento_mb ?? 0),
+      permite_crm: Boolean(plan.permite_crm),
+      permite_notificaciones: Boolean(plan.permite_notificaciones),
+      permite_reportes_avanzados: Boolean(plan.permite_reportes_avanzados),
+      permite_soporte_prioritario: Boolean(plan.permite_soporte_prioritario),
+      activo: Boolean(plan.activo),
+    });
+    setPlanEditorOpen(true);
+  };
+
+  const submitPlanEditor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPlanEditorError('');
+    setPlanEditorSubmitting(true);
+    try {
+      const payload = {
+        ...planForm,
+        descripcion: planForm.descripcion || '',
+      };
+      if (editingPlanId) {
+        await platformApi.patch(`platform/plans/${editingPlanId}/`, payload);
+      } else {
+        await platformApi.post('platform/plans/', payload);
+      }
+      setPlanEditorOpen(false);
+      await reloadPlans();
+    } catch (err) {
+      setPlanEditorError(apiErrorMessage(err));
+    } finally {
+      setPlanEditorSubmitting(false);
+    }
   };
 
   const needsDowngradeConfirm = planModal
@@ -355,6 +468,86 @@ export default function PlatformDashboardPage() {
           ) : null}
         </div>
       ) : null}
+
+      <section className="mt-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Planes</h2>
+            <p className="text-sm text-gray-600">
+              Gestión central de límites y features por plan.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => void reloadPlans()}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${plansLoading ? 'animate-spin' : ''}`} />
+              Recargar
+            </button>
+            <button
+              type="button"
+              onClick={openCreatePlan}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-500"
+            >
+              <Plus className="h-4 w-4" />
+              Nuevo plan
+            </button>
+          </div>
+        </div>
+        <div className="overflow-x-auto rounded-lg border border-gray-100">
+          <table className="w-full min-w-[900px] text-left text-sm">
+            <thead className="bg-gray-50 text-gray-600">
+              <tr>
+                <th className="px-3 py-2 font-medium">Código</th>
+                <th className="px-3 py-2 font-medium">Nombre</th>
+                <th className="px-3 py-2 font-medium">Precio</th>
+                <th className="px-3 py-2 font-medium">Límites</th>
+                <th className="px-3 py-2 font-medium">Features</th>
+                <th className="px-3 py-2 font-medium">Estado</th>
+                <th className="px-3 py-2 font-medium text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {plans.map((p) => (
+                <tr key={String(p.id_plan ?? p.codigo)} className="hover:bg-gray-50/80">
+                  <td className="px-3 py-2 font-mono">{p.codigo}</td>
+                  <td className="px-3 py-2">
+                    <p className="font-medium text-gray-900">{p.nombre}</p>
+                    <p className="text-xs text-gray-500">{p.descripcion || 'Sin descripción'}</p>
+                  </td>
+                  <td className="px-3 py-2">{p.precio_mensual} {p.moneda || 'BOB'}</td>
+                  <td className="px-3 py-2 text-xs text-gray-600">
+                    U:{p.max_usuarios ?? 0} · P:{p.max_pacientes ?? 0} · C:{p.max_citas_mes ?? 0} · MB:{p.max_almacenamiento_mb ?? 0}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-gray-600">
+                    CRM:{p.permite_crm ? 'sí' : 'no'} · Notif:{p.permite_notificaciones ? 'sí' : 'no'} · Reportes:{p.permite_reportes_avanzados ? 'sí' : 'no'}
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className={p.activo ? 'rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-800 ring-1 ring-emerald-600/20' : 'rounded-full bg-red-50 px-2 py-0.5 text-red-800 ring-1 ring-red-600/20'}>
+                      {p.activo ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => openEditPlan(p)}
+                      className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-50"
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Editar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {plans.length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-gray-500">No hay planes cargados.</p>
+          ) : null}
+        </div>
+      </section>
 
       {/* Modal crear */}
       {createOpen ? (
@@ -583,6 +776,130 @@ export default function PlatformDashboardPage() {
                 Guardar plan
               </button>
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {planEditorOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-xl">
+            <h2 className="text-lg font-semibold text-gray-900">
+              {editingPlanId ? 'Editar plan' : 'Nuevo plan'}
+            </h2>
+            {planEditorError ? (
+              <p className="mt-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                {planEditorError}
+              </p>
+            ) : null}
+            <form onSubmit={submitPlanEditor} className="mt-4 space-y-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600">Código</label>
+                  <select
+                    required
+                    disabled={Boolean(editingPlanId)}
+                    value={planForm.codigo}
+                    onChange={(ev) => setPlanForm((f) => ({ ...f, codigo: ev.target.value as PlanCodigo }))}
+                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 disabled:bg-gray-100"
+                  >
+                    <option value="FREE">FREE</option>
+                    <option value="PLUS">PLUS</option>
+                    <option value="PRO">PRO</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600">Nombre</label>
+                  <input
+                    required
+                    value={planForm.nombre}
+                    onChange={(ev) => setPlanForm((f) => ({ ...f, nombre: ev.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600">Precio mensual</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={planForm.precio_mensual}
+                    onChange={(ev) => setPlanForm((f) => ({ ...f, precio_mensual: Number(ev.target.value) }))}
+                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600">Moneda</label>
+                  <input
+                    value={planForm.moneda}
+                    onChange={(ev) => setPlanForm((f) => ({ ...f, moneda: ev.target.value.toUpperCase() }))}
+                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600">Descripción</label>
+                <textarea
+                  rows={2}
+                  value={planForm.descripcion}
+                  onChange={(ev) => setPlanForm((f) => ({ ...f, descripcion: ev.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  ['max_usuarios', 'Max usuarios'],
+                  ['max_pacientes', 'Max pacientes'],
+                  ['max_citas_mes', 'Max citas/mes'],
+                  ['max_almacenamiento_mb', 'Max MB'],
+                ].map(([key, label]) => (
+                  <div key={key}>
+                    <label className="block text-xs font-medium text-gray-600">{label}</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={planForm[key as keyof typeof planForm] as number}
+                      onChange={(ev) => setPlanForm((f) => ({ ...f, [key]: Number(ev.target.value) }))}
+                      className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {[
+                  ['permite_crm', 'Permite CRM'],
+                  ['permite_notificaciones', 'Permite notificaciones'],
+                  ['permite_reportes_avanzados', 'Permite reportes avanzados'],
+                  ['permite_soporte_prioritario', 'Permite soporte prioritario'],
+                  ['activo', 'Plan activo'],
+                ].map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(planForm[key as keyof typeof planForm])}
+                      onChange={(ev) => setPlanForm((f) => ({ ...f, [key]: ev.target.checked }))}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setPlanEditorOpen(false)}
+                  className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={planEditorSubmitting}
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-60"
+                >
+                  {planEditorSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Guardar plan
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       ) : null}
