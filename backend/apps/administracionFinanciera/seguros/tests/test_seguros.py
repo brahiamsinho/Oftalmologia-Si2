@@ -2,6 +2,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
+from django.utils import timezone
 
 from apps.pacientes.pacientes.models import Paciente
 from apps.administracionFinanciera.seguros.models import AfiliacionSeguroPaciente, Aseguradora, Convenio
@@ -82,3 +83,28 @@ def test_convenio_fecha_fin_invalida_en_serializer(aseguradora):
     )
     assert not ser.is_valid()
     assert 'fecha_fin' in ser.errors
+
+
+@pytest.mark.django_db
+def test_vigente_hoy_soporta_datetime_en_memoria(aseguradora, paciente):
+    convenio = Convenio.objects.create(
+        id_aseguradora=aseguradora,
+        codigo='CONV-DT-2026',
+        nombre='Convenio datetime',
+        porcentaje_cobertura=Decimal('80.00'),
+        copago_monto=Decimal('10.00'),
+        activo=True,
+    )
+    # Simula valor datetime transitorio antes de coerción completa de DateField.
+    convenio.fecha_inicio = timezone.now()
+    assert convenio.vigente_hoy is True
+
+    afiliacion = AfiliacionSeguroPaciente.objects.create(
+        id_paciente=paciente,
+        id_convenio=convenio,
+        numero_afiliado='AF-DT-001',
+        es_principal=True,
+        activo=True,
+    )
+    afiliacion.fecha_inicio = timezone.now()
+    assert afiliacion.vigente_hoy is True

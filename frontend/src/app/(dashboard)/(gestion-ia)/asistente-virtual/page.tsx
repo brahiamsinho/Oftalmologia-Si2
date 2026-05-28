@@ -11,7 +11,7 @@ function formatHour(isoDate: string): string {
 }
 
 export default function AsistenteVirtualPage() {
-  const { messages, loading, error, model, sendMessage, clearConversation } = useVirtualAssistantChat();
+  const { messages, loading, error, sendMessage, clearConversation } = useVirtualAssistantChat();
   const [draft, setDraft] = useState('');
 
   const emptyState = useMemo(() => messages.length === 0, [messages.length]);
@@ -33,7 +33,7 @@ export default function AsistenteVirtualPage() {
         </div>
         <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Asistente virtual</h1>
         <p className="max-w-3xl text-sm text-gray-600 sm:text-base">
-          Conversá con el chatbot para consultas operativas y apoyo rápido dentro del sistema.
+          Consultá sobre agenda, pacientes, seguros, descuentos, reportes y flujos operativos de la clínica oftalmológica.
         </p>
       </header>
 
@@ -44,10 +44,8 @@ export default function AsistenteVirtualPage() {
               <Bot className="h-4 w-4" aria-hidden />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Chat CU23</p>
-              <p className="text-xs text-gray-500">
-                {model ? `Modelo activo: ${model}` : 'Gemini conectado con la clave de reportes'}
-              </p>
+              <p className="text-sm font-semibold text-gray-900">Asistente de apoyo clínico y administrativo</p>
+              <p className="text-xs text-gray-500">Orientado a la operación diaria de oftalmología.</p>
             </div>
           </div>
           <button
@@ -69,7 +67,7 @@ export default function AsistenteVirtualPage() {
               </div>
               <h2 className="text-sm font-semibold text-gray-900">Iniciá la conversación</h2>
               <p className="mt-2 text-sm text-gray-500">
-                Escribí tu primera consulta para interactuar con el asistente virtual.
+                Ejemplo: "Necesito priorizar pacientes urgentes de hoy y organizar la agenda de controles postoperatorios."
               </p>
             </div>
           ) : (
@@ -124,7 +122,7 @@ export default function AsistenteVirtualPage() {
               onChange={(e) => setDraft(e.target.value)}
               rows={2}
               maxLength={4000}
-              placeholder="Escribe tu consulta..."
+              placeholder="Escribe tu consulta (ej.: reagendar control, validar cobertura de seguro, resumen de citas del día)..."
               disabled={loading}
               className="min-h-[52px] flex-1 resize-y rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
             />

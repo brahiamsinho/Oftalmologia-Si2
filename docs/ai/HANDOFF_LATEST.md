@@ -2,6 +2,30 @@
 
 ## Resumen
 
+**Fecha:** 2026-05-28 — **Asistente virtual (UI + prompt clínico):**
+- Se eliminó en frontend cualquier referencia visible a:
+  - `CU23`
+  - `Modelo activo: gemini-2.5-flash`
+- Se mejoró la redacción de la pantalla del asistente para clínica oftalmológica:
+  - descripción de uso,
+  - texto de cabecera del chat,
+  - ejemplo inicial,
+  - placeholder del campo de consulta.
+- Se actualizó `_CHATBOT_SYSTEM_PROMPT` en `backend/apps/ia/services/chatbot.py` para comportamiento más útil y seguro en dominio oftalmológico (priorización de urgencias, soporte operativo, límites clínicos y no invención de datos).
+- Lints de archivos tocados: OK.
+
+**Fecha:** 2026-05-28 — **Fix Seguros/Descuentos (date vs datetime en `vigente_hoy`):**
+- Se corrigió error runtime en `Seguros`:
+  - `TypeError: can't compare datetime.datetime to datetime.date`
+  - origen: propiedades `vigente_hoy` al comparar fechas de `DateField` con `timezone.localdate()`.
+- Se agregó normalización defensiva `_as_local_date(...)` en:
+  - `backend/apps/administracionFinanciera/seguros/models.py`
+  - `backend/apps/administracionFinanciera/descuentos/models.py` (hardening preventivo).
+- Se añadieron pruebas de regresión:
+  - `backend/apps/administracionFinanciera/seguros/tests/test_seguros.py`
+  - `backend/apps/administracionFinanciera/descuentos/tests/test_descuentos.py` (nuevo archivo).
+- Linter en archivos modificados: sin errores.
+
 **Fecha:** 2026-05-28 — **Fix mobile Firebase Android (google-services):**
 - Se ajustó `mobile/android/app/google-services.json` para que el `package_name` coincida con el package Android compilado (`com.example.oftalmologia_si2`).
 - Esto corrige el error de Gradle `No matching client found for package name` en `:app:processDebugGoogleServices`.

@@ -1,5 +1,33 @@
 # CURRENT STATE
 
+## Actualizacion 2026-05-28 (asistente virtual: limpieza CU/modelo + prompt oftalmológico)
+
+- En UI del asistente virtual (`frontend/src/app/(dashboard)/(gestion-ia)/asistente-virtual/page.tsx`):
+  - se removió texto visible `CU23`,
+  - se removió texto `Modelo activo: gemini-2.5-flash`,
+  - se actualizó copy para contexto clínico/operativo de oftalmología,
+  - se mejoró ejemplo inicial y placeholder con casos reales (agenda, cobertura, reportes).
+- En backend (`backend/apps/ia/services/chatbot.py`):
+  - se reforzó `_CHATBOT_SYSTEM_PROMPT` con enfoque oftalmológico:
+    - agenda y operación clínica,
+    - flujo de atención (consulta-estudios-cirugía-postoperatorio),
+    - seguros/facturación,
+    - reglas de seguridad para síntomas de alarma,
+    - límites explícitos (sin diagnóstico/prescripción, sin inventar datos).
+- Validación: `ReadLints` sin errores en archivos modificados.
+
+## Actualizacion 2026-05-28 (fix seguros/descuentos: comparacion date vs datetime)
+
+- **Incidente en Seguros:** al crear afiliaciones/convenios se disparaba `TypeError: can't compare datetime.datetime to datetime.date` desde `vigente_hoy` durante serialización.
+- **Causa raíz:** algunos `DateField` con `default=timezone.now` pueden quedar como `datetime` en memoria antes de coerción completa, y la propiedad comparaba directo contra `timezone.localdate()`.
+- **Fix aplicado:**
+  - `backend/apps/administracionFinanciera/seguros/models.py`: helper `_as_local_date(...)` y normalización en `Convenio.vigente_hoy` y `AfiliacionSeguroPaciente.vigente_hoy`.
+  - `backend/apps/administracionFinanciera/descuentos/models.py`: mismo hardening preventivo en `PromocionDescuento.vigente_hoy` y `BeneficioPaciente.vigente_hoy`.
+- **Regresión agregada:**
+  - `backend/apps/administracionFinanciera/seguros/tests/test_seguros.py`: prueba que valida `vigente_hoy` con `datetime` en memoria.
+  - `backend/apps/administracionFinanciera/descuentos/tests/test_descuentos.py`: nueva prueba equivalente para promociones/beneficios.
+- **Estado:** módulos de `Seguros` y `Campañas/Descuentos` quedan robustecidos ante mezcla transitoria `datetime`/`date` en propiedades de vigencia.
+
 ## Actualizacion 2026-05-28 (platform admin: gestión de planes)
 
 ## Actualizacion 2026-05-28 (mobile Firebase Android: alineacion package_name)

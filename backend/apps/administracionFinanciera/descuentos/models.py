@@ -1,12 +1,24 @@
 """
 CU19 (PUDS) — Descuentos y campañas clínicas (distinto de CampanaCRM / CU16).
 """
+from datetime import date, datetime
 from decimal import Decimal
 
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
+
+
+def _as_local_date(value):
+    """Normalize DateField values that may still be datetime objects in-memory."""
+    if isinstance(value, datetime):
+        if timezone.is_aware(value):
+            value = timezone.localtime(value)
+        return value.date()
+    if isinstance(value, date):
+        return value
+    return None
 
 
 class TipoBeneficio(models.TextChoices):
@@ -106,9 +118,11 @@ class PromocionDescuento(models.Model):
         if self.estado != EstadoPromocion.ACTIVA:
             return False
         hoy = timezone.localdate()
-        if self.fecha_inicio > hoy:
+        fecha_inicio = _as_local_date(self.fecha_inicio)
+        fecha_fin = _as_local_date(self.fecha_fin)
+        if fecha_inicio and fecha_inicio > hoy:
             return False
-        if self.fecha_fin and self.fecha_fin < hoy:
+        if fecha_fin and fecha_fin < hoy:
             return False
         return True
 
@@ -161,8 +175,10 @@ class BeneficioPaciente(models.Model):
         if not self.id_promocion.vigente_hoy:
             return False
         hoy = timezone.localdate()
-        if self.fecha_asignacion > hoy:
+        fecha_asignacion = _as_local_date(self.fecha_asignacion)
+        fecha_fin = _as_local_date(self.fecha_fin)
+        if fecha_asignacion and fecha_asignacion > hoy:
             return False
-        if self.fecha_fin and self.fecha_fin < hoy:
+        if fecha_fin and fecha_fin < hoy:
             return False
         return True

@@ -1,12 +1,24 @@
 """
 CU18 (PUDS) — Seguros, convenios con aseguradoras y afiliación de pacientes.
 """
+from datetime import date, datetime
 from decimal import Decimal
 
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
+
+
+def _as_local_date(value):
+    """Normalize DateField values that may still be datetime objects in-memory."""
+    if isinstance(value, datetime):
+        if timezone.is_aware(value):
+            value = timezone.localtime(value)
+        return value.date()
+    if isinstance(value, date):
+        return value
+    return None
 
 
 class Aseguradora(models.Model):
@@ -97,9 +109,11 @@ class Convenio(models.Model):
         if not self.activo:
             return False
         hoy = timezone.localdate()
-        if self.fecha_inicio > hoy:
+        fecha_inicio = _as_local_date(self.fecha_inicio)
+        fecha_fin = _as_local_date(self.fecha_fin)
+        if fecha_inicio and fecha_inicio > hoy:
             return False
-        if self.fecha_fin and self.fecha_fin < hoy:
+        if fecha_fin and fecha_fin < hoy:
             return False
         return True
 
@@ -160,8 +174,10 @@ class AfiliacionSeguroPaciente(models.Model):
         if not self.id_convenio.vigente_hoy:
             return False
         hoy = timezone.localdate()
-        if self.fecha_inicio > hoy:
+        fecha_inicio = _as_local_date(self.fecha_inicio)
+        fecha_fin = _as_local_date(self.fecha_fin)
+        if fecha_inicio and fecha_inicio > hoy:
             return False
-        if self.fecha_fin and self.fecha_fin < hoy:
+        if fecha_fin and fecha_fin < hoy:
             return False
         return True

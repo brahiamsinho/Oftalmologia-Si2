@@ -100,6 +100,8 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [ ] Mobile iOS push: agregar `GoogleService-Info.plist` en `mobile/ios/Runner/` y validar permisos/canales en dispositivo real.
 - [x] Multi-tenant: crear tests de aislamiento cross-schema para verificar que datos de un tenant no son accesibles desde otro.
 - [ ] Multi-tenant: extender pruebas anti-cruce al plano HTTP tenant (`/t/<slug>/api/...`) en entorno de test, ajustando configuración de URL/middleware para evitar `404` en pytest.
+- [ ] Seguros/Descuentos: ejecutar smoke E2E en Docker (`POST/GET` convenios, afiliaciones, promociones y beneficios) para confirmar fix `date vs datetime` en entorno de contenedores.
+- [ ] IA asistente virtual: validar en QA conversacional 10 prompts clínico-operativos (agenda, seguros, reportes, urgencias) para confirmar tono/seguridad y evitar respuestas ambiguas.
 - [ ] Multi-tenant: documentar procedimiento para crear nuevo tenant en produccion (comando o endpoint + seeders).
 - [x] Multi-tenant: escenario demo con múltiples clínicas (2 FREE, 2 PLUS, 1 PRO) y dataset histórico por tenant.
 - [ ] Multi-tenant: exponer selector de clínica en frontend web igual que mobile (slug -> login) para operar la flota demo sin cambiar URLs manualmente.
