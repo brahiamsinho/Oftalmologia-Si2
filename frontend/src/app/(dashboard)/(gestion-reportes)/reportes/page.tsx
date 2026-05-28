@@ -9,7 +9,6 @@ import { buildDefaultVisibility } from '@/components/reportes/columnUtils';
 import DynamicTable from '@/components/reportes/DynamicTable';
 import PredefinedReportsPanel from '@/components/reportes/PredefinedReportsPanel';
 import ReportColumnPicker from '@/components/reportes/ReportColumnPicker';
-import ReportExportButton from '@/components/reportes/ReportExportButton';
 import SaveReportTemplateDialog from '@/components/reportes/SaveReportTemplateDialog';
 import SavedReportsPanel from '@/components/reportes/SavedReportsPanel';
 import { useSmartReport } from '@/hooks/useSmartReport';
@@ -50,6 +49,7 @@ export default function ReportesInteligentesPage() {
     exportNotice,
     error,
     submitQuery,
+    loadReportResult,
     removeFilterKey,
     downloadFormats,
   } = useSmartReport();
@@ -154,7 +154,7 @@ export default function ReportesInteligentesPage() {
         <div className="flex items-center gap-2 text-indigo-600">
           <Sparkles className="h-6 w-6" aria-hidden />
           <span className="text-xs font-semibold uppercase tracking-wide">
-            CU21 · Predefinidos / export · CU22 · Personalizados · CU23 · IA
+            Predefinidos · Personalizados · IA
           </span>
         </div>
         <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Reportes inteligentes</h1>

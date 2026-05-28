@@ -1,5 +1,5 @@
 /**
- * Servicio de plantillas y exportación QBE (CU21/CU22).
+ * Servicio de plantillas y exportación QBE.
  */
 import api from '@/lib/api';
 

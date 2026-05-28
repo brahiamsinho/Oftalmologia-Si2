@@ -1,5 +1,16 @@
 # CURRENT STATE
 
+## Actualizacion 2026-05-28 (fix reportes predefinidos + limpieza textos CU)
+
+- **Incidente UI reportes:** botón "Ejecutar informe" en predefinidos devolvía `404` porque frontend llamaba `POST /reportes-qbe/plantillas/<id>/run/` y el backend no tenía esa acción en el `ViewSet`.
+- **Fix backend:** se agregó acción `run_template` en `backend/apps/reportes/views.py` (`@action(detail=True, methods=['post'], url_path='run')`) que:
+  - toma `qbe_payload` de la plantilla,
+  - ejecuta con el mismo motor seguro (`_execute_payload`),
+  - registra bitácora,
+  - responde contrato `{ qbe, report }` esperado por frontend.
+- **Fix frontend de texto:** se removieron referencias visibles tipo `CU18`, `CU20`, `CU21`, `CU22`, `CU23` en pantallas de reportes/seguros/descuentos y textos auxiliares.
+- **Validación:** `python manage.py check` en contenedor backend sin errores.
+
 ## Actualizacion 2026-05-28 (Reportes inteligentes / Gemini)
 
 - **Causa del 503:** `gemini-1.5-flash` fue retirado de la API (404 en v1beta). El mensaje de “cuota agotada” en UI era engañoso cuando en realidad era 404.

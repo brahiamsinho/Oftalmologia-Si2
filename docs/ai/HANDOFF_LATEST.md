@@ -2,6 +2,12 @@
 
 ## Resumen
 
+**Fecha:** 2026-05-28 — **Reportes predefinidos 404 + limpieza de textos CU:**
+- Se corrigió el 404 de `POST /t/<slug>/api/reportes-qbe/plantillas/<id>/run/` agregando acción `run_template` en `backend/apps/reportes/views.py`.
+- La acción nueva ejecuta `qbe_payload` de la plantilla usando `_execute_payload`, registra bitácora y retorna `{ qbe, report }`.
+- Se eliminaron menciones visibles `CUxx` en frontend (reportes, seguros, descuentos) para limpiar copy de UI.
+- Verificación ejecutada: `docker compose exec backend python manage.py check` -> OK.
+
 **Fecha:** 2026-05-28 — **Credenciales demo + platform admin seed-only (sin .env):**
 - Nuevo archivo de referencia: `docs/ai/DEMO_CREDENTIALS.md` con todas las credenciales demo actuales.
 - `seeders/seed_platform_admin.py` ahora usa credenciales demo fijas (sin leer `PLATFORM_ADMIN_EMAIL/PASSWORD` del entorno).

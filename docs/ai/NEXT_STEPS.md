@@ -102,6 +102,8 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] Multi-tenant: escenario demo con múltiples clínicas (2 FREE, 2 PLUS, 1 PRO) y dataset histórico por tenant.
 - [ ] Multi-tenant: exponer selector de clínica en frontend web igual que mobile (slug -> login) para operar la flota demo sin cambiar URLs manualmente.
 - [ ] Multi-tenant: validar que seeders se ejecutan correctamente en schema del tenant y no en `public`.
+- [x] Reportes: corregir ejecución de predefinidos agregando endpoint `POST /reportes-qbe/plantillas/<id>/run/` y alinear contrato `{qbe, report}`.
+- [x] UX copy: quitar referencias visibles `CUxx` de la UI en módulos operativos.
 - [ ] Backup: rebuild Docker backend para incluir `postgresql-client` (pg_dump/psql).
 - [ ] Backup: ejecutar migraciones en Docker tras rebuild.
 - [x] Backup: validar smoke E2E en tenant demo (`backup-config`, `change-plan`, `create backup`, `restore`, `backup_automatico --force`).

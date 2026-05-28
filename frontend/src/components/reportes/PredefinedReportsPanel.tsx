@@ -70,7 +70,7 @@ export default function PredefinedReportsPanel({
             Informes predefinidos
           </h2>
           <p className="mt-1 text-sm text-gray-600">
-            Plantillas del sistema (CU21). Un clic ejecuta el reporte sin usar la IA.
+            Plantillas del sistema. Un clic ejecuta el reporte sin usar la IA.
           </p>
         </div>
       </div>

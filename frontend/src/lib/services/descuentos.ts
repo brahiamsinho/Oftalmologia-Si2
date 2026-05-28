@@ -1,5 +1,5 @@
 /**
- * CU19 (PUDS) — Descuentos y campañas clínicas.
+ * Descuentos y campañas clínicas.
  *
  * Rutas: /descuentos/promociones/ | /descuentos/beneficios/
  *        GET /descuentos/promociones/aplicables/?paciente_id=

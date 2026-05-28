@@ -416,7 +416,7 @@ export default function Sidebar() {
           </NavGroup>
         </ul>
 
-        {/* CRM — comunicación con pacientes (CU16); visible siempre; permisos en API */}
+        {/* CRM — comunicación con pacientes; visible siempre; permisos en API */}
         <ul className="space-y-0.5 mt-1">
           <NavGroup
             label="CRM"
@@ -469,12 +469,12 @@ export default function Sidebar() {
           </ul>
         )}
 
-        {/* Seguros y convenios (CU18) y Descuentos (CU20) */}
+        {/* Seguros y convenios, y descuentos */}
         <ul className="space-y-0.5 mt-1">
           <NavItem
             href="/administracionFinanciera/seguros"
             label="Seguros"
-            icon={Shield}
+            icon={ShieldCheck}
             active={is("/administracionFinanciera/seguros")}
             collapsed={isCollapsed}
             onNavigate={closeMobileDrawer}
@@ -482,14 +482,14 @@ export default function Sidebar() {
           <NavItem
             href="/administracionFinanciera/descuentos"
             label="Campañas & Descuentos"
-            icon={Tag}
+            icon={Tags}
             active={is("/administracionFinanciera/descuentos")}
             collapsed={isCollapsed}
             onNavigate={closeMobileDrawer}
           />
         </ul>
 
-        {/* Reportes (CU21/CU22) — visible siempre; export/plan según backend */}
+        {/* Reportes — visible siempre; export/plan según backend */}
         <ul className="space-y-0.5 mt-1">
           <NavItem
             href="/reportes"

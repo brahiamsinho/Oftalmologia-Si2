@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * CU18 — Seguros y convenios (gestión administrativa).
+ * Seguros y convenios (gestión administrativa).
  * Backend: /api/seguros/aseguradoras|convenios|afiliaciones/
  */
 
@@ -182,7 +182,7 @@ export default function SegurosPage() {
             <Shield className="h-6 w-6 text-white" aria-hidden />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">CU18</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Seguros</p>
             <h1 className="text-2xl font-bold text-gray-900">Seguros y convenios</h1>
             <p className="mt-0.5 max-w-2xl text-sm text-gray-600">
               Aseguradoras, acuerdos de cobertura y afiliación de pacientes. Usá Verificar cobertura

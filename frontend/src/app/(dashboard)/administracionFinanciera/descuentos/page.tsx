@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * CU20 — Gestionar descuentos y campañas (administración financiera).
+ * Gestionar descuentos y campañas (administración financiera).
  * Pantalla centralizada para listar, crear o modificar beneficios/campañas.
  */
 
@@ -138,7 +138,7 @@ export default function DescuentosPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Tag className="w-6 h-6 text-blue-600" />
-            Descuentos y Campañas (CU20)
+            Descuentos y Campañas
           </h1>
           <p className="text-gray-500 text-sm mt-1">
             Administración de beneficios aplicables a pacientes

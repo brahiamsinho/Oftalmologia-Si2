@@ -126,6 +126,26 @@ class ReportTemplateViewSet(ReportesBitacoraMixin, viewsets.ModelViewSet):
         self._registrar_bitacora(AccionBitacora.CREAR, descripcion_bitacora)
         return result, None
 
+    @action(detail=True, methods=['post'], url_path='run')
+    def run_template(self, request, pk=None):
+        """Ejecuta una plantilla persistida y retorna `{qbe, report}`."""
+        template = self.get_object()
+        payload_in = dict(template.qbe_payload or {})
+        model_label = payload_in.get('model', template.nombre or 'reporte')
+        result, error_response = self._execute_payload(
+            payload_in,
+            descripcion_bitacora=f'Ejecutó plantilla de reporte "{template.nombre}" (modelo {model_label})',
+        )
+        if error_response:
+            return error_response
+        return Response(
+            {
+                'qbe': payload_in,
+                'report': result,
+            },
+            status=status.HTTP_200_OK,
+        )
+
     @action(detail=False, methods=['post'], url_path='execute')
     def execute(self, request):
         """Ejecuta un documento QBE validado contra ``QBEEngine``."""
@@ -176,13 +196,13 @@ class ReportTemplateViewSet(ReportesBitacoraMixin, viewsets.ModelViewSet):
     def export_pdf(self, request):
         """Ejecuta QBE y devuelve un PDF en memoria."""
         payload_in, _data = self._validated_qbe_payload(request)
-        try:
-            result = QBEEngine().execute(payload_in)
-        except DjangoValidationError as exc:
-            detail = getattr(exc, 'message_dict', None) or list(getattr(exc, 'messages', [str(exc)]))
-            return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
-        except QBESafeQueryError as exc:
-            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        model_label = payload_in.get('model', 'reporte')
+        result, error_response = self._execute_payload(
+            payload_in,
+            descripcion_bitacora=f'Exportó reporte a PDF (modelo {model_label})',
+        )
+        if error_response:
+            return error_response
         return self._export_file_response(
             result,
             ext='pdf',
@@ -194,13 +214,13 @@ class ReportTemplateViewSet(ReportesBitacoraMixin, viewsets.ModelViewSet):
     def export_csv(self, request):
         """Ejecuta QBE y devuelve un CSV en memoria."""
         payload_in, _data = self._validated_qbe_payload(request)
-        try:
-            result = QBEEngine().execute(payload_in)
-        except DjangoValidationError as exc:
-            detail = getattr(exc, 'message_dict', None) or list(getattr(exc, 'messages', [str(exc)]))
-            return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
-        except QBESafeQueryError as exc:
-            return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        model_label = payload_in.get('model', 'reporte')
+        result, error_response = self._execute_payload(
+            payload_in,
+            descripcion_bitacora=f'Exportó reporte a CSV (modelo {model_label})',
+        )
+        if error_response:
+            return error_response
         return self._export_file_response(
             result,
             ext='csv',

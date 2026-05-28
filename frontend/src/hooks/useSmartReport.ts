@@ -83,6 +83,16 @@ export function useSmartReport(): UseSmartReportResult {
     [runExports],
   );
 
+  const loadReportResult = useCallback((result: NlpToReportResponse) => {
+    setLoading(false);
+    setUpdating(false);
+    setExporting(false);
+    setError(null);
+    setExportNotice(null);
+    setData(result);
+    dataRef.current = result;
+  }, []);
+
   const submitQuery = useCallback(async (query: string) => {
     setLoading(true);
     setUpdating(false);
