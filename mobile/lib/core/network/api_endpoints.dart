@@ -11,4 +11,11 @@ class ApiEndpoints {
 
   static const String users = 'users/';
   static const String healthCheck = 'health/';
+
+  /// CU23 — reportes NL → QBE (feature `reportes/`).
+  static const String iaNlpToReport = 'ia/nlp-to-report/';
+  static const String reportesQbeExecute = 'reportes-qbe/plantillas/execute/';
+
+  /// CU23 — asistente virtual conversacional (feature `ia/`).
+  static const String iaChatbot = 'ia/chatbot/';
 }
