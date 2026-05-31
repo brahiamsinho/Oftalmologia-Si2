@@ -9,7 +9,7 @@ from apps.atencionClinica.cirugias.models import Cirugia
 from apps.atencionClinica.citas.models import Cita, EstadoCita, TipoCita, TipoCitaNombre
 from apps.atencionClinica.postoperatorio.models import Postoperatorio
 from apps.atencionClinica.especialistas.models import Especialista
-from apps.notificaciones.automatizaciones.models import (
+from apps.crm.notificaciones.automatizaciones.models import (
     EstadoTarea,
     LogEjecucionRecordatorio,
     ReglaRecordatorio,

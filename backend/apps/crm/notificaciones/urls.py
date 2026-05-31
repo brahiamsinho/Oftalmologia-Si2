@@ -12,5 +12,5 @@ urlpatterns = [
     path('', NotificacionListView.as_view(), name='notificaciones-list'),
     path('<int:pk>/leer/', NotificacionLeerView.as_view(), name='notificacion-leer'),
     path('leer-todas/', NotificacionMarcarTodasLeidasView.as_view(), name='notificaciones-leer-todas'),
-    path('', include('apps.notificaciones.automatizaciones.urls')),
+    path('', include('apps.crm.notificaciones.automatizaciones.urls')),
 ]

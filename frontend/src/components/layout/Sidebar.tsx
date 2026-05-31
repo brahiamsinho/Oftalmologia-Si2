@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Activity,
   LayoutDashboard,
@@ -32,12 +32,162 @@ import {
   Tags,
   DatabaseBackup,
   Bot,
+  Receipt,
+  Landmark,
+  Search,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
 import { useTenant } from "@/context/TenantContext";
 import { TenantStorage } from "@/lib/api";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+
+// ── Catálogo de navegación (para búsqueda) ─────────────────────────────────────
+
+type NavEntry = {
+  label: string;
+  href: string;
+  icon: React.ElementType;
+  group?: string;
+  keywords?: string; // CU número, sinónimos, etc.
+};
+
+const NAV_CATALOG: NavEntry[] = [
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, keywords: "inicio panel principal" },
+  // Pacientes
+  { label: "Pacientes", href: "/pacientes", icon: Users, group: "Pacientes", keywords: "CU01 listado gestión" },
+  { label: "Historial Clínico", href: "/historial", icon: ClipboardList, group: "Pacientes", keywords: "CU03 historia médica expediente" },
+  // Atención Clínica
+  { label: "Registrar Consulta", href: "/registrar-consulta", icon: Stethoscope, group: "Atención Clínica", keywords: "CU05 nueva consulta atención" },
+  { label: "Consultas", href: "/consultas", icon: List, group: "Atención Clínica", keywords: "CU06 listado visitas" },
+  { label: "Mediciones", href: "/mediciones", icon: Activity, group: "Atención Clínica", keywords: "CU07 agudeza visual refracción" },
+  { label: "Registrar Medición", href: "/registrar-medicion", icon: Eye, group: "Atención Clínica", keywords: "CU07 nueva medición visual" },
+  { label: "Citas y Agenda", href: "/citas-agenda", icon: Calendar, group: "Atención Clínica", keywords: "CU04 agendar cita horario" },
+  { label: "Eval. Quirúrgica", href: "/evaluaciones-quirurgicas", icon: Scissors, group: "Atención Clínica", keywords: "CU08 evaluación quirúrgica cirugía pre" },
+  { label: "Preoperatorio", href: "/preoperatorio", icon: ClipboardList, group: "Atención Clínica", keywords: "CU09 pre operatorio preparación" },
+  { label: "Cirugías", href: "/cirugias", icon: Slice, group: "Atención Clínica", keywords: "CU10 intervención quirúrgica operación" },
+  { label: "Postoperatorio", href: "/postoperatorio", icon: HeartPulse, group: "Atención Clínica", keywords: "CU11 recuperación seguimiento post" },
+  // CRM
+  { label: "Segmentaciones", href: "/crm/segmentaciones", icon: Tags, group: "CRM", keywords: "CU12 grupos segmentos pacientes" },
+  { label: "Campañas CRM", href: "/crm/campanas", icon: Megaphone, group: "CRM", keywords: "CU13 campaña comunicación marketing" },
+  { label: "Comunicaciones", href: "/crm/contactos", icon: MessageSquare, group: "CRM", keywords: "CU14 mensajes contacto" },
+  { label: "Recordatorios", href: "/crm/recordatorios", icon: Bell, group: "CRM", keywords: "CU18 recordatorio notificación automática push programado regla" },
+  // Admin Financiera
+  { label: "Seguros", href: "/administracionFinanciera/seguros", icon: ShieldCheck, group: "Admin. Financiera", keywords: "CU19 convenio aseguradora cobertura póliza" },
+  { label: "Campañas & Descuentos", href: "/administracionFinanciera/descuentos", icon: Tags, group: "Admin. Financiera", keywords: "CU20 descuento promoción beneficio campaña" },
+  { label: "Facturación", href: "/administracionFinanciera/facturacion", icon: Receipt, group: "Admin. Financiera", keywords: "CU21 factura cobro pago pasarela comprobante" },
+  // Reportes
+  { label: "Reportes", href: "/reportes", icon: BarChart2, keywords: "CU22 informe estadística exportar excel pdf" },
+  // IA
+  { label: "Asistente Virtual", href: "/asistente-virtual", icon: Bot, group: "Inteligencia Artificial", keywords: "CU23 IA chatbot consulta lenguaje natural" },
+  // Notificaciones
+  { label: "Notificaciones", href: "/notificaciones", icon: Bell, keywords: "CU18 recordatorio alerta aviso automático" },
+  // Admin
+  { label: "Usuarios", href: "/usuarios", icon: Users, group: "Usuarios", keywords: "gestión cuentas staff" },
+  { label: "Roles", href: "/roles", icon: ShieldCheck, group: "Usuarios", keywords: "permisos rol acceso" },
+  { label: "Permisos", href: "/permisos", icon: KeyRound, group: "Usuarios", keywords: "acceso restricción autorización" },
+  { label: "Bitácora", href: "/bitacora", icon: ScrollText, keywords: "auditoría log historial acciones" },
+  { label: "Backups", href: "/backups", icon: DatabaseBackup, keywords: "respaldo copia seguridad restaurar" },
+  { label: "Mi Perfil", href: "/perfil", icon: Users, group: "Cuenta", keywords: "usuario datos personales contraseña" },
+  { label: "Organización", href: "/configuracion-org", icon: Settings, group: "Cuenta", keywords: "clínica configuración branding logo" },
+  { label: "Planes", href: "/planes", icon: BarChart2, group: "Cuenta", keywords: "suscripción plan upgrade precio" },
+];
+
+// ── Buscador del sidebar ────────────────────────────────────────────────────────
+
+function SidebarSearch({
+  onClose,
+}: {
+  onClose: () => void;
+}) {
+  const pathname = usePathname();
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const q = query.trim().toLowerCase();
+  const results = q.length < 1
+    ? []
+    : NAV_CATALOG.filter((item) => {
+        const haystack = `${item.label} ${item.group ?? ""} ${item.keywords ?? ""}`.toLowerCase();
+        return haystack.includes(q);
+      });
+
+  return (
+    <div className="px-2 pt-2 pb-1">
+      {/* Input */}
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+        <input
+          ref={inputRef}
+          autoFocus
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar módulo o CU…"
+          className="w-full pl-8 pr-8 py-1.5 text-[12px] border border-gray-200 rounded-lg
+                     bg-gray-50 focus:bg-white focus:border-blue-400 focus:ring-1 focus:ring-blue-200
+                     outline-none transition-all placeholder-gray-400 text-gray-700"
+        />
+        {query && (
+          <button
+            onClick={() => setQuery("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Resultados */}
+      {q.length > 0 && (
+        <ul className="mt-1.5 space-y-0.5 max-h-[320px] overflow-y-auto">
+          {results.length === 0 ? (
+            <li className="text-center py-4 text-[11px] text-gray-400">
+              Sin resultados para &quot;{query}&quot;
+            </li>
+          ) : (
+            results.map((item) => {
+              const Icon = item.icon;
+              const active = pathname === item.href || pathname.startsWith(item.href + "/");
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={onClose}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] transition-all group
+                      ${active
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                      }`}
+                  >
+                    <Icon
+                      className={`w-[13px] h-[13px] flex-shrink-0
+                        ${active ? "text-blue-600" : "text-gray-400 group-hover:text-gray-600"}`}
+                      strokeWidth={active ? 2.2 : 1.8}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <span className="font-medium truncate block leading-tight">{item.label}</span>
+                      {item.group && (
+                        <span className="text-[10px] text-gray-400 leading-tight">{item.group}</span>
+                      )}
+                    </div>
+                    {/* Keyword badge si hay CU en la búsqueda */}
+                    {q.startsWith("cu") && item.keywords?.toLowerCase().includes(q.split(" ")[0]) && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 uppercase tracking-wide flex-shrink-0">
+                        {item.keywords.toLowerCase().split(" ").find(k => k.startsWith("cu"))?.toUpperCase()}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 // ── NavItem simple ─────────────────────────────────────────────────────────────
 function NavItem({
@@ -260,6 +410,24 @@ export default function Sidebar() {
         </button>
       </div>
 
+      {/* ── Buscador ── */}
+      {isCollapsed ? (
+        <div className="flex justify-center py-2 px-2 border-b border-gray-100">
+          <button
+            onClick={toggle}
+            title="Buscar módulo"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400
+                       hover:text-blue-600 hover:bg-blue-50 transition-colors"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+        </div>
+      ) : (
+        <div className="border-b border-gray-100">
+          <SidebarSearch onClose={closeMobileDrawer} />
+        </div>
+      )}
+
       {/* ── Navegación ── */}
       <nav className="flex-1 px-2 pt-3 pb-2 overflow-y-auto overflow-x-hidden">
         {/* General */}
@@ -424,7 +592,7 @@ export default function Sidebar() {
             icon={Megaphone}
             active={is("/crm")}
             collapsed={isCollapsed}
-            defaultOpen={is("/crm")}
+            defaultOpen={is("/crm") || is("/crm/recordatorios")}
           >
             <NavItem
               href="/crm/segmentaciones"
@@ -453,6 +621,15 @@ export default function Sidebar() {
               depth={1}
               onNavigate={closeMobileDrawer}
             />
+            <NavItem
+              href="/crm/recordatorios"
+              label="Recordatorios"
+              icon={Bell}
+              active={is("/crm/recordatorios")}
+              collapsed={false}
+              depth={1}
+              onNavigate={closeMobileDrawer}
+            />
           </NavGroup>
         </ul>
 
@@ -470,24 +647,43 @@ export default function Sidebar() {
           </ul>
         )}
 
-        {/* Seguros y convenios, y descuentos */}
+        {/* Administración Financiera */}
         <ul className="space-y-0.5 mt-1">
-          <NavItem
-            href="/administracionFinanciera/seguros"
-            label="Seguros"
-            icon={ShieldCheck}
-            active={is("/administracionFinanciera/seguros")}
+          <NavGroup
+            label="Admin. Financiera"
+            icon={Landmark}
+            active={is("/administracionFinanciera")}
             collapsed={isCollapsed}
-            onNavigate={closeMobileDrawer}
-          />
-          <NavItem
-            href="/administracionFinanciera/descuentos"
-            label="Campañas & Descuentos"
-            icon={Tags}
-            active={is("/administracionFinanciera/descuentos")}
-            collapsed={isCollapsed}
-            onNavigate={closeMobileDrawer}
-          />
+            defaultOpen={is("/administracionFinanciera")}
+          >
+            <NavItem
+              href="/administracionFinanciera/seguros"
+              label="Seguros"
+              icon={ShieldCheck}
+              active={is("/administracionFinanciera/seguros")}
+              collapsed={false}
+              depth={1}
+              onNavigate={closeMobileDrawer}
+            />
+            <NavItem
+              href="/administracionFinanciera/descuentos"
+              label="Campañas & Descuentos"
+              icon={Tags}
+              active={is("/administracionFinanciera/descuentos")}
+              collapsed={false}
+              depth={1}
+              onNavigate={closeMobileDrawer}
+            />
+            <NavItem
+              href="/administracionFinanciera/facturacion"
+              label="Facturación"
+              icon={Receipt}
+              active={is("/administracionFinanciera/facturacion")}
+              collapsed={false}
+              depth={1}
+              onNavigate={closeMobileDrawer}
+            />
+          </NavGroup>
         </ul>
 
         {/* Reportes — visible siempre; export/plan según backend */}

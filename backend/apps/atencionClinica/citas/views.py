@@ -131,7 +131,7 @@ class CitaViewSet(viewsets.ModelViewSet):
     def resumen_facturacion(self, request, pk=None):
         """CU20 — Especialista/admin: cálculo y facturas ligadas a la cita."""
         cita = self.get_object()
-        from apps.facturacion.services import resumen_facturacion_cita
+        from apps.administracionFinanciera.facturacion.services import resumen_facturacion_cita
 
         return Response(resumen_facturacion_cita(cita.pk))
 
