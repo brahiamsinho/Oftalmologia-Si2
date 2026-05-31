@@ -19,8 +19,6 @@ import {
   BarChart3,
   Brain,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   Clock,
   Loader2,
   Play,
@@ -142,7 +140,6 @@ export default function PrediccionesPage() {
   // Historial
   const [runs, setRuns]           = useState<PredictionModelRun[]>([]);
   const [loadingRuns, setLoadingRuns] = useState(false);
-  const [showHistorial, setShowHistorial] = useState(false);
 
   // ── Cargar datos iniciales ──────────────────────────────────────────
 
@@ -485,7 +482,7 @@ export default function PrediccionesPage() {
                 <Brain className="mb-3 h-10 w-10 text-gray-300" />
                 <p className="text-[13px] font-medium text-gray-500">Sin predicciones aún</p>
                 <p className="mt-1 text-[12px] text-gray-400">
-                  Entrena el modelo y luego presiona "Ejecutar predicción"
+                  Entrena el modelo y luego presiona &ldquo;Ejecutar predicción&rdquo;
                 </p>
               </div>
             )}
