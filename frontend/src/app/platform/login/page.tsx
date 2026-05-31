@@ -8,6 +8,7 @@ import {
   Building2,
   Eye,
   EyeOff,
+  KeyRound,
   Loader2,
   Lock,
   Mail,
@@ -81,6 +82,16 @@ export default function PlatformLoginPage() {
               <span className="text-slate-500">No es el acceso de una clínica.</span>
             </p>
           </header>
+
+          {/* Acceso rápido demo */}
+          <button
+            type="button"
+            onClick={() => { setEmail('platform@oftalmologia.local'); setPassword('platform123'); setError(''); }}
+            className="mb-6 flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-500/40 bg-indigo-950/60 px-4 py-2.5 text-[13px] font-medium text-indigo-300 transition hover:border-indigo-400/70 hover:bg-indigo-900/50 hover:text-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+          >
+            <KeyRound className="h-3.5 w-3.5 flex-shrink-0" aria-hidden />
+            Usar credenciales demo
+          </button>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error ? (
