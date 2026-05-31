@@ -11,6 +11,13 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+**Fecha:** 2026-05-31
+**Decisión:** Estandarizar el sistema multi-agente de OpenCode en `.opencode/agents/` con `orchestrator` como `mode: primary` y delegacion explicita por `permission.task`, agregando especialistas `reviewer`, `security`, `docs-memory`, `puds`, `ai-inference`, `ai-researcher` y `diagrams-modeling`.
+**Motivo:** Tener paridad funcional con la estrategia de orquestacion por dominio, sin mezclar formato Cursor y OpenCode, y mejorar trazabilidad de routing, seguridad y memoria viva del proyecto.
+**Impacto:** Se habilita enrutamiento mas claro por tipo de tarea, se reduce ambiguedad entre revision/seguridad/docs/PUDS/IA, y se incorpora skill dedicada de modelado (`uml-c4-puds-diagrams`) para flujos de diagramas.
+
+---
+
 **Fecha:** 2026-05-27
 **Decisión:** Adoptar estructura oficial de Cursor con subagentes reales en `.cursor/agents/*.md` y dejar `.cursor/rules/` solo para politicas/routing (core policy + routing hints).
 **Motivo:** Reducir solapamientos entre instrucciones de rol y reglas, y alinearse con el mecanismo nativo de delegacion de Cursor para tareas especializadas.

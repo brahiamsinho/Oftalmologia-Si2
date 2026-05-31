@@ -36,6 +36,8 @@ cd Oftalmologia-Si2
 
 # 2. Copiar y configurar variables de entorno
 cp .env.example .env
+cp backend/firebase-credentials.example.json backend/firebase-credentials.json
+cp mobile/android/app/google-services.example.json mobile/android/app/google-services.json
 # Edita .env con tus valores reales (especialmente contraseñas y secret key)
 
 # Variables obligatorias en .env (plantilla en .env.example):
