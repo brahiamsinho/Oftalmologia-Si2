@@ -1,5 +1,18 @@
 /** @type {import('next').NextConfig} */
 
+const crypto = require('crypto');
+const withSerwistInit = require('@serwist/next').default;
+
+const revision = crypto.randomUUID();
+
+const withSerwist = withSerwistInit({
+  swSrc: 'src/app/sw.ts',
+  swDest: 'public/sw.js',
+  disable: process.env.NODE_ENV === 'development',
+  reloadOnOnline: false,
+  additionalPrecacheEntries: [{ url: '/~offline', revision }],
+});
+
 function normalizeNextPublicApiUrl(value) {
   let s = (value || "").trim();
   if (!s) return "";
@@ -74,4 +87,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withSerwist(nextConfig);

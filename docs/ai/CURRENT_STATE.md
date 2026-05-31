@@ -1,5 +1,17 @@
 # CURRENT STATE
 
+## Actualizacion 2026-05-28 (PWA frontend con Serwist)
+
+- Se habilitó **Progressive Web App** en el frontend Next.js:
+  - manifest web (`src/app/manifest.ts`) servido como `/manifest.webmanifest`,
+  - service worker generado en build (`public/sw.js`) vía `@serwist/next`,
+  - pantalla offline dedicada (`/~offline`),
+  - banner de instalación (`PwaInstallPrompt`) en layout global.
+- Política de caché clínica-segura en SW:
+  - assets estáticos precacheados,
+  - rutas `/api/` en `NetworkOnly` (sin datos clínicos stale offline).
+- SW deshabilitado en `development`; activo en build/start de producción.
+- Archivos clave: `frontend/next.config.js`, `frontend/src/app/sw.ts`, `frontend/src/app/manifest.ts`.
 ## Actualización 2026-05-31 (Random Forest — platform_predictions)
 
 ### Nuevo módulo: `apps.platform_predictions`

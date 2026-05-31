@@ -87,7 +87,7 @@ export const segurosService = {
   },
 
   async updateAseguradora(id: number, payload: Partial<Aseguradora>): Promise<Aseguradora> {
-    const { data } = await api.patch|Aseguradora>(`${BASE}/aseguradoras/${id}/`, payload);
+    const { data } = await api.patch<Aseguradora>(`${BASE}/aseguradoras/${id}/`, payload);
     return data;
   },
 

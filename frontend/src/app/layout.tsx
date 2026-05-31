@@ -1,7 +1,10 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import '@/styles/globals.css';
 import { AuthProvider } from '@/context/AuthContext';
+import PwaInstallPrompt from '@/components/pwa/PwaInstallPrompt';
+
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'OftalmoCRM';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -10,9 +13,32 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'OftalmoCRM — Sistema de Gestión Clínica',
+  applicationName: APP_NAME,
+  title: {
+    default: `${APP_NAME} — Sistema de Gestión Clínica`,
+    template: `%s | ${APP_NAME}`,
+  },
   description: 'Sistema integral para clínica oftalmológica.',
-  icons: { icon: '/favicon.svg' },
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: APP_NAME,
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: '/favicon.svg',
+    apple: '/icons/icon.svg',
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#2563eb',
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -29,6 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} font-sans antialiased`}>
         <AuthProvider>
           {children}
+          <PwaInstallPrompt />
         </AuthProvider>
       </body>
     </html>
