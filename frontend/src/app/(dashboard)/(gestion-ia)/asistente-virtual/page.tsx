@@ -67,7 +67,7 @@ export default function AsistenteVirtualPage() {
               </div>
               <h2 className="text-sm font-semibold text-gray-900">Iniciá la conversación</h2>
               <p className="mt-2 text-sm text-gray-500">
-                Ejemplo: "Necesito priorizar pacientes urgentes de hoy y organizar la agenda de controles postoperatorios."
+                Ejemplo: &ldquo;Necesito priorizar pacientes urgentes de hoy y organizar la agenda de controles postoperatorios.&rdquo;
               </p>
             </div>
           ) : (

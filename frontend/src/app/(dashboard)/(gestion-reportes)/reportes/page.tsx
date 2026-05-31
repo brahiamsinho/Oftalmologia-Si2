@@ -146,7 +146,6 @@ export default function ReportesInteligentesPage() {
   const busy = loading || updating || exporting;
   const hasTableData = columns.length > 0 && rows.length > 0;
   const canExport = Boolean(data?.qbe) && hasTableData;
-  const canSaveTemplate = Boolean(data?.qbe?.model);
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 pb-10">
