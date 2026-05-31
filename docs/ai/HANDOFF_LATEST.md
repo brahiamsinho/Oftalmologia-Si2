@@ -115,6 +115,8 @@
 
 **Numeración CU:** **`docs/ai/PACKAGE_CU_MAP.md`** (PUDS §3.10 — paquetes Usuarios, Pacientes, Atención, CRM, Administrativa, Reportes, IA).
 
+**Fecha:** 2026-05-30 — **Mobile: asistente virtual (chatbot CU23):** Rama `orlando-hace-algo-chatbot-mobile` sobre `main` actualizado. Pantalla `/asistente-virtual` consume `POST ia/chatbot/` con historial corto; roles staff; tenant vía Dio/JWT. Reportes NL→QBE ya existían en tab Reportes (`features/reportes/`). Archivos: `mobile/lib/features/ia/**`, `mobile/lib/config/routes.dart`, `mobile/lib/features/home/presentation/screens/home_screen.dart`.
+
 **Fecha:** 2026-05-23 — **CU20 Facturación clínica backend:** `apps.facturacion`, cálculo CU18+CU19, cobros, `/api/facturacion/`. Sesión `2026-05-23-agent-cu21-facturacion-backend.md` (título histórico). **Pendiente:** pasarela, UI, PDF.
 
 **Fecha:** 2026-05-23 — **CU19 Descuentos + pacientes:** `apps.administracionFinanciera.descuentos`, paneles en modal paciente. Sesión `2026-05-23-agent-cu20-pacientes-descuentos.md`.
