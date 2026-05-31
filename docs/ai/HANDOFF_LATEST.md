@@ -2,6 +2,13 @@
 
 ## Resumen
 
+**Fecha:** 2026-05-28 — **PWA frontend (Serwist):**
+- Se implementó Progressive Web App en Next.js con `@serwist/next`.
+- Manifest dinámico + service worker en producción + pantalla `/~offline`.
+- Banner de instalación global (`PwaInstallPrompt`).
+- Caché segura: `/api/` sin cache offline (`NetworkOnly`).
+- Sesión: `docs/ai/sessions/2026-05-28-agent-pwa-frontend.md`.
+
 **Fecha:** 2026-05-28 — **Asistente virtual (UI + prompt clínico):**
 - Se eliminó en frontend cualquier referencia visible a:
   - `CU23`

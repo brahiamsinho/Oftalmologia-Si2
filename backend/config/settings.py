@@ -64,6 +64,7 @@ SHARED_APPS = [
 
     'apps.tenant',
     'apps.platform_admin',
+    'apps.platform_predictions',   # Módulo Random Forest – schema public, solo superadmin
 
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -305,7 +306,7 @@ X_FRAME_OPTIONS = 'DENY'
 SECURE_BROWSER_XSS_FILTER = True
 
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
+    SECURE_SSL_REDIRECT = config('DJANGO_SECURE_SSL_REDIRECT', default=True, cast=bool)
     SECURE_HSTS_SECONDS = 31_536_000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
