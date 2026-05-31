@@ -1,10 +1,11 @@
 # Activa HTTPS en nginx (puerto 443 + certs Let's Encrypt en el host).
 # Usar DESPUÉS de: ./scripts/azure/setup-https.sh DOMINIO EMAIL
+#
+# Nota: el puerto 80 ya viene de docker-compose.yml; acá solo agregamos 443.
 
 services:
   nginx:
-    ports: !reset
-      - "80:80"
+    ports:
       - "443:443"
     volumes:
       - ./nginx/default.prod.https.conf:/etc/nginx/conf.d/default.conf:ro

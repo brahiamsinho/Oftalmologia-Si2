@@ -43,7 +43,16 @@ sudo certbot certonly --standalone \
   --preferred-challenges http
 
 echo "→ Levantando stack con HTTPS..."
-"${COMPOSE[@]}" up -d nginx
+"${COMPOSE[@]}" up -d --force-recreate nginx
+
+sleep 2
+if docker ps --format '{{.Names}} {{.Ports}}' | grep nginx | grep -q '443'; then
+  echo "✓ nginx publica puerto 443"
+else
+  echo "⚠ nginx NO muestra 443 — ejecutá:"
+  echo "  ${COMPOSE[*]} up -d --force-recreate nginx"
+  echo "  docker ps | grep nginx"
+fi
 
 echo ""
 echo "=============================================="
