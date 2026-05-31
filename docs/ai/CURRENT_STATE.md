@@ -1,5 +1,16 @@
 # CURRENT STATE
 
+## Actualización 2026-05-30 (Mobile: asistente virtual chatbot, CU23)
+
+- **Objetivo:** Paridad móvil del asistente virtual conversacional (web `/asistente-virtual`), no duplicar reportes QBE (ya en `mobile/lib/features/reportes/` desde 2026-05-28).
+- **API:** `POST /t/<slug>/api/ia/chatbot/` con `{ message, history }` → `{ reply, model }`.
+- **Mobile — `mobile/lib/features/ia/`:**
+  - `ChatbotRepository` + `VirtualAssistantProvider` + `VirtualAssistantScreen` (UI chat).
+  - `IaAccess`: solo staff; `PACIENTE` → acceso denegado.
+- **Navegación:** `/asistente-virtual`; tarjeta en dashboard staff. Reportes siguen en tab **Reportes** del `NavigationBar`.
+
+---
+
 ## Actualizacion 2026-05-28 (asistente virtual: limpieza CU/modelo + prompt oftalmológico)
 
 - En UI del asistente virtual (`frontend/src/app/(dashboard)/(gestion-ia)/asistente-virtual/page.tsx`):

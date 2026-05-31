@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../config/theme.dart';
 import '../../../auth/presentation/providers/session_notifier.dart';
+import '../../../ia/domain/ia_access.dart';
 import '../../data/staff_dashboard_repository.dart';
 import '../../domain/cita_resumen.dart';
 import '../providers/patient_citas_provider.dart';
@@ -92,6 +94,7 @@ class _StaffDashboardTab extends ConsumerWidget {
     final user = ref.watch(sessionNotifierProvider);
     final theme = Theme.of(context);
     final greeting = user == null ? 'Bienvenido' : 'Hola, ${user.displayName}';
+    final showIa = user != null && IaAccess.canUseVirtualAssistant(user.tipoUsuario);
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -124,6 +127,12 @@ class _StaffDashboardTab extends ConsumerWidget {
                   'Datos en vivo desde el API',
                   style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
                 ),
+                if (showIa) ...[
+                  const SizedBox(height: 16),
+                  _VirtualAssistantPromoCard(
+                    onTap: () => context.push('/asistente-virtual'),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 async.when(
                   loading: () => const Center(
@@ -433,6 +442,77 @@ class _StaffProfileTab extends ConsumerWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _VirtualAssistantPromoCard extends StatelessWidget {
+  const _VirtualAssistantPromoCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+            gradient: LinearGradient(
+              colors: [
+                AppTheme.primaryColor.withValues(alpha: 0.06),
+                const Color(0xFFEEF2FF),
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Asistente virtual',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Chat con IA para agenda, pacientes y operación',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted),
+            ],
+          ),
+        ),
       ),
     );
   }

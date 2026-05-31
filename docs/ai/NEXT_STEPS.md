@@ -6,6 +6,8 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 
 ## Corto Plazo
 
+- [x] **Mobile asistente virtual (CU23 chatbot):** `/asistente-virtual` + `POST ia/chatbot/`; staff only; tenant Dio/JWT.
+- [x] **Mobile reportes IA (CU23 QBE):** tab Reportes en staff (`features/reportes/`, voz + export).
 - [x] Integrar pasarela Stripe para upgrades de plan (checkout + confirmación + webhook opcional).
 - [x] Agregar seed histórico mínimo de 6 meses para mejorar reportes y pruebas IA/QBE.
 - [x] Exigir y crear administrador inicial al crear clínica desde SaaS (`/platform/dashboard` + `TenantCreateSerializer`).
@@ -23,7 +25,6 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] **Platform admin planes:** CRUD de planes desde `/platform/dashboard` conectado a `/api/public/platform/plans/` con auth de plataforma.
 - [x] **CU21/CU22 web (parcial 2026-05-23):** predefinidos (CU21), personalizados/guardar (CU22), export Excel, `run/`. Ver `PACKAGE_CU_MAP.md`. **Pendiente:** E2E, tests, whitelist QBE.
 - [ ] **CU21 motor QBE:** poblar `_QBE_MODEL_REGISTRY`; tests `execute`.
-- [ ] **CU23 mobile:** reportes IA desde stash `f11f9b9` si aplica.
 - [x] Migracion completa a django-tenants con schema-per-tenant (backend).
 - [x] Sistema completo de backup/restore multi-tenant (modelos, API, servicio, scheduler, documentacion, tests).
 - [ ] **URGENTE: Frontend Next.js con URLs de tenant** — **Hecho (2026-05-10):** `lib/api.ts` reescribe `baseURL` a `resolveTenantBaseUrl(slug)` cuando hay `tenant_slug`; refresh usa el mismo prefijo. **Pendiente UX:** pantalla dedicada de selección de clínica / branding si se quiere además del paso 1 del login actual; consumo explícito de `GET /t/<slug>/api/auth/tenant/` donde falte.
