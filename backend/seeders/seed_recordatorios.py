@@ -1,8 +1,8 @@
 """
 Seeder CU17 — reglas de recordatorio por defecto en el schema del tenant actual.
 """
-from apps.notificaciones.automatizaciones.models import ReglaRecordatorio, TipoReglaRecordatorio
-from apps.notificaciones.automatizaciones.services.scheduling import (
+from apps.crm.notificaciones.automatizaciones.models import ReglaRecordatorio, TipoReglaRecordatorio
+from apps.crm.notificaciones.automatizaciones.services.scheduling import (
     NOMBRE_REGLA_CITA_DEFAULT,
     NOMBRE_REGLA_POSTOP_DEFAULT,
 )

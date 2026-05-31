@@ -121,12 +121,12 @@ TENANT_APPS = [
     # CU18 seguros, CU19 descuentos, CU20 facturación clínica.
     'apps.administracionFinanciera.seguros',
     'apps.administracionFinanciera.descuentos',
-    'apps.facturacion',
+    'apps.administracionFinanciera.facturacion',
      
 
     # Notificaciones por clínica.
-    'apps.notificaciones',
-    'apps.notificaciones.automatizaciones',
+    'apps.crm.notificaciones',
+    'apps.crm.notificaciones.automatizaciones',
 
     # Backup y restore por clínica.
     'apps.backup',

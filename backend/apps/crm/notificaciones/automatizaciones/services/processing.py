@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from django.utils import timezone
 
-from apps.notificaciones.services import enviar_push_a_usuario
+from apps.crm.notificaciones.services import enviar_push_a_usuario
 
 from ..models import (
     EstadoTarea,

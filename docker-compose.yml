@@ -55,6 +55,8 @@ services:
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
+    networks:
+      - oftalmologia_net
   # (login con texto blanco sobre fondo claro, sin grid/flex). Ver frontend/docker-entrypoint.sh
   frontend:
     build:
@@ -84,6 +86,33 @@ services:
       - "${HOST_PORT_MAILHOG_UI:-8025}:8025"     # Web UI Mailhog (puerto = HOST_PORT_MAILHOG_UI)
     networks:
       - oftalmologia_net
+
+  # ---- Recordatorios Scheduler (CU18 — envío automático cada 60 s) ----
+  recordatorios-scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      RUN_MIGRATIONS: "0"
+      BOOTSTRAP_PUBLIC_SCHEMA: "0"
+      BOOTSTRAP_TENANTS: "0"
+      RUN_SEEDERS: "0"
+      RUN_COLLECTSTATIC: "0"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - oftalmologia_net
+    command: >
+      sh -c "while true; do
+        python manage.py procesar_recordatorios;
+        sleep 60;
+      done"
 
   # ---- Backup Scheduler (Backups automáticos) ----
   backup-scheduler:

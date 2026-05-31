@@ -1,5 +1,43 @@
 # CURRENT STATE
 
+## Actualización 2026-05-30 (CU18 — Frontend recordatorios + campana notificaciones + cron Docker)
+
+### Cambios realizados
+
+**Docker Compose (`docker-compose.yml`)**
+- Nuevo servicio `recordatorios-scheduler`: ejecuta `python manage.py procesar_recordatorios` cada 60 segundos en loop.
+- Cierra el gap crítico: sin este servicio las tareas PENDIENTE nunca se procesaban en producción.
+
+**Frontend — Servicio (`frontend/src/lib/services/notificaciones.ts`)**
+- Nuevo archivo de servicio para CU18.
+- Interfaces: `Notificacion`, `ReglaRecordatorio`, `TareaRecordatorioProgramada`, `LogEjecucion`, payloads.
+- Métodos: list, marcarLeida, marcarTodasLeidas, registrarDispositivo, listReglas, createRegla, updateRegla, deleteRegla, listTareas, generarTarea, procesarLote, listLogs.
+
+**Frontend — Header (`frontend/src/components/layout/Header.tsx`)**
+- La campana (Bell) ahora está conectada al API real.
+- Al montar carga el contador de no leídas (badge dinámico).
+- Click en campana abre `NotifPanel`: dropdown con lista de notificaciones, marcar leída/todas, link a `/crm/recordatorios`.
+- Panel se cierra al hacer clic afuera (ambos dropdowns son mutuamente exclusivos).
+
+**Frontend — Página Recordatorios (`frontend/src/app/(dashboard)/(gestion-crm)/crm/recordatorios/page.tsx`)**
+- Ruta: `/crm/recordatorios`
+- 3 tabs: Reglas | Tareas | Logs
+  - **Reglas**: CRUD completo (crear, editar con modal, eliminar con confirmación), toggle activa/inactiva
+  - **Tareas**: lista filtrable por estado, botón "Procesar pendientes" (llama al endpoint POST /tareas/procesar/)
+  - **Logs**: historial de ejecuciones INFO/ERROR
+- Chips de estado: "Cron activo · cada 60s" y "Push FCM"
+
+**Frontend — Sidebar (`frontend/src/components/layout/Sidebar.tsx`)**
+- Agregado "Recordatorios" bajo el grupo CRM con icono Bell.
+- Actualizado `NAV_CATALOG` con keywords `CU18 recordatorio notificación automática push`.
+- El grupo CRM se expande automáticamente si la ruta activa es `/crm/recordatorios`.
+
+### Estado CU18
+- Backend: PARCIAL → núcleo completo (reglas, señales, FCM, command). Gaps menores: email/SMS/WhatsApp.
+- Frontend: IMPLEMENTADO ✓
+- Docker cron: IMPLEMENTADO ✓
+- Gaps pendientes: canales email/SMS/WhatsApp, reglas para cirugías/medicamentos.
+
 ## Actualizacion 2026-05-28 (asistente virtual: limpieza CU/modelo + prompt oftalmológico)
 
 - En UI del asistente virtual (`frontend/src/app/(dashboard)/(gestion-ia)/asistente-virtual/page.tsx`):

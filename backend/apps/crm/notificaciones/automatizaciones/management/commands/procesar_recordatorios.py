@@ -8,7 +8,7 @@ Uso:
 from django.core.management.base import BaseCommand
 from django_tenants.utils import get_tenant_model, tenant_context
 
-from apps.notificaciones.automatizaciones.services.processing import procesar_recordatorios_pendientes
+from apps.crm.notificaciones.automatizaciones.services.processing import procesar_recordatorios_pendientes
 
 
 class Command(BaseCommand):
