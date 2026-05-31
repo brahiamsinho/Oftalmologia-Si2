@@ -65,10 +65,12 @@ mobile/.metadata
 # =========================
 # Environment & Secrets
 # =========================
-#.env
+.env
 .env.local
 .env.*.local
 !.env.example
+!.env.prod.example
+!.env.azure.example
 
 # =========================
 # AI / Agent & Docs
@@ -112,7 +114,6 @@ BaseDeDatos.sql
 
 
 #AGENTS.md
-.env
 #.agents/
 #.cursor/
 #.opencode/
@@ -126,4 +127,5 @@ firebase-credentials.json
 google-services.json
 firebase-credentials.json
 google-services.json
+BaseDeDatos.sql
 
