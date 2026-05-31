@@ -1,6 +1,8 @@
 # Despliegue en Ubuntu (nube — ej. Azure VM)
 
-Guía para levantar **Oftalmología Si2** (Django + PostgreSQL + Next.js + Mailhog) con Docker. **No aplica Laravel** ni `php artisan`.
+Guía base para levantar **Oftalmología Si2** (Django + PostgreSQL + Next.js + nginx) con Docker.
+
+**Azure VM con DNS cloudapp:** guía completa paso a paso en [`despliegue-azure-vm.md`](./despliegue-azure-vm.md) (NSG, scripts `scripts/azure/`, nginx prod, HTTPS).
 
 ---
 
@@ -16,143 +18,122 @@ sudo apt update && sudo apt upgrade -y
 
 ```bash
 sudo apt install -y docker.io
-```
-
-Iniciar y habilitar el servicio:
-
-```bash
 sudo systemctl start docker
 sudo systemctl enable docker
 ```
 
 ---
 
-## 3. Instalar Docker Compose (plugin v2)
-
-En Ubuntu, el paquete **`docker-compose`** antiguo (Python 1.29.x) puede fallar con Docker Engine 28+ (`KeyError: 'ContainerConfig'`). Instalá el **plugin v2** y usá el comando con **espacio**: `docker compose`.
+## 3. Docker Compose (plugin v2)
 
 ```bash
 sudo apt install -y docker-compose-v2
-```
-
-Comprobar (nota: en inglés, **`--version`**, no `--versión`):
-
-```bash
-docker --version
 docker compose version
 ```
 
 ---
 
-## 4. Permisos Docker (opcional, para no usar `sudo`)
+## 4. Permisos Docker (opcional)
 
 ```bash
 sudo usermod -aG docker $USER
 ```
 
-**Cerrá sesión SSH y volvé a entrar** (o ejecutá `newgrp docker`). Después debería funcionar `docker ps` sin `sudo`.
-
-Hasta entonces, anteponé **`sudo`** a todos los comandos `docker` / `docker compose`.
+Cerrá sesión SSH y volvé a entrar.
 
 ---
 
-## 5. Git
-
-```bash
-sudo apt install -y git
-git config --global user.name "Tu Nombre"
-git config --global user.email "tu@email.com"
-```
-
----
-
-## 6. Clonar el repositorio
+## 5. Clonar el repositorio
 
 ```bash
 cd ~
-git clone
-cd
+git clone <URL_DEL_REPO>
+cd Oftalmologia-Si2
 ```
-
-(Ajustá la URL si usás otro remoto o SSH.)
 
 ---
 
-## 7. Variables de entorno
+## 6. Variables de entorno
+
+**Desarrollo local:**
 
 ```bash
 cp .env.example .env
-nano .env
 ```
 
-Completá al menos: `POSTGRES_*`, `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `FRONTEND_URL`, `NEXT_PUBLIC_API_URL`, `CORS_ALLOWED_ORIGINS` (si `DJANGO_DEBUG=False`). Para la IP pública de la VM, seguí los comentarios dentro de `.env.example`.
+**Azure producción:**
 
-**App móvil (Flutter):** en tu máquina de desarrollo, configurá `mobile/.env` con `API_BASE_URL` apuntando al API alcanzable desde el dispositivo (no se usa en el servidor solo para el compose web/backend).
+```bash
+cp .env.azure.example .env
+# o: ./scripts/azure/generate-env.sh TU-DOMINIO > .env
+```
+
+Completá: `POSTGRES_*`, `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `PUBLIC_DOMAIN`, `FRONTEND_URL`, `NEXT_PUBLIC_API_URL` (usa `/api`, no `/api/v1`), `CORS_ALLOWED_ORIGINS` si `DJANGO_DEBUG=False`.
 
 ---
 
-## 8. Levantar contenedores
+## 7. Levantar contenedores
 
-Desde la raíz del repo:
+**Desarrollo (runserver + next dev):**
 
 ```bash
-sudo docker compose up -d --build
+docker compose up -d --build
 ```
 
-(Sin `sudo` si ya aplicaste el grupo `docker` y reiniciaste sesión.)
+**Producción (Gunicorn + Next build + nginx sin puertos internos):**
 
-Servicios: `db`, `backend`, `frontend`, `mailhog`.
+```bash
+./scripts/azure/deploy.sh oftalmologia-si2.westus3.cloudapp.azure.com
+# o manualmente:
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+Servicios: `db`, `backend`, `frontend`, `nginx`, `recordatorios-scheduler`, `backup-scheduler` (+ `mailhog` solo en dev).
 
 ---
 
-## 9. Base de datos (Django)
+## 8. Base de datos
 
-Primera vez (o tras cambios de modelos en el repo):
-
-```bash
-sudo docker compose exec backend python manage.py migrate
-sudo docker compose exec backend python manage.py seed
-```
-
-Opcional — solo si tocás modelos y generás migraciones en otro entorno:
+El `backend/entrypoint.sh` aplica migraciones y seeders al arrancar. Manualmente:
 
 ```bash
-sudo docker compose exec backend python manage.py makemigrations
-```
-
----
-
-## 10. Comprobar
-
-```bash
-sudo docker compose ps
-```
-
-- Panel web: `http://IP_PUBLICA_VM:3000` (o el puerto `HOST_PORT_FRONTEND` del `.env`).
-- API: `http://IP_PUBLICA_VM:8000/api/health/` (o `HOST_PORT_BACKEND`).
-- Mailhog (solo desarrollo): puerto `HOST_PORT_MAILHOG_UI` (por defecto 8025).
-
-En **Azure**, abrí en el **Network Security Group** los puertos que expongas (típicamente **22** SSH, **3000**, **8000**; **5432** solo si necesitás Postgres desde fuera, no recomendado).
-
----
-
-## 11. Actualizar código en la VM
-
-```bash
-cd ~/Oftalmologia-Si2
-git pull origin main
-sudo docker compose up -d --build
-sudo docker compose exec backend python manage.py migrate
+docker compose exec backend python manage.py migrate_schemas --shared
+docker compose exec backend python manage.py migrate_schemas --tenant
 ```
 
 ---
 
-## Referencia rápida de comandos
+## 9. Comprobar
 
-| Acción           | Comando                               |
-| ---------------- | ------------------------------------- |
-| Ver logs backend | `sudo docker compose logs -f backend` |
-| Parar todo       | `sudo docker compose down`            |
-| Estado           | `sudo docker compose ps`              |
+**Con nginx (recomendado):**
 
-**No uses** pasos de Laravel (`laravel_app`, `artisan`, `storage:link`, etc.); este proyecto es **Django + Next.js**.
+- Web: `http://TU-DOMINIO/` (puerto 80)
+- API: `http://TU-DOMINIO/api/health/`
+- Tenant API: `http://TU-DOMINIO/t/clinica-demo/api/...`
+
+**Sin nginx (solo dev):**
+
+- Frontend: `http://IP:3000`
+- Backend: `http://IP:8000/api/health/`
+
+En **Azure NSG**, abrir solo **22**, **80**, **443**. No exponer 3000, 8000, 5432.
+
+---
+
+## 10. Actualizar en la VM
+
+```bash
+git pull
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+---
+
+## Referencia rápida
+
+| Acción | Comando |
+|--------|---------|
+| Logs backend | `docker compose logs -f backend` |
+| Parar | `docker compose down` |
+| Estado | `docker compose ps` |
+| Deploy Azure | Ver `docs/guides/despliegue-azure-vm.md` |

@@ -18,7 +18,14 @@ Sistema integral SaaS multi-tenant para clínicas oftalmológicas — gestión d
 - Git
 - (Opcional) Python 3.12+, Node.js 20+, Flutter SDK — solo si quieres desarrollo sin Docker
 
-**VM Ubuntu en la nube (Azure, etc.):** guía paso a paso en [`docs/guides/despliegue-ubuntu-nube.md`](docs/guides/despliegue-ubuntu-nube.md) (Docker Compose v2, sin Laravel).
+**VM Ubuntu en Azure:** guía completa en [`docs/guides/despliegue-azure-vm.md`](docs/guides/despliegue-azure-vm.md). Tras clonar en la VM:
+
+```bash
+chmod +x scripts/azure/*.sh
+./scripts/azure/bootstrap-vm.sh oftalmologia-si2.westus3.cloudapp.azure.com 20.150.149.206
+```
+
+**VM Ubuntu genérica:** [`docs/guides/despliegue-ubuntu-nube.md`](docs/guides/despliegue-ubuntu-nube.md).
 
 ## Setup Rápido
 

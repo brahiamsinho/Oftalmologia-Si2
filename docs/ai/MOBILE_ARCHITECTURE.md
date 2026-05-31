@@ -16,8 +16,11 @@ mobile/lib/
  ├─ core/              (Networking genérico, utilidades, theamas, manejo de tokens seguro)
  ├─ features/
  │   ├─ auth/          (Login UI, repositorios auth, estados auth).
- │   ├─ appointments/  (Vistas de calendario, modelos datos DTO Citas).
- │   └─ records/       (Historias clínicas oftalmológicas móvil).
+ │   ├─ home/          (Home paciente/staff, citas, perfil).
+ │   ├─ ia/            (Asistente virtual chatbot, CU23).
+ │   ├─ reportes/      (Reportes NL → QBE + voz + export, CU23).
+ │   ├─ notificaciones/
+ │   └─ …              (citas, historial clínico vía home/)
  └─ app_router.dart    (Manejador de rutas limpias)
 ```
 
