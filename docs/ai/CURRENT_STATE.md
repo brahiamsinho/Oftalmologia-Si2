@@ -1,5 +1,24 @@
 # CURRENT STATE
 
+## Actualización 2026-05-31 (Random Forest — platform_predictions)
+
+### Nuevo módulo: `apps.platform_predictions`
+
+- App Django nueva en schema PUBLIC (`SHARED_APPS`), sin replicar en tenants.
+- Modelos: `PredictionModelRun`, `PredictionResult` (migraciones aplicadas).
+- Servicio: `RandomForestPredictionService` con flujo completo: collect → features → train → save/load → predict → feature_importance.
+- Endpoints protegidos con `PlatformJWTAuthentication + IsPlatformAdministrator`:
+  - `POST /api/public/platform/predictions/train/`
+  - `GET  /api/public/platform/predictions/runs/`
+  - `GET  /api/public/platform/predictions/results/`
+  - `POST /api/public/platform/predictions/predict/`
+  - `GET  /api/public/platform/predictions/feature-importance/`
+- Dependencias ML: scikit-learn 1.8, pandas 2.3, numpy 2.4, joblib — instaladas en Docker.
+- Frontend superadmin: nueva página `/platform/dashboard/predicciones` + "Reportes Predictivos" en `PlatformSidebar`.
+- Sesión de docs: `docs/ai/sessions/2026-05-31-platform-predictions-random-forest.md`
+
+---
+
 ## Actualización 2026-05-30 (CU18–CU22 Mobile Flutter)
 
 ### Nueva feature `administracion_financiera/` en mobile

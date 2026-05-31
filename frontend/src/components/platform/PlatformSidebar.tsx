@@ -4,6 +4,7 @@ import type { ElementType } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
+  Brain,
   Building2,
   ChevronLeft,
   ChevronRight,
@@ -121,6 +122,7 @@ export default function PlatformSidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 pb-2 pt-3">
+        {/* ── Sección Operación ── */}
         <p
           className={`mb-1 px-3 text-[10px] font-semibold uppercase tracking-wide text-gray-400 ${
             isCollapsed ? 'sr-only' : ''
@@ -133,7 +135,26 @@ export default function PlatformSidebar() {
             href="/platform/dashboard"
             label="Organizaciones"
             icon={LayoutGrid}
-            active={is('/platform/dashboard')}
+            active={pathname === '/platform/dashboard'}
+            collapsed={isCollapsed}
+            onNavigate={closeMobileDrawer}
+          />
+        </ul>
+
+        {/* ── Sección Inteligencia ── */}
+        <p
+          className={`mb-1 mt-4 px-3 text-[10px] font-semibold uppercase tracking-wide text-gray-400 ${
+            isCollapsed ? 'sr-only' : ''
+          }`}
+        >
+          Inteligencia
+        </p>
+        <ul className="space-y-0.5">
+          <NavItem
+            href="/platform/dashboard/predicciones"
+            label="Reportes Predictivos"
+            icon={Brain}
+            active={is('/platform/dashboard/predicciones')}
             collapsed={isCollapsed}
             onNavigate={closeMobileDrawer}
           />

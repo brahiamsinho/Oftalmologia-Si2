@@ -64,6 +64,7 @@ SHARED_APPS = [
 
     'apps.tenant',
     'apps.platform_admin',
+    'apps.platform_predictions',   # Módulo Random Forest – schema public, solo superadmin
 
     'django.contrib.contenttypes',
     'django.contrib.sessions',
