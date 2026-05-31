@@ -22,6 +22,10 @@ router.register('platform/plans', PlatformPlanManagementViewSet, basename='platf
 urlpatterns = [
     path('platform/', include('apps.platform_admin.urls')),
 
+    # Módulo de predicciones Random Forest — solo superadmin (schema public)
+    # Endpoint base: /api/public/platform/predictions/
+    path('platform/predictions/', include('apps.platform_predictions.urls')),
+
     path('organization/me/', TenantCurrentView.as_view(), name='tenant-current'),
 
     path(

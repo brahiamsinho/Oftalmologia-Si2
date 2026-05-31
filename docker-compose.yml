@@ -87,6 +87,33 @@ services:
     networks:
       - oftalmologia_net
 
+  # ---- Recordatorios Scheduler (CU18 — envío automático cada 60 s) ----
+  recordatorios-scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      RUN_MIGRATIONS: "0"
+      BOOTSTRAP_PUBLIC_SCHEMA: "0"
+      BOOTSTRAP_TENANTS: "0"
+      RUN_SEEDERS: "0"
+      RUN_COLLECTSTATIC: "0"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - oftalmologia_net
+    command: >
+      sh -c "while true; do
+        python manage.py procesar_recordatorios;
+        sleep 60;
+      done"
+
   # ---- Backup Scheduler (Backups automáticos) ----
   backup-scheduler:
     build:

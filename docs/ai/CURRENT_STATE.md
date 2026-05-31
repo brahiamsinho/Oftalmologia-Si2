@@ -12,6 +12,80 @@
   - rutas `/api/` en `NetworkOnly` (sin datos clínicos stale offline).
 - SW deshabilitado en `development`; activo en build/start de producción.
 - Archivos clave: `frontend/next.config.js`, `frontend/src/app/sw.ts`, `frontend/src/app/manifest.ts`.
+## Actualización 2026-05-31 (Random Forest — platform_predictions)
+
+### Nuevo módulo: `apps.platform_predictions`
+
+- App Django nueva en schema PUBLIC (`SHARED_APPS`), sin replicar en tenants.
+- Modelos: `PredictionModelRun`, `PredictionResult` (migraciones aplicadas).
+- Servicio: `RandomForestPredictionService` con flujo completo: collect → features → train → save/load → predict → feature_importance.
+- Endpoints protegidos con `PlatformJWTAuthentication + IsPlatformAdministrator`:
+  - `POST /api/public/platform/predictions/train/`
+  - `GET  /api/public/platform/predictions/runs/`
+  - `GET  /api/public/platform/predictions/results/`
+  - `POST /api/public/platform/predictions/predict/`
+  - `GET  /api/public/platform/predictions/feature-importance/`
+- Dependencias ML: scikit-learn 1.8, pandas 2.3, numpy 2.4, joblib — instaladas en Docker.
+- Frontend superadmin: nueva página `/platform/dashboard/predicciones` + "Reportes Predictivos" en `PlatformSidebar`.
+- Sesión de docs: `docs/ai/sessions/2026-05-31-platform-predictions-random-forest.md`
+
+---
+
+## Actualización 2026-05-30 (CU18–CU22 Mobile Flutter)
+
+### Nueva feature `administracion_financiera/` en mobile
+
+- `domain/`: `AfiliacionSeguro`, `BeneficioPaciente`, `FacturaResumen` + enums
+- `data/`: `SegurosRepository`, `DescuentosRepository`, `FacturacionRepository`
+- `presentation/providers/`: `misAfiliacionesProvider`, `misBeneficiosProvider`, `misFacturasProvider`
+- `presentation/screens/`: `MisSegurosScreen` (CU19), `MisDescuentosScreen` (CU20), `MisFacturasScreen` (CU21 — filtros por estado, pago en línea, comprobante)
+
+### Extendida feature `notificaciones/` en mobile
+
+- `RecordatoriosAdminScreen` (CU18 staff): tabs Reglas (toggle activa/inactiva) + Tareas (procesar lote)
+
+### Navegación actualizada
+
+- `PatientQuickAccessRow`: nueva sección "Mis finanzas" con tiles Facturas / Seguro / Descuentos
+- `_StaffProfileTab`: sección "Administración" con Recordatorios y Facturación
+
+## Actualización 2026-05-30 (CU18 — Frontend recordatorios + campana notificaciones + cron Docker)
+
+### Cambios realizados
+
+**Docker Compose (`docker-compose.yml`)**
+- Nuevo servicio `recordatorios-scheduler`: ejecuta `python manage.py procesar_recordatorios` cada 60 segundos en loop.
+- Cierra el gap crítico: sin este servicio las tareas PENDIENTE nunca se procesaban en producción.
+
+**Frontend — Servicio (`frontend/src/lib/services/notificaciones.ts`)**
+- Nuevo archivo de servicio para CU18.
+- Interfaces: `Notificacion`, `ReglaRecordatorio`, `TareaRecordatorioProgramada`, `LogEjecucion`, payloads.
+- Métodos: list, marcarLeida, marcarTodasLeidas, registrarDispositivo, listReglas, createRegla, updateRegla, deleteRegla, listTareas, generarTarea, procesarLote, listLogs.
+
+**Frontend — Header (`frontend/src/components/layout/Header.tsx`)**
+- La campana (Bell) ahora está conectada al API real.
+- Al montar carga el contador de no leídas (badge dinámico).
+- Click en campana abre `NotifPanel`: dropdown con lista de notificaciones, marcar leída/todas, link a `/crm/recordatorios`.
+- Panel se cierra al hacer clic afuera (ambos dropdowns son mutuamente exclusivos).
+
+**Frontend — Página Recordatorios (`frontend/src/app/(dashboard)/(gestion-crm)/crm/recordatorios/page.tsx`)**
+- Ruta: `/crm/recordatorios`
+- 3 tabs: Reglas | Tareas | Logs
+  - **Reglas**: CRUD completo (crear, editar con modal, eliminar con confirmación), toggle activa/inactiva
+  - **Tareas**: lista filtrable por estado, botón "Procesar pendientes" (llama al endpoint POST /tareas/procesar/)
+  - **Logs**: historial de ejecuciones INFO/ERROR
+- Chips de estado: "Cron activo · cada 60s" y "Push FCM"
+
+**Frontend — Sidebar (`frontend/src/components/layout/Sidebar.tsx`)**
+- Agregado "Recordatorios" bajo el grupo CRM con icono Bell.
+- Actualizado `NAV_CATALOG` con keywords `CU18 recordatorio notificación automática push`.
+- El grupo CRM se expande automáticamente si la ruta activa es `/crm/recordatorios`.
+
+### Estado CU18
+- Backend: PARCIAL → núcleo completo (reglas, señales, FCM, command). Gaps menores: email/SMS/WhatsApp.
+- Frontend: IMPLEMENTADO ✓
+- Docker cron: IMPLEMENTADO ✓
+- Gaps pendientes: canales email/SMS/WhatsApp, reglas para cirugías/medicamentos.
 
 ## Actualizacion 2026-05-28 (asistente virtual: limpieza CU/modelo + prompt oftalmológico)
 

@@ -9,6 +9,8 @@ import '../../domain/cita_resumen.dart';
 import '../providers/patient_citas_provider.dart';
 import '../providers/staff_pacientes_list_provider.dart';
 import '../../../reportes/presentation/screens/smart_reports_screen.dart';
+import '../../../notificaciones/presentation/screens/recordatorios_admin_screen.dart';
+import '../../../administracion_financiera/presentation/screens/mis_facturas_screen.dart';
 import 'patient_home_screen.dart';
 
 /// Enruta: paciente → [PatientHomeScreen]; resto → panel staff con datos del API.
@@ -423,7 +425,42 @@ class _StaffProfileTab extends ConsumerWidget {
               style: theme.textTheme.labelLarge,
             ),
           ],
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 4),
+            child: Text(
+              'Administración',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: Colors.grey,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.notifications_active_outlined),
+            title: const Text('Recordatorios'),
+            subtitle: const Text('Reglas y tareas automáticas'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(
+                builder: (_) => const RecordatoriosAdminScreen(),
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.receipt_long_outlined),
+            title: const Text('Facturación'),
+            subtitle: const Text('Ver facturas de pacientes'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(
+                builder: (_) => const MisFacturasScreen(),
+              ),
+            ),
+          ),
+          const Divider(),
+          const SizedBox(height: 8),
           ListTile(
             leading: const Icon(Icons.logout_rounded),
             title: const Text('Cerrar sesión'),

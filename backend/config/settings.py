@@ -64,6 +64,7 @@ SHARED_APPS = [
 
     'apps.tenant',
     'apps.platform_admin',
+    'apps.platform_predictions',   # Módulo Random Forest – schema public, solo superadmin
 
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -121,12 +122,12 @@ TENANT_APPS = [
     # CU18 seguros, CU19 descuentos, CU20 facturación clínica.
     'apps.administracionFinanciera.seguros',
     'apps.administracionFinanciera.descuentos',
-    'apps.facturacion',
+    'apps.administracionFinanciera.facturacion',
      
 
     # Notificaciones por clínica.
-    'apps.notificaciones',
-    'apps.notificaciones.automatizaciones',
+    'apps.crm.notificaciones',
+    'apps.crm.notificaciones.automatizaciones',
 
     # Backup y restore por clínica.
     'apps.backup',

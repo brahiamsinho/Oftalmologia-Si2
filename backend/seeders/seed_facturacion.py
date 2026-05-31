@@ -4,7 +4,7 @@ Seeder CU20 — catálogo de tarifas clínicas demo.
 from decimal import Decimal
 
 from apps.atencionClinica.citas.models import TipoCita, TipoCitaNombre
-from apps.facturacion.models import CatalogoServicioClinico, TipoServicioClinico
+from apps.administracionFinanciera.facturacion.models import CatalogoServicioClinico, TipoServicioClinico
 
 SERVICIOS = (
     {

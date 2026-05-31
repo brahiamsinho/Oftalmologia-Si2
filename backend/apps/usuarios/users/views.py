@@ -38,7 +38,7 @@ from apps.bitacora.models import AccionBitacora
 from apps.core.authentication import TOKEN_SCOPE_TENANT
 from apps.core.permissions import IsAdministrativoOrAdmin
 from apps.core.utils import get_client_ip, registrar_bitacora
-from apps.notificaciones.services import enviar_push_a_usuario, registrar_dispositivo_fcm
+from apps.crm.notificaciones.services import enviar_push_a_usuario, registrar_dispositivo_fcm
 from apps.tenant.serializers import TenantPublicSerializer
 
 from .emails import enviar_confirmacion_registro, enviar_recuperacion_password
