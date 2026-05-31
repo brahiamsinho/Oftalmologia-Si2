@@ -121,6 +121,10 @@ bfg-1.15.0.jar
 BaseDeDatos.sql
 skills-lock.json
 
+opencode.jsonc
+.env.azure.example
+.env.prod.example
+
 firebase-credentials.json
 google-services.json
 firebase-credentials.json

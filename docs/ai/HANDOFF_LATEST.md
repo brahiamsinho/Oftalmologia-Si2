@@ -2,6 +2,36 @@
 
 ## Resumen
 
+**Fecha:** 2026-05-31 — **Diagramas de secuencia UML 2.5 en EA (CU18, CU21, CU22):**
+- Nuevo paquete EA: `/Model/2.6 Diagramas de Secuencia` (ID 20).
+- Diagramas:
+  - `SD-CU18 Gestionar recordatorios y notificaciones` (ID 53)
+  - `SD-CU21 Gestionar facturacion, cobros y pasarela` (ID 54)
+  - `SD-CU22 Generar informes personalizados` (ID 55)
+- Modelado basado en endpoints/servicios reales de frontend y backend (no inventado).
+- Se abrieron los 3 diagramas en EA para revision directa.
+
+**Fecha:** 2026-05-31 — **OpenCode MCP draw.io:**
+- Se actualizo `opencode.jsonc` para agregar servidor MCP `drawio`:
+  - `type: local`
+  - `command: ["npx", "-y", "@drawio/mcp"]`
+  - `enabled: true`
+- Se conserva servidor MCP `enterprise-architect` existente.
+
+**Fecha:** 2026-05-31 — **OpenCode subagentes (implementacion):**
+- Se actualizo `.opencode/agents/orchestrator.md` con routing formal, deteccion de stack con evidencia, lectura de contexto obligatoria, recomendacion de skills y delegacion multi-subagente controlada por `permission.task`.
+- Se crearon subagentes nuevos en formato OpenCode:
+  - `reviewer.md`
+  - `security.md`
+  - `docs-memory.md`
+  - `puds.md`
+  - `ai-inference.md`
+  - `ai-researcher.md`
+  - `diagrams-modeling.md`
+- Se agrego skill de diagramado/PUDS:
+  - `.opencode/skills/uml-c4-puds-diagrams/SKILL.md`
+- Se mantiene compatibilidad con agentes existentes del repo (backend/frontend/mobile/infra/architect-planner/qa-testing y legacy ui-ux/architecture/code-review/devops).
+
 **Fecha:** 2026-05-28 — **PWA frontend (Serwist):**
 - Se implementó Progressive Web App en Next.js con `@serwist/next`.
 - Manifest dinámico + service worker en producción + pantalla `/~offline`.

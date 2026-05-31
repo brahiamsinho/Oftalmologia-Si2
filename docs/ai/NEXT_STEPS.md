@@ -6,6 +6,9 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 
 ## Corto Plazo
 
+- [x] **EA UML 2.5 Secuencia CU18/CU21/CU22:** crear paquete `/Model/2.6 Diagramas de Secuencia` y diagramas SD-CU18, SD-CU21, SD-CU22 basados en codigo real backend/frontend.
+- [x] **OpenCode MCP draw.io:** agregar servidor `drawio` en `opencode.jsonc` con `npx -y @drawio/mcp` y mantener `enterprise-architect`.
+- [x] **OpenCode multi-agente (orchestrator + especialistas):** normalizar `.opencode/agents/` con routing formal, `permission.task`, subagentes `reviewer/security/docs-memory/puds/ai-inference/ai-researcher/diagrams-modeling` y skill `uml-c4-puds-diagrams`.
 - [x] **Mobile asistente virtual (CU23 chatbot):** `/asistente-virtual` + `POST ia/chatbot/`; staff only; tenant Dio/JWT.
 - [x] **Mobile reportes IA (CU23 QBE):** tab Reportes en staff (`features/reportes/`, voz + export).
 - [x] Integrar pasarela Stripe para upgrades de plan (checkout + confirmación + webhook opcional).

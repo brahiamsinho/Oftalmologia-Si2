@@ -1,5 +1,54 @@
 # CURRENT STATE
 
+## Leccion aprendida 2026-05-31 (Diagramas secuencia UML 2.5 en draw.io)
+
+- Para cumplir mejor UML 2.5 en diagramas de secuencia de PUDS no basta con flechas y lifelines.
+- Se deben incluir explicitamente:
+  - **Actor correcto** (`actor`),
+  - **Execution Specification / Activation bars** (activaciones),
+  - **Return messages** cuando aplique,
+  - **Combined Fragments** (`alt`, `loop`) con guardas.
+- En Mermaid/draw.io, la activacion se modela con:
+  - `->>+` para activar lifeline receptora,
+  - `-->>-` para retorno y desactivacion.
+- Esto se aplico en CU18, CU21 y CU22 para alinear salida con criterios academicos solicitados.
+
+## Actualizacion 2026-05-31 (EA UML 2.5 - Secuencia CU18/CU21/CU22)
+
+- Se crearon diagramas de secuencia en **Enterprise Architect** dentro del paquete:
+  - `/Model/2.6 Diagramas de Secuencia` (packageID `20`).
+- Diagramas creados:
+  - `SD-CU18 Gestionar recordatorios y notificaciones` (diagramID `53`)
+  - `SD-CU21 Gestionar facturacion, cobros y pasarela` (diagramID `54`)
+  - `SD-CU22 Generar informes personalizados` (diagramID `55`)
+- Los participantes y mensajes se levantaron desde codigo real de `backend/` y `frontend/` (servicios y viewsets).
+- Evidencia usada:
+  - CU18: `frontend/src/lib/services/notificaciones.ts`, `frontend/src/app/(dashboard)/(gestion-crm)/crm/recordatorios/page.tsx`, `backend/apps/crm/notificaciones/automatizaciones/views.py`, `backend/apps/crm/notificaciones/automatizaciones/services/processing.py`.
+  - CU21: `frontend/src/lib/services/facturacion.ts`, `backend/apps/administracionFinanciera/facturacion/views.py`, `backend/apps/administracionFinanciera/facturacion/services/pasarela.py`.
+  - CU22: `frontend/src/lib/services/reportes.ts`, `frontend/src/components/reportes/PredefinedReportsPanel.tsx`, `frontend/src/components/reportes/SaveReportTemplateDialog.tsx`, `backend/apps/reportes/views.py`, `backend/apps/reportes/urls.py`.
+
+## Actualizacion 2026-05-31 (OpenCode MCP draw.io)
+
+- Se implemento MCP de draw.io en `opencode.jsonc`:
+  - servidor `drawio` local con comando `npx -y @drawio/mcp`.
+- Se mantiene MCP existente de Enterprise Architect (`enterprise-architect`).
+- Resultado: el proyecto queda preparado para flujos de diagramado desde OpenCode (draw.io + EA).
+
+## Actualizacion 2026-05-31 (OpenCode multi-agente: orquestador + especialistas)
+
+- Se implemento/normalizo el sistema de agentes en `.opencode/agents/` con enfoque OpenCode nativo:
+  - `orchestrator` (primary, con `permission.task` para delegacion controlada),
+  - especialistas nuevos: `reviewer`, `security`, `docs-memory`, `puds`, `ai-inference`, `ai-researcher`, `diagrams-modeling`.
+- Se mantuvieron agentes existentes utiles (`backend`, `frontend`, `mobile`, `infra`, `architect-planner`, `qa-testing`) y compatibilidad con agentes legacy (`ui-ux`, `architecture`, `code-review`, `devops`).
+- `orchestrator` ahora incluye tabla de routing por dominio, lectura de contexto obligatoria y recomendaciones de skills antes de delegar.
+- Skill nueva agregada: `.opencode/skills/uml-c4-puds-diagrams/SKILL.md` para flujo UML/C4/PUDS con PlantUML/draw.io/memoria.
+- Evidencia de stack usada para el ajuste:
+  - Django: `backend/manage.py` (`DJANGO_SETTINGS_MODULE`),
+  - Next.js/React: `frontend/package.json`,
+  - Flutter: `mobile/pubspec.yaml`,
+  - Docker Compose: `docker-compose.yml`,
+  - modulo IA backend: `backend/apps/ia/`.
+
 ## Actualización 2026-05-30 (Mobile: asistente virtual chatbot, CU23)
 
 - **Objetivo:** Paridad móvil del asistente virtual conversacional (web `/asistente-virtual`), no duplicar reportes QBE (ya en `mobile/lib/features/reportes/` desde 2026-05-28).
