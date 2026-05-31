@@ -1,5 +1,18 @@
 # CURRENT STATE
 
+## Actualizacion 2026-05-28 (PWA frontend con Serwist)
+
+- Se habilitó **Progressive Web App** en el frontend Next.js:
+  - manifest web (`src/app/manifest.ts`) servido como `/manifest.webmanifest`,
+  - service worker generado en build (`public/sw.js`) vía `@serwist/next`,
+  - pantalla offline dedicada (`/~offline`),
+  - banner de instalación (`PwaInstallPrompt`) en layout global.
+- Política de caché clínica-segura en SW:
+  - assets estáticos precacheados,
+  - rutas `/api/` en `NetworkOnly` (sin datos clínicos stale offline).
+- SW deshabilitado en `development`; activo en build/start de producción.
+- Archivos clave: `frontend/next.config.js`, `frontend/src/app/sw.ts`, `frontend/src/app/manifest.ts`.
+
 ## Actualizacion 2026-05-28 (asistente virtual: limpieza CU/modelo + prompt oftalmológico)
 
 - En UI del asistente virtual (`frontend/src/app/(dashboard)/(gestion-ia)/asistente-virtual/page.tsx`):
