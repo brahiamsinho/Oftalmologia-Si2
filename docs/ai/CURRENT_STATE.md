@@ -1,5 +1,23 @@
 # CURRENT STATE
 
+## Actualización 2026-05-30 (CU18–CU22 Mobile Flutter)
+
+### Nueva feature `administracion_financiera/` en mobile
+
+- `domain/`: `AfiliacionSeguro`, `BeneficioPaciente`, `FacturaResumen` + enums
+- `data/`: `SegurosRepository`, `DescuentosRepository`, `FacturacionRepository`
+- `presentation/providers/`: `misAfiliacionesProvider`, `misBeneficiosProvider`, `misFacturasProvider`
+- `presentation/screens/`: `MisSegurosScreen` (CU19), `MisDescuentosScreen` (CU20), `MisFacturasScreen` (CU21 — filtros por estado, pago en línea, comprobante)
+
+### Extendida feature `notificaciones/` en mobile
+
+- `RecordatoriosAdminScreen` (CU18 staff): tabs Reglas (toggle activa/inactiva) + Tareas (procesar lote)
+
+### Navegación actualizada
+
+- `PatientQuickAccessRow`: nueva sección "Mis finanzas" con tiles Facturas / Seguro / Descuentos
+- `_StaffProfileTab`: sección "Administración" con Recordatorios y Facturación
+
 ## Actualización 2026-05-30 (CU18 — Frontend recordatorios + campana notificaciones + cron Docker)
 
 ### Cambios realizados

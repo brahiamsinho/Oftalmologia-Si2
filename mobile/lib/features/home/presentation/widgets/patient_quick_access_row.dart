@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../config/theme.dart';
 import '../screens/patient_clinical_screen.dart';
 import '../utils/launch_clinic_phone.dart';
+import '../../../administracion_financiera/presentation/screens/mis_facturas_screen.dart';
+import '../../../administracion_financiera/presentation/screens/mis_seguros_screen.dart';
+import '../../../administracion_financiera/presentation/screens/mis_descuentos_screen.dart';
 
 class PatientQuickAccessRow extends StatelessWidget {
   const PatientQuickAccessRow({
@@ -75,6 +78,74 @@ class PatientQuickAccessRow extends StatelessWidget {
                     title: 'Contacto',
                     subtitle: 'Emergencias',
                     onTap: () => launchClinicPhone(context),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // ── Sección Mis finanzas ──────────────────────────────────────────
+          SizedBox(height: AppTheme.space4),
+          Text(
+            'Mis finanzas',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0F172A),
+            ),
+          ),
+          SizedBox(height: AppTheme.space3),
+          Row(
+            children: [
+              Expanded(
+                child: Semantics(
+                  label: 'Acceso rápido: Mis facturas. Ver facturas y pagos.',
+                  button: true,
+                  child: _QuickTile(
+                    icon: Icons.receipt_long_outlined,
+                    iconColor: const Color(0xFF7C3AED),
+                    title: 'Facturas',
+                    subtitle: 'Cobros · pagos',
+                    onTap: () => Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const MisFacturasScreen(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: AppTheme.space2),
+              Expanded(
+                child: Semantics(
+                  label: 'Acceso rápido: Mi cobertura de seguro.',
+                  button: true,
+                  child: _QuickTile(
+                    icon: Icons.shield_outlined,
+                    iconColor: AppTheme.successColor,
+                    title: 'Seguro',
+                    subtitle: 'Mi cobertura',
+                    onTap: () => Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const MisSegurosScreen(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: AppTheme.space2),
+              Expanded(
+                child: Semantics(
+                  label: 'Acceso rápido: Mis descuentos y beneficios.',
+                  button: true,
+                  child: _QuickTile(
+                    icon: Icons.discount_outlined,
+                    iconColor: const Color(0xFFF59E0B),
+                    title: 'Descuentos',
+                    subtitle: 'Mis beneficios',
+                    onTap: () => Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const MisDescuentosScreen(),
+                      ),
+                    ),
                   ),
                 ),
               ),
