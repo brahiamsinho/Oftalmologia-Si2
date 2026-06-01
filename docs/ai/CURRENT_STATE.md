@@ -1,5 +1,13 @@
 # CURRENT STATE
 
+## Actualizacion 2026-05-30 (Portainer ops en produccion)
+
+- Overlay opcional `docker-compose.portainer.yml` — Portainer CE LTS, red interna + localhost `:9000`.
+- UI via nginx: `https://PUBLIC_DOMAIN/portainer/` (sin puerto nuevo en NSG).
+- Script: `scripts/azure/enable-portainer.sh`.
+- Nginx prod/HTTPS: location `/portainer/` con resolver Docker (`127.0.0.11`) para no romper arranque si Portainer esta apagado.
+- Doc: `docs/guides/despliegue-azure-vm.md` seccion Portainer.
+
 ## Leccion aprendida 2026-05-31 (Diagramas secuencia UML 2.5 en draw.io)
 
 - Para cumplir mejor UML 2.5 en diagramas de secuencia de PUDS no basta con flechas y lifelines.

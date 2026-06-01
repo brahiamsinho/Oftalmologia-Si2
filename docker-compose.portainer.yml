@@ -1,0 +1,36 @@
+# Portainer CE — panel ops para contenedores en producción (opcional).
+#
+# Uso (junto con prod + https):
+#   docker compose \
+#     -f docker-compose.yml \
+#     -f docker-compose.prod.yml \
+#     -f docker-compose.https.yml \
+#     -f docker-compose.portainer.yml \
+#     up -d
+#
+# UI:
+#   https://TU-DOMINIO/portainer/   (vía nginx; login Portainer al primer acceso)
+#   http://127.0.0.1:9000           (solo localhost en la VM; túnel SSH opcional)
+#
+# Seguridad: monta el socket Docker (acceso total al host). Protegé con contraseña
+# fuerte en Portainer; en producción real restringí /portainer/ por IP en nginx.
+
+services:
+  portainer:
+    image: portainer/portainer-ce:lts
+    restart: unless-stopped
+    command:
+      - --http-enabled
+      - --http-port=9000
+      - --base-url=/portainer
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - oftalmologia_net
+    ports:
+      # Solo localhost en la VM (ssh -L 9000:127.0.0.1:9000 user@vm)
+      - "${PORTAINER_BIND:-127.0.0.1}:${PORTAINER_HOST_PORT:-9000}:9000"
+
+volumes:
+  portainer_data:
