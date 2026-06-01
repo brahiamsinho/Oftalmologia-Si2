@@ -5,7 +5,7 @@
 #   chmod +x scripts/azure/enable-portainer.sh
 #   ./scripts/azure/enable-portainer.sh
 #
-# Luego abrí: https://TU-DOMINIO/portainer/
+# Luego abrí: https://TU-DOMINIO:9443
 # Primer acceso: creá usuario admin en Portainer.
 
 set -euo pipefail
@@ -42,8 +42,10 @@ echo " Portainer activo"
 echo "=============================================="
 if [ -n "$DOMAIN" ]; then
   echo "  Web:  https://${DOMAIN}/portainer/"
+  echo "  Web directo: https://${DOMAIN}:9443"
 else
   echo "  Web:  https://TU-DOMINIO/portainer/"
+  echo "  Web directo: https://TU-DOMINIO:9443"
 fi
 echo "  SSH:  ssh -L 9000:127.0.0.1:9000 user@vm  →  http://127.0.0.1:9000"
 echo ""

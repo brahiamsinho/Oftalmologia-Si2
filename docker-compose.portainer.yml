@@ -11,6 +11,7 @@
 # UI:
 #   https://TU-DOMINIO/portainer/   (vía nginx; login Portainer al primer acceso)
 #   http://127.0.0.1:9000           (solo localhost en la VM; túnel SSH opcional)
+#   https://TU-DOMINIO:9443         (acceso directo recomendado sin túnel)
 #
 # Seguridad: monta el socket Docker (acceso total al host). Protegé con contraseña
 # fuerte en Portainer; en producción real restringí /portainer/ por IP en nginx.
@@ -27,6 +28,8 @@ services:
     ports:
       # Solo localhost en la VM (ssh -L 9000:127.0.0.1:9000 user@vm)
       - "${PORTAINER_BIND:-127.0.0.1}:${PORTAINER_HOST_PORT:-9000}:9000"
+      # Acceso público directo sin túnel (abrir 9443/TCP en Azure NSG)
+      - "${PORTAINER_HTTPS_HOST_PORT:-9443}:9443"
 
 volumes:
   portainer_data:
