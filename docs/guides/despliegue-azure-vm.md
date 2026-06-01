@@ -257,6 +257,60 @@ El app construye rutas tenant como `{origin}/t/{slug}/api`.
 
 ---
 
+## Portainer (panel de contenedores — opcional)
+
+UI para ver logs, estado, CPU/RAM y reiniciar contenedores sin memorizar comandos `docker`.
+
+### Activar en la VM
+
+```bash
+git pull   # incluye docker-compose.portainer.yml
+chmod +x scripts/azure/enable-portainer.sh
+./scripts/azure/enable-portainer.sh
+```
+
+O manualmente:
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  -f docker-compose.https.yml \
+  -f docker-compose.portainer.yml \
+  up -d portainer
+
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.prod.yml \
+  -f docker-compose.https.yml \
+  up -d --force-recreate nginx
+```
+
+### Acceso
+
+| Método | URL |
+|--------|-----|
+| **Recomendado** | `https://oftalmologia-si2.westus3.cloudapp.azure.com/portainer/` |
+| **Solo localhost** | `http://127.0.0.1:9000` en la VM |
+| **Túnel SSH** | `ssh -L 9000:127.0.0.1:9000 azureuser@tu-vm` → `http://127.0.0.1:9000` |
+
+**Primer acceso:** Portainer pide crear usuario admin (mín. 12 caracteres).
+
+### Seguridad
+
+- Portainer monta `/var/run/docker.sock` → **control total** del host Docker.
+- No hace falta abrir puertos nuevos en Azure NSG (va detrás de nginx `/portainer/`).
+- En producción real: contraseña fuerte + restringir `/portainer/` por IP en nginx.
+
+Variables opcionales en `.env`:
+
+```env
+PORTAINER_BIND=127.0.0.1
+PORTAINER_HOST_PORT=9000
+```
+
+---
+
 ## Troubleshooting
 
 | Síntoma | Causa probable | Acción |
@@ -291,5 +345,6 @@ El app construye rutas tenant como `{origin}/t/{slug}/api`.
 | Deploy | `./scripts/azure/deploy.sh TU-DOMINIO` |
 | Logs | `docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f` |
 | Parar | `docker compose -f docker-compose.yml -f docker-compose.prod.yml down` |
+| Portainer | `./scripts/azure/enable-portainer.sh` → `https://TU-DOMINIO/portainer/` |
 
 Ver también: `docs/guides/despliegue-ubuntu-nube.md` (base Ubuntu + Docker).
