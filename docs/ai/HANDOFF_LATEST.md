@@ -2,6 +2,27 @@
 
 ## Resumen
 
+**Fecha:** 2026-06-02 — **Seguros: hotfix backend 500 + mensajes de error legibles:**
+- Se corrigió crash 500 de DRF al crear convenios/afiliaciones en seguros.
+- Error original: `Expected a date, but got a datetime` en serialización de `fecha_inicio/fecha_fin`.
+- Solución:
+  - `_normalize_date(...)` en serializers de seguros,
+  - override `to_representation` en `ConvenioSerializer` y `AfiliacionSeguroPacienteSerializer`.
+- Además, `frontend/src/lib/services/seguros.ts` ahora traduce `detail/non_field_errors` y muestra errores útiles al usuario.
+- Verificación técnica:
+  - `manage.py check` OK
+  - `npm run build` OK
+
+**Fecha:** 2026-06-02 — **Seguros UI/UX: verificar cobertura sin ID manual:**
+- Se implementó `PacienteLookup` (autocomplete local en página) para:
+  - pestaña **Verificar cobertura**,
+  - formulario de **Afiliaciones**.
+- Ahora la selección de paciente se hace por búsqueda (nombre/apellido/documento/email) y no por input numérico de ID.
+- Se añadió feedback de paciente seleccionado y validación previa al submit.
+- Resultado: menos errores operativos y flujo más usable para administrativo.
+- Archivo: `frontend/src/app/(dashboard)/administracionFinanciera/seguros/page.tsx`.
+- Verificación: `npm run build` frontend OK.
+
 **Fecha:** 2026-06-02 — **Reportes Predictivos: pantalla autoexplicativa para negocio:**
 - Se ajustó UI en `/platform/dashboard/predicciones` para explicar claramente:
   - objetivo del modelo (riesgo operativo por tenant),

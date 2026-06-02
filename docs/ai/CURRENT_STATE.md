@@ -1,5 +1,48 @@
 # CURRENT STATE
 
+## Actualización 2026-06-02 — Fix verificar cobertura (400) + UX PacienteLookup
+
+- Corregido `GET /seguros/convenios/verificar-cobertura/` que devolvía **400** aunque `paciente_id` fuera válido.
+- Causa: la vista enviaba `fecha: null` explícito; DRF rechazaba el campo (`Este campo no puede ser nulo.`).
+- Fix backend:
+  - `views.py`: solo incluye `fecha` en payload si viene en query string.
+  - `VerificarCoberturaSerializer`: `fecha` opcional con default a `timezone.localdate()` en `validate`.
+- Fix frontend:
+  - `PacienteLookup` ya no dispara búsqueda con la etiqueta compuesta del paciente seleccionado (evita “Sin resultados…” falso).
+  - errores de validación por campo (`fecha`, `paciente_id`, etc.) visibles en UI.
+  - al cambiar de pestaña se limpia el banner de error global.
+
+## Actualización 2026-06-02 — Fix Seguros backend (500 en convenios/afiliaciones) + errores UX
+
+- Se corrigió el error 500 en:
+  - `POST /seguros/convenios/`
+  - `POST /seguros/afiliaciones/`
+- Causa raíz: DRF `DateField` recibía `datetime` en `to_representation` para `fecha_inicio/fecha_fin` y lanzaba:
+  - `AssertionError: Expected a date, but got a datetime`
+- Fix aplicado en `backend/apps/administracionFinanciera/seguros/serializers.py`:
+  - helper `_normalize_date(...)`,
+  - hardening en `to_representation` de `ConvenioSerializer` y `AfiliacionSeguroPacienteSerializer`.
+- Mejora frontend en `frontend/src/lib/services/seguros.ts`:
+  - parseo explícito de errores API (`detail`, `non_field_errors`, status code),
+  - mensajes más claros en UI (ya no solo `Request failed with status code XXX`).
+- Validación:
+  - `docker compose exec backend python manage.py check` -> OK
+  - `npm run build` frontend -> OK
+
+## Actualización 2026-06-02 — Seguros UX: selección de paciente por búsqueda (sin ID manual)
+
+- En `frontend/src/app/(dashboard)/administracionFinanciera/seguros/page.tsx` se reemplazó la entrada manual por ID en **Verificar cobertura** por un selector/autocomplete de paciente.
+- También se aplicó el mismo selector en **Afiliaciones** para evitar selects largos y mejorar precisión de carga.
+- Nuevo comportamiento:
+  - búsqueda por nombre/apellido/documento/email (debounce 300ms),
+  - lista de resultados con contexto (`ID`, documento, email),
+  - selección explícita del paciente antes de enviar.
+- Validación de formulario:
+  - `Verificar` queda deshabilitado hasta seleccionar un paciente.
+  - Mensaje de error claro si no hay paciente seleccionado.
+- Impacto UX: reduce errores por captura manual de ID y mejora usabilidad para personal administrativo.
+- Validación técnica: `npm run build` frontend OK (warnings existentes no bloqueantes en otros módulos).
+
 ## Actualización 2026-06-02 — UX explicativa en Reportes Predictivos (plataforma)
 
 - Se mejoró la claridad funcional en `frontend/src/app/platform/dashboard/predicciones/page.tsx`.

@@ -1,8 +1,24 @@
+from datetime import date, datetime
+
 from django.utils import timezone
 from rest_framework import serializers
 
 from .models import AfiliacionSeguroPaciente, Aseguradora, Convenio
 from .services import verificar_cobertura_paciente
+
+
+def _normalize_date(value):
+    """
+    DRF DateField falla si el valor en instancia viene como datetime.
+    Normalizamos para respuesta sin perder compatibilidad de escritura.
+    """
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return timezone.localtime(value).date() if timezone.is_aware(value) else value.date()
+    if isinstance(value, date):
+        return value
+    return value
 
 
 class AseguradoraSerializer(serializers.ModelSerializer):
@@ -49,6 +65,12 @@ class ConvenioSerializer(serializers.ModelSerializer):
             })
 
         return attrs
+
+    def to_representation(self, instance):
+        # Hardening: en create/update algunos DateField quedan en memoria como datetime.
+        instance.fecha_inicio = _normalize_date(instance.fecha_inicio)
+        instance.fecha_fin = _normalize_date(instance.fecha_fin)
+        return super().to_representation(instance)
 
 
 class AfiliacionSeguroPacienteSerializer(serializers.ModelSerializer):
@@ -103,15 +125,22 @@ class AfiliacionSeguroPacienteSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    def to_representation(self, instance):
+        # Hardening equivalente para afiliaciones.
+        instance.fecha_inicio = _normalize_date(instance.fecha_inicio)
+        instance.fecha_fin = _normalize_date(instance.fecha_fin)
+        return super().to_representation(instance)
+
 
 class VerificarCoberturaSerializer(serializers.Serializer):
     paciente_id = serializers.IntegerField()
-    fecha = serializers.DateField(required=False, default=timezone.localdate)
+    fecha = serializers.DateField(required=False, allow_null=True)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
+        fecha = attrs.get('fecha') or timezone.localdate()
         attrs['resultado'] = verificar_cobertura_paciente(
             attrs['paciente_id'],
-            fecha=attrs.get('fecha'),
+            fecha=fecha,
         )
         return attrs

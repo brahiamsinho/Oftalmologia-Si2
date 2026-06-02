@@ -52,6 +52,9 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] CU16 Backend: CRM pacientes (segmentacion + campanas + historial de contacto + CRUD + permisos + bitacora + tests minimos).
 - [x] **CU17 Backend:** recordatorios (`automatizaciones`). **Pendiente:** cron compose, UI, tests tenant.
 - [x] **CU18 Backend + web:** `apps.administracionFinanciera.seguros`, `/seguros`. Paneles en paciente (modal).
+- [x] Seguros UX: reemplazar verificación por ID manual con selector/autocomplete de paciente en Verificar cobertura y Afiliaciones.
+- [x] Seguros backend: hotfix `date vs datetime` en serializers (create convenio/afiliación sin 500).
+- [x] Seguros frontend: errores API legibles (`detail` / `non_field_errors`) en vez de mensaje genérico de Axios.
 - [x] **CU19 Backend:** `apps.administracionFinanciera.descuentos`. **Pendiente:** UI `/descuentos`, notificación asignación, tests.
 - [x] **CU20 Backend (cerrado):** facturación, pasarela mock, PDF, notificaciones, API paciente/cita.
 - [ ] **CU20:** UI `/facturacion`, pasarela real producción, mobile pagos.
@@ -107,6 +110,7 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] Multi-tenant: crear tests de aislamiento cross-schema para verificar que datos de un tenant no son accesibles desde otro.
 - [ ] Multi-tenant: extender pruebas anti-cruce al plano HTTP tenant (`/t/<slug>/api/...`) en entorno de test, ajustando configuración de URL/middleware para evitar `404` en pytest.
 - [ ] Seguros/Descuentos: ejecutar smoke E2E en Docker (`POST/GET` convenios, afiliaciones, promociones y beneficios) para confirmar fix `date vs datetime` en entorno de contenedores.
+- [ ] Seguros: agregar tests automatizados de regresión para serialización `DateField` en convenios/afiliaciones.
 - [ ] IA asistente virtual: validar en QA conversacional 10 prompts clínico-operativos (agenda, seguros, reportes, urgencias) para confirmar tono/seguridad y evitar respuestas ambiguas.
 - [ ] PWA: validar instalación en Chrome/Edge (desktop) y flujo manual en iOS (Agregar a inicio).
 - [ ] PWA producción: servir frontend con HTTPS para criterios completos de instalabilidad.

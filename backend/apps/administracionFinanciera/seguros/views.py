@@ -111,12 +111,11 @@ class ConvenioViewSet(SegurosBitacoraMixin, viewsets.ModelViewSet):
         GET ?paciente_id=1&fecha=2026-05-23
         Devuelve cobertura principal vigente del paciente (CU18).
         """
-        ser = VerificarCoberturaSerializer(
-            data={
-                'paciente_id': request.query_params.get('paciente_id'),
-                'fecha': request.query_params.get('fecha') or None,
-            },
-        )
+        payload = {'paciente_id': request.query_params.get('paciente_id')}
+        fecha = (request.query_params.get('fecha') or '').strip()
+        if fecha:
+            payload['fecha'] = fecha
+        ser = VerificarCoberturaSerializer(data=payload)
         ser.is_valid(raise_exception=True)
         return Response(ser.validated_data['resultado'], status=status.HTTP_200_OK)
 
