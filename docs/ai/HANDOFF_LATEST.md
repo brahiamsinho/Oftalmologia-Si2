@@ -2,6 +2,17 @@
 
 ## Resumen
 
+**Fecha:** 2026-06-02 — **Reportes Predictivos: pantalla autoexplicativa para negocio:**
+- Se ajustó UI en `/platform/dashboard/predicciones` para explicar claramente:
+  - objetivo del modelo (riesgo operativo por tenant),
+  - significado de probabilidad (confianza del modelo).
+- Se agregó columna **Acción sugerida** por clínica con recomendación contextual:
+  - riesgo alto: intervención semanal en cancelaciones/asistencia/ingresos;
+  - riesgo medio: monitoreo quincenal;
+  - riesgo bajo: seguimiento mensual.
+- Implementado en `frontend/src/app/platform/dashboard/predicciones/page.tsx`.
+- Verificación: `npm run build` frontend en verde (warnings existentes no bloqueantes).
+
 **Fecha:** 2026-06-02 — **Pasarela Stripe real en facturación clínica:**
 - Se cambió `iniciar_pago_en_linea` para usar **Stripe Checkout** cuando existe `STRIPE_SECRET_KEY`.
 - Se mantiene fallback a mock si Stripe no está habilitado (entorno dev).

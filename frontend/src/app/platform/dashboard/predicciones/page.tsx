@@ -75,6 +75,17 @@ function Badge({ nivel }: { nivel: NivelRiesgo }) {
   );
 }
 
+function recomendacionRiesgo(nivel: NivelRiesgo, probabilidad: number): string {
+  const confianza = probabilidad >= 0.85 ? 'alta' : probabilidad >= 0.65 ? 'media' : 'baja';
+  if (nivel === 'alto') {
+    return `Prioridad alta: revisar cancelaciones, asistencia e ingresos esta semana (confianza ${confianza}).`;
+  }
+  if (nivel === 'medio') {
+    return `Monitorear KPIs operativos y plan de mejora quincenal (confianza ${confianza}).`;
+  }
+  return `Operación estable: mantener controles y seguimiento mensual (confianza ${confianza}).`;
+}
+
 function MetricCard({
   label,
   value,
@@ -390,6 +401,19 @@ export default function PrediccionesPage() {
         {/* ── TAB: Predicciones ── */}
         {activeTab === 'predicciones' && (
           <div className="mt-4 space-y-4">
+            <div className="rounded-xl border border-violet-100 bg-violet-50 p-4">
+              <p className="text-[13px] font-semibold text-violet-700">¿Qué predice este modelo?</p>
+              <p className="mt-1 text-[12px] text-violet-700/90">
+                Clasifica el <span className="font-semibold">riesgo operativo por clínica (tenant)</span> en
+                bajo, medio o alto usando métricas operativas agregadas (pacientes, citas, cancelaciones,
+                ingresos y actividad).
+              </p>
+              <p className="mt-2 text-[12px] text-violet-700/90">
+                <span className="font-semibold">Probabilidad</span> es la confianza del modelo en esa clase
+                de riesgo para la clínica evaluada.
+              </p>
+            </div>
+
             {/* Resumen de riesgo */}
             {predResult && (
               <div className="grid grid-cols-3 gap-3">
@@ -421,11 +445,16 @@ export default function PrediccionesPage() {
                       <tr className="border-b border-gray-100 bg-gray-50 text-left">
                         <th className="px-4 py-3 font-semibold text-gray-600">Clínica / Tenant</th>
                         <th className="px-4 py-3 font-semibold text-gray-600">Riesgo</th>
-                        <th className="px-4 py-3 font-semibold text-gray-600">Probabilidad</th>
+                        <th className="px-4 py-3 font-semibold text-gray-600">
+                          <span title="Confianza del modelo en la clase de riesgo asignada.">
+                            Probabilidad
+                          </span>
+                        </th>
                         <th className="px-4 py-3 font-semibold text-gray-600">Pacientes</th>
                         <th className="px-4 py-3 font-semibold text-gray-600">Citas</th>
                         <th className="px-4 py-3 font-semibold text-gray-600">% Canceladas</th>
                         <th className="px-4 py-3 font-semibold text-gray-600">Días activo</th>
+                        <th className="px-4 py-3 font-semibold text-gray-600">Acción sugerida</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -470,6 +499,9 @@ export default function PrediccionesPage() {
                           </td>
                           <td className="px-4 py-3 text-gray-700">
                             {p.features?.dias_activo ?? '—'}
+                          </td>
+                          <td className="px-4 py-3 text-[12px] text-gray-600">
+                            {recomendacionRiesgo(p.prediccion, p.probabilidad)}
                           </td>
                         </tr>
                       ))}

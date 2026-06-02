@@ -1,5 +1,17 @@
 # CURRENT STATE
 
+## Actualización 2026-06-02 — UX explicativa en Reportes Predictivos (plataforma)
+
+- Se mejoró la claridad funcional en `frontend/src/app/platform/dashboard/predicciones/page.tsx`.
+- En la pestaña **Predicciones** ahora se muestra un bloque explicativo:
+  - qué predice el modelo (riesgo operativo por clínica/tenant),
+  - qué significa la probabilidad (confianza del modelo).
+- Se agregó columna **Acción sugerida** por fila de clínica, basada en:
+  - nivel de riesgo (`bajo`, `medio`, `alto`),
+  - confianza de predicción (`alta`, `media`, `baja`).
+- Se mantuvo la información técnica existente (métricas, variables e historial), pero con contexto de negocio más entendible para usuario no técnico.
+- Validación: `npm run build` frontend OK (sin errores bloqueantes).
+
 ## Actualización 2026-06-02 — Facturación mobile con Stripe real (fallback a mock)
 
 - Se integró Stripe Checkout en `backend/apps/administracionFinanciera/facturacion/services/pasarela.py` para pagos de facturas clínicas.

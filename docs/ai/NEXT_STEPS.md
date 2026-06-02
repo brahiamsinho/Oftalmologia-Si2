@@ -55,6 +55,8 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] **CU19 Backend:** `apps.administracionFinanciera.descuentos`. **Pendiente:** UI `/descuentos`, notificación asignación, tests.
 - [x] **CU20 Backend (cerrado):** facturación, pasarela mock, PDF, notificaciones, API paciente/cita.
 - [ ] **CU20:** UI `/facturacion`, pasarela real producción, mobile pagos.
+- [x] Predicciones plataforma: agregar explicación funcional ("qué predice" + "qué significa probabilidad") y acción sugerida por riesgo.
+- [ ] Predicciones plataforma: agregar tooltips por feature clave (`pct_canceladas`, `tasa_asistencia`, `total_ingresos`) para interpretación guiada.
 - [ ] **Referencia:** mapa paquetes → `docs/ai/PACKAGE_CU_MAP.md`.
 - [x] Backend: CustomUser + JWT (ya existía; login refinado a email + `check_password`).
 - [x] Mobile: Login real + home paciente con `GET /citas/` + tema/rutas base.
