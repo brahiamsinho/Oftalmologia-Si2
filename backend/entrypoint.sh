@@ -276,7 +276,7 @@ fi
 # 6. Seeders opcionales
 # -------------------------------------------------------------------
 if [ "${RUN_SEEDERS:-1}" = "1" ]; then
-  echo "🌱 Running seeders..."
+  echo "🌱 Running seeders (idempotentes: no borran datos; postgres_data persiste entre rebuilds)..."
 
   python manage.py shell <<'PY'
 import importlib
@@ -306,9 +306,15 @@ def run_seed(module_path):
         print(f"⚠️ {module_path} falló (el arranque continúa): {exc}")
         return
 
-    if isinstance(result, tuple) and len(result) == 2:
+    if isinstance(result, tuple) and len(result) == 3:
+        creados, existentes, synced = result
+        msg = f"✅ {module_path}: creados={creados}, existentes={existentes}"
+        if synced:
+            msg += f", passwords_synced={synced}"
+        print(msg)
+    elif isinstance(result, tuple) and len(result) == 2:
         creados, existentes = result
-        print(f"✅ {module_path}: creados={creados}, existentes={existentes}")
+        print(f"✅ {module_path}: creados={creados}, existentes={existentes} (sin cambios)")
     else:
         print(f"✅ {module_path}: executed.")
 
@@ -321,6 +327,9 @@ def run_seed(module_path):
 public_seeders = [
     "seeders.seed_platform_admin",
 ]
+
+if os.environ.get("RUN_SAAS_DEMO_FLEET", "1") == "1":
+    public_seeders.append("seeders.seed_saas_demo_fleet")
 
 tenant_seeders = [
     "seeders.seed_admin",

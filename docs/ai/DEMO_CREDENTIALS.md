@@ -13,21 +13,30 @@ Estas credenciales son de **desarrollo/demo** y se crean desde seeders.
 
 Seeder: `backend/seeders/seed_saas_demo_fleet.py`
 
-- Clínica Norte Visión (`clinica-norte`, FREE)
-  - Email: `admin.norte@oftalmologia.local`
-  - Password: `AdminNorte123!`
-- Centro Oftalmológico Sur (`clinica-sur`, FREE)
-  - Email: `admin.sur@oftalmologia.local`
-  - Password: `AdminSur123!`
-- Clínica Andina de Ojos (`clinica-andina`, PLUS)
-  - Email: `admin.andina@oftalmologia.local`
-  - Password: `AdminAndina123!`
-- Instituto Ocular Pacífico (`clinica-pacifico`, PLUS)
-  - Email: `admin.pacifico@oftalmologia.local`
-  - Password: `AdminPacifico123!`
-- Prime Eye Center (`clinica-prime`, PRO)
-  - Email: `admin.prime@oftalmologia.local`
-  - Password: `AdminPrime123!`
+Se ejecuta automáticamente al arrancar Docker si `RUN_SEEDERS=1` y `RUN_SAAS_DEMO_FLEET=1` (default).
+
+Comando manual:
+
+```bash
+docker compose exec backend python manage.py seed --schema public --only saas_demo_fleet
+```
+
+| Clínica | Slug | Plan | Login | Email | Password |
+|---------|------|------|-------|-------|----------|
+| Clínica Norte Visión | `clinica-norte` | FREE | `/t/clinica-norte/login` | `admin.norte@oftalmologia.local` | `AdminNorte123!` |
+| Centro Oftalmológico Sur | `clinica-sur` | FREE | `/t/clinica-sur/login` | `admin.sur@oftalmologia.local` | `AdminSur123!` |
+| Clínica Andina de Ojos | `clinica-andina` | PLUS | `/t/clinica-andina/login` | `admin.andina@oftalmologia.local` | `AdminAndina123!` |
+| Instituto Ocular Pacífico | `clinica-pacifico` | PLUS | `/t/clinica-pacifico/login` | `admin.pacifico@oftalmologia.local` | `AdminPacifico123!` |
+| Prime Eye Center | `clinica-prime` | PRO | `/t/clinica-prime/login` | `admin.prime@oftalmologia.local` | `AdminPrime123!` |
+
+Cada clínica incluye: permisos, roles, tipos de cita, seguros, descuentos, facturación y datos de reportes (6 meses).
+
+Los pacientes de reportes usan **prefijo por clínica** (`CNRT-`, `CSUR-`, etc.) y nombres distintos por tenant (`seeders/demo_data_variety.py`). Tras actualizar seeders:
+
+```bash
+docker compose exec backend python manage.py seed --schema public --only saas_demo_fleet
+docker compose exec backend python manage.py seed --tenant clinica-demo --only reporting_6months
+```
 
 ## 3) Tenant demo base (`clinica-demo`)
 

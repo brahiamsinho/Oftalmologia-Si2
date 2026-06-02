@@ -112,6 +112,13 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] Multi-tenant: escenario demo con múltiples clínicas (2 FREE, 2 PLUS, 1 PRO) y dataset histórico por tenant.
 - [ ] Multi-tenant: exponer selector de clínica en frontend web igual que mobile (slug -> login) para operar la flota demo sin cambiar URLs manualmente.
 - [ ] Multi-tenant: validar que seeders se ejecutan correctamente en schema del tenant y no en `public`.
+- [ ] Facturación: cambiar selector de paciente a autocomplete virtualizado (componente reutilizable) para escalar cuando haya >500 fichas.
+- [ ] Mobile push: forzar registro de token FCM (post-login y al abrir app) con trazas de diagnóstico en dispositivo real para evitar `Sin FCM token`.
+- [ ] Mobile push: reemplazar `mobile/android/app/google-services.json` placeholder por archivo real del mismo proyecto Firebase que usa `backend/firebase-credentials.json`.
+- [x] Facturación mobile demo: agregar flujo "Simular pago" dentro de app para evitar pantalla técnica DRF y confirmar cobro mock desde factura.
+- [x] Pasarela CU20 producción (fase 1): iniciar pago en línea con Stripe Checkout real para facturación clínica, manteniendo fallback mock.
+- [ ] Pasarela CU20 producción (fase 2): webhook/confirmación automática post-checkout para reflejo inmediato en mobile sin refresco manual.
+- [x] Facturación: definir regla de negocio final para emisión (`solo pacientes con cuenta app` vs `todas las fichas clínicas`) y documentarla en UX.
 - [x] Reportes: corregir ejecución de predefinidos agregando endpoint `POST /reportes-qbe/plantillas/<id>/run/` y alinear contrato `{qbe, report}`.
 - [x] UX copy: quitar referencias visibles `CUxx` de la UI en módulos operativos.
 - [ ] Backup: rebuild Docker backend para incluir `postgresql-client` (pg_dump/psql).

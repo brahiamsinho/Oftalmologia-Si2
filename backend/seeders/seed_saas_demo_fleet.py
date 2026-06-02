@@ -35,7 +35,7 @@ from apps.tenant.models import (
     TenantUsage,
 )
 
-from seeders import seed_reporting_6months, seed_tipos_cita
+from seeders.tenant_seeders import run_tenant_seeders
 
 
 @dataclass(frozen=True)
@@ -231,8 +231,7 @@ def run():
 
         with schema_context(tenant.schema_name):
             admin_created = _ensure_admin_in_tenant(clinic)
-            tipos_created, tipos_existing = seed_tipos_cita.run()
-            rpt_created, rpt_existing = seed_reporting_6months.run()
+            seed_created, seed_existing = run_tenant_seeders()
 
         if tenant_created:
             created_count += 1
@@ -244,8 +243,8 @@ def run():
         else:
             existing_count += 1
 
-        created_count += tipos_created + rpt_created
-        existing_count += tipos_existing + rpt_existing
+        created_count += seed_created
+        existing_count += seed_existing
 
         credentials.append(
             (
@@ -259,9 +258,12 @@ def run():
 
     print('\n🏥 SaaS demo fleet lista:\n')
     for name, slug, plan, email, password in credentials:
-        print(
-            f'  - {name} ({slug}) [{plan}] -> {email} / {password}'
-        )
-    print()
+        print(f'  - {name}')
+        print(f'      slug:     {slug}')
+        print(f'      plan:     {plan}')
+        print(f'      login:    /t/{slug}/login')
+        print(f'      email:    {email}')
+        print(f'      password: {password}')
+        print()
 
     return created_count, existing_count

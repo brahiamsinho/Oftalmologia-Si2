@@ -12,7 +12,7 @@ class PlatformLoginSerializer(serializers.Serializer):
         raw = attrs.get('password')
 
         try:
-            admin = PlatformAdministrator.objects.get(email=email)
+            admin = PlatformAdministrator.objects.get(email__iexact=email)
         except PlatformAdministrator.DoesNotExist:
             raise serializers.ValidationError(
                 {'detail': 'Credenciales inválidas.'},

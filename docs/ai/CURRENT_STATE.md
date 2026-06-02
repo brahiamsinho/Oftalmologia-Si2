@@ -1,5 +1,78 @@
 # CURRENT STATE
 
+## Actualización 2026-06-02 — Facturación mobile con Stripe real (fallback a mock)
+
+- Se integró Stripe Checkout en `backend/apps/administracionFinanciera/facturacion/services/pasarela.py` para pagos de facturas clínicas.
+- `iniciar_pago_en_linea(...)` ahora:
+  - usa Stripe si `STRIPE_SECRET_KEY` está configurada;
+  - conserva fallback mock solo si Stripe no está habilitado.
+- Se implementó reutilización robusta del cobro pendiente:
+  - si ya hay sesión Stripe asociada (`cs_...`), intenta reutilizar URL;
+  - si Stripe reporta `payment_status=paid`, confirma internamente y pide refrescar factura.
+- Se agregó metadata de tenant/factura/cobro en la sesión Stripe para trazabilidad.
+- `FacturaClinicaViewSet.iniciar_pago_en_linea_action` ahora pasa `tenant_slug` al servicio para construir `success_url/cancel_url` con contexto tenant.
+- Mobile mantiene:
+  - Stripe real abre checkout externo;
+  - mock detectado sigue permitiendo "Simular pago" para entornos sin Stripe.
+
+## Actualización 2026-06-02 — Pasarela mobile demo usable (sin pantalla técnica DRF)
+
+- Se agregó endpoint tenant para UX demo de paciente:
+  - `POST /t/<slug>/api/facturacion/facturas/{id}/confirmar-pago-mock/`
+  - Implementado en `FacturaClinicaViewSet.confirmar_pago_mock_action`.
+  - Confirma el último cobro `EN_LINEA` pendiente de la factura usando `confirmar_pago_pasarela(...)`.
+- Objetivo: evitar que el paciente dependa del webhook técnico `confirmar-pasarela` (header secreto) y de la pantalla DRF mock.
+- Mobile actualizado:
+  - `FacturacionRepository.confirmarPagoMock(idFactura)` nuevo método.
+  - `MisFacturasScreen._pagarEnLinea(...)` ahora detecta URL mock (`/facturacion/pasarela/mock-checkout/`) y abre diálogo:
+    - **Simular pago** -> confirma desde app -> refresca lista (`ref.invalidate(misFacturasProvider)`).
+    - Muestra snackbar `Pago confirmado (modo demo).`
+- Validación:
+  - `flutter analyze` en archivos mobile modificados -> sin issues.
+  - `docker compose exec backend python manage.py check` -> OK.
+
+## Actualización 2026-06-02 — Mobile paciente: fix crash en Mis Facturas + estado push
+
+- Se corrigió crash en `mobile/lib/features/administracion_financiera/domain/factura_resumen.dart`:
+  - error observado: `type 'String' is not a subtype of type 'num?' in type cast`.
+  - causa: backend serializa montos como string (`"2125.00"`), parser mobile casteaba a `num`.
+  - fix: parser robusto `_asDouble(dynamic)` para aceptar `num|string|null`.
+- Se amplió mapeo de estado en mobile para compatibilidad con backend (`EMITIDA`, `PAGADA_PARCIAL`, `BORRADOR` -> `pendiente` visual).
+- Diagnóstico push en logs: login llega sin `fcm_token` (`[login] Sin FCM token...`) => notificación queda en BD pero no se envía push FCM al dispositivo.
+- Hardening mobile push: `PushNotifications._getToken()` ahora reintenta 3 veces con backoff corto antes de devolver `null`, para reducir falsos “sin token” justo al iniciar app.
+- Fix pasarela mobile: `FacturacionRepository.iniciarPagoEnLinea()` ahora resuelve URL relativa (`/api/...`) a URL absoluta con host del `API_BASE_URL`, evitando fallo de `url_launcher`.
+- Fix pasarela backend: `iniciar_pago_en_linea` ahora es idempotente; si ya hay cobro EN_LINEA pendiente reutiliza la referencia en vez de devolver error.
+- Fix multi-tenant pasarela: `iniciar_pago_en_linea_action` reescribe `checkout_url` a `/t/<slug>/api/...` cuando aplica tenant; evita 404 al abrir checkout desde mobile.
+- Mejora UX de errores en mobile facturas: muestra `detail` de API cuando existe (ej. validaciones de pago), en lugar de mensaje genérico.
+- Hallazgo de configuración: `mobile/android/app/google-services.json` está con placeholders (`tu-project-id`, `TU_API_KEY_AQUI`) y no corresponde al proyecto Firebase real.
+
+## Actualización 2026-06-02 — Facturación: pacientes de reportes sin duplicados visuales
+
+- `seed_reporting_6months` se rediseñó para usar **12 fichas clínicas únicas** por tenant (documento estable `CODE-RPT-###`) en vez de generar pacientes “nuevos por mes”.
+- Antes de sembrar, ahora limpia:
+  - legacy `RPT6M-*`,
+  - fichas analíticas previas marcadas con `analítica de reportes` (conserva el paciente demo con cuenta móvil).
+- Resultado esperado en facturación: desaparece el patrón de nombres repetidos que parecía duplicado.
+- En modal **Nueva Factura** el selector quedó restringido a **pacientes con usuario app vinculado** (`usuario != null`).
+- Si solo existe una cuenta paciente (caso demo), queda auto-seleccionada para evitar bloqueo de UX.
+- Se mantiene explícita la diferencia entre **ficha clínica Paciente** y **Usuario tipo PACIENTE**.
+
+## Actualización 2026-06-02 — Seeders idempotentes + sync contraseñas demo
+
+- **Los seeders NO borran ni recrean datos** al reconstruir contenedores: PostgreSQL persiste en el volumen `postgres_data` (`Skipping initialization` en logs).
+- `creados=0, existentes=N` significa “ya estaba en BD, se saltó la creación”, no sobreescritura masiva.
+- `SYNC_DEMO_PASSWORDS=1` (default en `.env.example`): al arrancar, `seed_platform_admin` y `seed_admin` ejecutan `set_password()` en cuentas demo existentes.
+- Logs entrypoint: `passwords_synced=N` cuando se sincronizó una contraseña demo.
+- Login plataforma verificado: `POST /api/public/platform/auth/login/` con `platform@oftalmologia.local` / `platform123`.
+
+## Actualización 2026-06-02 — Flota SaaS demo en entrypoint
+
+- `seed_saas_demo_fleet` ahora corre en arranque Docker (`RUN_SAAS_DEMO_FLEET=1`, default) junto a `seed_platform_admin`.
+- Cada clínica de la flota recibe seeders tenant completos (permisos, roles, seguros, descuentos, facturación, reportes 6 meses) vía `seeders/tenant_seeders.py`.
+- 5 organizaciones visibles en `/platform/dashboard`: norte/sur (FREE), andina/pacífico (PLUS), prime (PRO).
+- Credenciales: `docs/ai/DEMO_CREDENTIALS.md` §2.
+- Comando manual: `python manage.py seed --schema public --only saas_demo_fleet`.
+
 ## Actualización 2026-06-01 — CU21: Pago QR + Transferencia bancaria
 
 ### Backend

@@ -1,11 +1,12 @@
 """
 seeders/seed_reporting_6months.py
 
-Genera datos históricos mínimos de 6 meses para reportes:
-- pacientes con fecha_registro distribuida por mes
-- citas con distintos estados (ATENDIDA, NO_ASISTIO, CANCELADA, CONFIRMADA)
+Genera datos históricos de ~6 meses para reportes (QBE + IA):
+- **12 fichas clínicas únicas** por tenant (nombres distintos, sin repetir 4x el mismo)
+- varias citas repartidas en el tiempo sobre esos mismos pacientes
 
-Este seeder está orientado a mejorar pruebas de reportes QBE + IA.
+Importante: esto crea registros en ``Paciente``, no usuarios con rol PACIENTE.
+La cuenta app de paciente la crea ``seed_demo_paciente`` (Brandon).
 """
 from datetime import date, timedelta
 
@@ -16,20 +17,21 @@ from apps.atencionClinica.citas.models import Cita, EstadoCita, TipoCita, TipoCi
 from apps.atencionClinica.especialistas.models import Especialista
 from apps.pacientes.pacientes.models import EstadoPaciente, Paciente
 
-NOMBRES = [
-    ('María', 'Fernández'),
-    ('José', 'Vargas'),
-    ('Lucía', 'Mamani'),
-    ('Carlos', 'Suárez'),
-    ('Daniela', 'Paredes'),
-    ('Miguel', 'Rojas'),
-    ('Andrea', 'Quispe'),
-    ('Raúl', 'Arce'),
-    ('Paola', 'Medina'),
-    ('Héctor', 'Flores'),
-    ('Natalia', 'Soria'),
-    ('Ricardo', 'Herrera'),
-]
+from seeders.demo_data_variety import (
+    REPORTING_SEED_TAG,
+    get_tenant_profile,
+    patient_address,
+    patient_email,
+    patient_history_number,
+    patient_identity,
+    remove_legacy_rpt6m_patients,
+    remove_reporting_analytics_patients,
+    reporting_patient_document,
+)
+
+# Fichas clínicas de demo para reportes (no confundir con usuarios PACIENTE del módulo Usuarios).
+UNIQUE_REPORTING_PATIENTS = 12
+CITAS_POR_MES = 4
 
 MOTIVOS = [
     'Control de agudeza visual',
@@ -38,6 +40,8 @@ MOTIVOS = [
     'Control postoperatorio de facoemulsificación',
     'Molestia ocular y ojo seco',
     'Chequeo por visión borrosa',
+    'Campimetría de seguimiento',
+    'Adaptación de lentes de contacto',
 ]
 
 OBSERVACIONES = [
@@ -46,6 +50,7 @@ OBSERVACIONES = [
     'Paciente refiere mejoría parcial, continuar con lágrimas artificiales.',
     'Se solicita nueva campimetría en próxima visita.',
     'Sin hallazgos de alarma en segmento anterior.',
+    'Revisión de fondo de ojo programada en 3 meses.',
 ]
 
 SEGUROS = ['Particular', 'Caja Petrolera', 'Seguro Universitario', 'Convenio Empresarial']
@@ -55,7 +60,6 @@ SEXOS = ['F', 'M']
 
 def _month_anchor(months_back: int):
     now = dj_tz.localtime(dj_tz.now())
-    # Aproximación robusta sin dependencias extra (30 días por mes).
     anchor = now - timedelta(days=months_back * 30)
     return anchor.replace(day=15, hour=10, minute=0, second=0, microsecond=0)
 
@@ -64,18 +68,21 @@ def _ensure_tipo_consulta():
     return TipoCita.objects.get(nombre=TipoCitaNombre.CONSULTA)
 
 
-def _ensure_specialists():
-    specialists = list(Especialista.objects.filter(activo=True)[:2])
+def _ensure_specialists(profile):
+    specialists = list(Especialista.objects.filter(activo=True)[:3])
     if specialists:
         return specialists
 
     User = get_user_model()
+    username = f'medico.reportes.{profile.code.lower()}'
+    email = f'reportes.{profile.code.lower()}@oftalmologia.local'
+
     medic, _created = User.objects.get_or_create(
-        username='medico.reportes',
+        username=username,
         defaults={
-            'email': 'medico.reportes@oftalmologia.local',
+            'email': email,
             'nombres': 'Médico',
-            'apellidos': 'Reportes',
+            'apellidos': f'Reportes {profile.code}',
             'tipo_usuario': 'MEDICO',
             'estado': 'ACTIVO',
             'is_active': True,
@@ -88,7 +95,7 @@ def _ensure_specialists():
         usuario=medic,
         defaults={
             'especialidad': 'Oftalmología general',
-            'codigo_profesional': 'MP-RPT-001',
+            'codigo_profesional': f'MP-{profile.code}-RPT',
             'activo': True,
         },
     )
@@ -99,16 +106,13 @@ def _pick(seq, idx):
     return seq[idx % len(seq)]
 
 
-def _birth_date_for_index(idx: int):
-    # Rango 18-78 años, determinístico para mantener idempotencia.
-    age = 18 + (idx % 61)
-    base = date.today() - timedelta(days=(age * 365) + (idx % 30))
-    return base
+def _birth_date_for_index(idx: int, profile_offset: int):
+    age = 18 + ((idx + profile_offset) % 61)
+    return date.today() - timedelta(days=(age * 365) + ((idx + profile_offset) % 30))
 
 
-def _estado_for_patient(global_idx: int):
-    # Distribución realista: más activos/en seguimiento, menos inactivos.
-    bucket = global_idx % 10
+def _estado_for_patient(global_idx: int, profile_offset: int):
+    bucket = (global_idx + profile_offset) % 10
     if bucket <= 4:
         return EstadoPaciente.ACTIVO
     if bucket <= 7:
@@ -118,9 +122,8 @@ def _estado_for_patient(global_idx: int):
     return EstadoPaciente.INACTIVO
 
 
-def _estado_for_cita(global_idx: int, cita_idx: int):
-    # 55% atendidas, 20% confirmadas, 15% no asistió, 10% canceladas.
-    bucket = (global_idx + cita_idx) % 20
+def _estado_for_cita(global_idx: int, cita_idx: int, profile_offset: int):
+    bucket = (global_idx + cita_idx + profile_offset) % 20
     if bucket <= 10:
         return EstadoCita.ATENDIDA
     if bucket <= 14:
@@ -130,115 +133,96 @@ def _estado_for_cita(global_idx: int, cita_idx: int):
     return EstadoCita.CANCELADA
 
 
-def _history_number_for_doc(doc: str):
-    # Evita choques de secuenciales globales cuando hay restores o borrados.
-    token = doc.replace('RPT6M-', '')
-    return f'HC-RPT6M-{token}'
+def _ensure_reporting_patients(profile):
+    """Crea o actualiza las 12 fichas clínicas únicas del tenant."""
+    pacientes = []
+    for slot in range(1, UNIQUE_REPORTING_PATIENTS + 1):
+        nombre, apellido = patient_identity(slot, profile)
+        doc = reporting_patient_document(profile, slot)
+        email = patient_email(nombre, apellido, 2026, 1, slot, profile)
+        seguro = _pick(SEGUROS, slot + profile.offset)
+
+        paciente, _created = Paciente.objects.update_or_create(
+            numero_documento=doc,
+            defaults={
+                'numero_historia': patient_history_number(doc),
+                'tipo_documento': _pick(TIPOS_DOCUMENTO, slot),
+                'nombres': nombre,
+                'apellidos': apellido,
+                'email': email,
+                'telefono': f'+5917{(2000000 + profile.offset + slot):07d}',
+                'sexo': _pick(SEXOS, slot),
+                'fecha_nacimiento': _birth_date_for_index(slot, profile.offset),
+                'direccion': patient_address(slot, profile),
+                'contacto_emergencia_nombre': f'{nombre} {apellido}',
+                'contacto_emergencia_telefono': f'+5917{(3000000 + slot):07d}',
+                'estado_paciente': _estado_for_patient(slot, profile.offset),
+                'fecha_registro': dj_tz.now() - timedelta(days=slot * 12),
+                'observaciones_generales': (
+                    f'Seguro: {seguro}. Ficha clínica demo {profile.code} — {REPORTING_SEED_TAG}. '
+                    'Sin cuenta de app móvil.'
+                ),
+            },
+        )
+        pacientes.append(paciente)
+    return pacientes
 
 
 def run():
+    profile = get_tenant_profile()
     tipo_consulta = _ensure_tipo_consulta()
-    specialists = _ensure_specialists()
+    specialists = _ensure_specialists(profile)
 
     creados = 0
     existentes = 0
-    paciente_index = 0
+
+    remove_legacy_rpt6m_patients()
+    remove_reporting_analytics_patients()
+
+    pacientes = _ensure_reporting_patients(profile)
+    cita_seq = 0
 
     for months_back in range(5, -1, -1):
         base = _month_anchor(months_back)
-        for i in range(8):  # 8 pacientes por mes (48 total)
-            paciente_index += 1
-            nombre, apellido = _pick(NOMBRES, paciente_index - 1)
-            doc = f'RPT6M-{base.year}{base.month:02d}-{i + 1:02d}'
-            email = (
-                f"{nombre.lower()}.{apellido.lower()}.{base.year}{base.month:02d}{i + 1:02d}"
-                '@demo.local'
-            )
-            estado_p = _estado_for_patient(paciente_index)
-            telefono = f'+5917{(2000000 + paciente_index):07d}'
-            seguro = _pick(SEGUROS, paciente_index)
-            tipo_documento = _pick(TIPOS_DOCUMENTO, paciente_index)
-            sexo = _pick(SEXOS, paciente_index)
-            fecha_nacimiento = _birth_date_for_index(paciente_index)
+        for cita_idx in range(CITAS_POR_MES):
+            paciente = pacientes[(months_back * CITAS_POR_MES + cita_idx) % len(pacientes)]
+            slot = pacientes.index(paciente) + 1
+            cita_seq += 1
 
-            paciente, p_created = Paciente.objects.get_or_create(
-                numero_documento=doc,
-                defaults={
-                    'numero_historia': _history_number_for_doc(doc),
-                    'tipo_documento': tipo_documento,
-                    'nombres': nombre,
-                    'apellidos': apellido,
-                    'email': email,
-                    'telefono': telefono,
-                    'sexo': sexo,
-                    'fecha_nacimiento': fecha_nacimiento,
-                    'direccion': f'Zona {_pick(["Norte", "Centro", "Sur", "Este"], paciente_index)}, Santa Cruz',
-                    'contacto_emergencia_nombre': f'{_pick(NOMBRES, paciente_index + 3)[0]} {_pick(NOMBRES, paciente_index + 5)[1]}',
-                    'contacto_emergencia_telefono': f'+5917{(3000000 + paciente_index):07d}',
-                    'estado_paciente': estado_p,
-                    'fecha_registro': base - timedelta(days=i * 3),
-                    'observaciones_generales': f'Seguro: {seguro}. Historia creada para analítica.',
-                },
+            start = (base + timedelta(days=cita_idx * 4)).replace(
+                hour=8 + (cita_seq % 8),
             )
-            if p_created:
-                creados += 1
-            else:
-                paciente.tipo_documento = tipo_documento
-                paciente.estado_paciente = estado_p
-                paciente.email = email
-                paciente.telefono = telefono
-                paciente.sexo = sexo
-                paciente.fecha_nacimiento = fecha_nacimiento
-                paciente.fecha_registro = base - timedelta(days=i * 3)
-                paciente.observaciones_generales = f'Seguro: {seguro}. Historia actualizada para analítica.'
-                paciente.save(
-                    update_fields=[
-                        'tipo_documento',
-                        'estado_paciente',
-                        'email',
-                        'telefono',
-                        'sexo',
-                        'fecha_nacimiento',
-                        'fecha_registro',
-                        'observaciones_generales',
-                    ]
-                )
+            end = start + timedelta(minutes=25 + (cita_seq % 3) * 10)
+            estado_c = _estado_for_cita(slot, cita_idx, profile.offset)
+            especialista = specialists[cita_seq % len(specialists)]
+            motivo = _pick(MOTIVOS, cita_seq + profile.offset)
+            observacion = _pick(OBSERVACIONES, cita_seq)
+
+            cita_exists = Cita.objects.filter(
+                id_paciente=paciente,
+                fecha_hora_inicio=start,
+                motivo=motivo,
+            ).exists()
+
+            if cita_exists:
                 existentes += 1
+                continue
 
-            for j in range(3):  # 3 citas por paciente en 6 meses
-                start = (base + timedelta(days=(i * 2) + (j * 8))).replace(hour=8 + ((paciente_index + j) % 8))
-                end = start + timedelta(minutes=25 + ((paciente_index + j) % 3) * 10)
-                estado_c = _estado_for_cita(paciente_index, j)
-                especialista = specialists[(paciente_index + j) % len(specialists)]
-                motivo = _pick(MOTIVOS, paciente_index + j)
-                observacion = _pick(OBSERVACIONES, paciente_index + j)
-
-                cita_exists = Cita.objects.filter(
-                    id_paciente=paciente,
-                    fecha_hora_inicio=start,
-                    motivo=motivo,
-                ).exists()
-
-                if cita_exists:
-                    existentes += 1
-                    continue
-
-                Cita.objects.create(
-                    id_paciente=paciente,
-                    id_especialista=especialista,
-                    id_tipo_cita=tipo_consulta,
-                    fecha_hora_inicio=start,
-                    fecha_hora_fin=end,
-                    estado=estado_c,
-                    motivo=motivo,
-                    observaciones=(
-                        f'{observacion} '
-                        f'[Semilla analítica {base.year}-{base.month:02d}]'
-                    ),
-                    confirmada_en=start if estado_c in (EstadoCita.CONFIRMADA, EstadoCita.ATENDIDA) else None,
-                    creado_por=especialista.usuario,
-                    fecha_creacion=start - timedelta(days=1),
-                )
-                creados += 1
+            Cita.objects.create(
+                id_paciente=paciente,
+                id_especialista=especialista,
+                id_tipo_cita=tipo_consulta,
+                fecha_hora_inicio=start,
+                fecha_hora_fin=end,
+                estado=estado_c,
+                motivo=motivo,
+                observaciones=(
+                    f'{observacion} [{profile.code} · {base.year}-{base.month:02d}]'
+                ),
+                confirmada_en=start if estado_c in (EstadoCita.CONFIRMADA, EstadoCita.ATENDIDA) else None,
+                creado_por=especialista.usuario,
+                fecha_creacion=start - timedelta(days=1),
+            )
+            creados += 1
 
     return creados, existentes

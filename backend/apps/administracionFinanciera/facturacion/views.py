@@ -27,6 +27,7 @@ from .serializers import (
     RegistrarCobroSerializer,
 )
 from .services import (
+    confirmar_pago_pasarela,
     generar_comprobante_pdf,
     generar_comprobante_texto,
     generar_qr_pago,
@@ -121,7 +122,7 @@ class FacturaClinicaViewSet(FacturacionBitacoraMixin, viewsets.ModelViewSet):
             return [IsAuthenticated(), IsAdministrativoOrAdmin()]
         if self.action in ('registrar_cobro',):
             return [IsAuthenticated(), IsAdministrativoOrAdmin()]
-        if self.action in ('iniciar_pago_en_linea',):
+        if self.action in ('iniciar_pago_en_linea', 'confirmar_pago_mock_action'):
             return [IsAuthenticated(), EsPropietarioFacturaPaciente()]
         if self.action in ('mis_pendientes',):
             return [IsAuthenticated(), IsPaciente()]
@@ -246,7 +247,12 @@ class FacturaClinicaViewSet(FacturacionBitacoraMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='iniciar-pago-en-linea')
     def iniciar_pago_en_linea_action(self, request, pk=None):
         factura = self.get_object()
-        resultado = iniciar_pago_en_linea(factura)
+        tenant_slug = getattr(getattr(request, 'tenant', None), 'slug', None)
+        resultado = iniciar_pago_en_linea(factura, tenant_slug=tenant_slug)
+        checkout_url = resultado.get('checkout_url')
+        if tenant_slug and isinstance(checkout_url, str) and checkout_url.startswith('/api/'):
+            # En esquema tenant las rutas públicas van bajo /t/<slug>/api/...
+            resultado['checkout_url'] = f'/t/{tenant_slug}{checkout_url}'
         self._registrar(
             AccionBitacora.EDITAR,
             f'Inició pago en línea factura {factura.numero_factura}',
@@ -254,9 +260,43 @@ class FacturaClinicaViewSet(FacturacionBitacoraMixin, viewsets.ModelViewSet):
         )
         return Response(resultado, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=['post'], url_path='confirmar-pago-mock')
+    def confirmar_pago_mock_action(self, request, pk=None):
+        """
+        Flujo demo mobile/web: confirma el último cobro EN_LINEA pendiente de la factura.
+        Evita exponer el webhook técnico `confirmar-pasarela` al paciente.
+        """
+        factura = self.get_object()
+        cobro = factura.cobros.filter(
+            estado=EstadoCobro.PENDIENTE,
+            metodo_pago=MetodoPagoClinico.EN_LINEA,
+        ).order_by('-created_at').first()
+        if not cobro:
+            return Response(
+                {'detail': 'No hay un intento de pago en línea pendiente para esta factura.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        cobro_confirmado = confirmar_pago_pasarela(cobro.referencia_pasarela, exito=True)
+        factura.refresh_from_db()
+        self._registrar(
+            AccionBitacora.EDITAR,
+            f'Confirmó pago mock factura {factura.numero_factura}',
+            factura,
+        )
+        return Response(
+            {
+                'cobro': CobroClinicoSerializer(cobro_confirmado).data,
+                'factura': FacturaClinicaSerializer(factura).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
     @action(detail=True, methods=['get'], url_path='comprobante')
     def comprobante(self, request, pk=None):
         factura = self.get_object()
+        if request.query_params.get('formato') == 'texto':
+            return Response({'texto': generar_comprobante_texto(factura)})
         try:
             pdf_bytes = generar_comprobante_pdf(factura)
             response = HttpResponse(pdf_bytes, content_type='application/pdf')
@@ -311,7 +351,7 @@ class CobroClinicoViewSet(FacturacionBitacoraMixin, viewsets.ReadOnlyModelViewSe
         self._registrar(
             AccionBitacora.EDITAR,
             f'Pasarela {cobro.estado} cobro #{cobro.pk} factura {factura.numero_factura}',
-            factura,
+            cobro,
         )
         factura.refresh_from_db()
         return Response(

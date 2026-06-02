@@ -71,6 +71,7 @@ SEEDERS = {
     'reporting_6months': (
         'seeders.seed_reporting_6months',
         'Datos históricos de 6 meses para reportes',
+    ),
     'recordatorios': (
         'seeders.seed_recordatorios',
         'Reglas de recordatorio CU17',
@@ -156,6 +157,7 @@ class Command(BaseCommand):
     def _run_seeders(self, targets, only=None):
         total_creados = 0
         total_existentes = 0
+        total_synced = 0
 
         schema_actual = getattr(
             connection,
@@ -163,14 +165,16 @@ class Command(BaseCommand):
             get_public_schema_name(),
         )
 
+        PUBLIC_ONLY_SEEDERS = frozenset({'platform_admin', 'saas_demo_fleet'})
+
         if schema_actual != get_public_schema_name():
             targets = {
-                k: v for k, v in targets.items() if k != 'platform_admin'
+                k: v for k, v in targets.items() if k not in PUBLIC_ONLY_SEEDERS
             }
-            if only == 'platform_admin' or (only is None and not targets):
+            if only in PUBLIC_ONLY_SEEDERS or (only is None and not targets):
                 raise CommandError(
-                    'El seeder platform_admin solo se ejecuta en schema public. '
-                    'Usá: python manage.py seed --schema public --only platform_admin'
+                    f'El seeder {only or "public-only"} solo se ejecuta en schema public. '
+                    'Usá: python manage.py seed --schema public --only <nombre>'
                 )
         if not targets:
             raise CommandError(
@@ -188,28 +192,37 @@ class Command(BaseCommand):
 
             try:
                 module = importlib.import_module(module_path)
-                creados, existentes = module.run()
+                result = module.run()
+                if isinstance(result, tuple) and len(result) == 3:
+                    creados, existentes, synced = result
+                else:
+                    creados, existentes = result
+                    synced = 0
 
                 total_creados += creados
                 total_existentes += existentes
+                total_synced += synced
 
+                detail = f'✓ {creados} creados, {existentes} ya existían'
+                if synced:
+                    detail += f', {synced} passwords sincronizados'
                 self.stdout.write(
-                    self.style.SUCCESS(
-                        f'✓ {creados} creados, {existentes} ya existían'
-                    )
+                    self.style.SUCCESS(detail)
                 )
 
             except Exception as exc:
                 self.stdout.write(self.style.ERROR(f'✗ ERROR: {exc}'))
                 raise
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f'\n✅ Seeding completado en schema "{schema_actual}": '
-                f'{total_creados} registros creados, '
-                f'{total_existentes} ya existían.\n'
-            )
+        summary = (
+            f'\n✅ Seeding completado en schema "{schema_actual}": '
+            f'{total_creados} registros creados, '
+            f'{total_existentes} ya existían.'
         )
+        if total_synced:
+            summary += f' {total_synced} contraseñas demo sincronizadas.'
+        summary += '\n'
+        self.stdout.write(self.style.SUCCESS(summary))
 
     def handle(self, *args, **options):
         only = options.get('only')

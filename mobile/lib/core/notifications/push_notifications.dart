@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -164,12 +166,21 @@ class PushNotifications {
   /// Retorna null si Firebase no está disponible o el permiso fue denegado.
   static Future<String?> _getToken() async {
     if (_cachedToken != null && _cachedToken!.isNotEmpty) return _cachedToken;
-    try {
-      _cachedToken = await _messaging.getToken();
-      return _cachedToken;
-    } catch (_) {
-      return null;
+    // En algunos dispositivos el token no está listo en el primer intento
+    // inmediatamente después de abrir la app.
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        final token = await _messaging.getToken();
+        if (token != null && token.isNotEmpty) {
+          _cachedToken = token;
+          return _cachedToken;
+        }
+      } catch (_) {
+        // noop: reintenta abajo
+      }
+      await Future<void>.delayed(Duration(milliseconds: 300 * (attempt + 1)));
     }
+    return null;
   }
 
   /// Campos opcionales para el body de `auth/login/` y `auth/register/` (`fcm_token`, `plataforma`).

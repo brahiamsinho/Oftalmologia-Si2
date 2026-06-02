@@ -2,6 +2,58 @@
 
 ## Resumen
 
+**Fecha:** 2026-06-02 — **Pasarela Stripe real en facturación clínica:**
+- Se cambió `iniciar_pago_en_linea` para usar **Stripe Checkout** cuando existe `STRIPE_SECRET_KEY`.
+- Se mantiene fallback a mock si Stripe no está habilitado (entorno dev).
+- Si existe cobro pendiente con referencia Stripe (`cs_...`), intenta reutilizar sesión.
+- Si Stripe indica `payment_status=paid`, se confirma cobro/factura automáticamente en backend.
+- `iniciar_pago_en_linea_action` pasa `tenant_slug` al servicio para URLs de retorno con contexto multi-tenant.
+- Verificación ejecutada: `docker compose exec backend python manage.py check` OK.
+
+**Fecha:** 2026-06-02 — **Pasarela de pagos mobile (modo demo) ahora usable:**
+- Problema UX: paciente tocaba "Pagar en línea" y era enviado a una respuesta técnica DRF (`mock-checkout`) percibida como "no funciona".
+- Backend:
+  - Nuevo action en factura: `POST /facturacion/facturas/{id}/confirmar-pago-mock/`.
+  - Implementación en `FacturaClinicaViewSet.confirmar_pago_mock_action`.
+  - Toma el último cobro `EN_LINEA` pendiente y confirma vía `confirmar_pago_pasarela(...)`.
+  - Permiso: `IsAuthenticated + EsPropietarioFacturaPaciente`.
+- Mobile:
+  - `FacturacionRepository.confirmarPagoMock(idFactura)` para consumir el endpoint nuevo.
+  - `MisFacturasScreen` detecta checkout mock y muestra diálogo "Simular pago".
+  - Al confirmar: invoca endpoint, refresca `misFacturasProvider` y notifica éxito.
+- Verificación:
+  - `flutter analyze` (facturación mobile) OK.
+  - `docker compose exec backend python manage.py check` OK.
+
+**Fecha:** 2026-06-02 — **Mobile paciente: fix Mis Facturas + hallazgo FCM token:**
+- Fix en parser `FacturaResumen.fromJson`: montos ahora aceptan string/num/null (evita crash de casteo al abrir Mis Facturas).
+- Mapeo de estados backend extendido en mobile (`EMITIDA`, `PAGADA_PARCIAL`, `BORRADOR` tratados como pendiente).
+- Hallazgo de logs: login sin `fcm_token` => push no sale por FCM, queda solo notificación en BD/API.
+- Hardening aplicado: obtención de token FCM en mobile con 3 reintentos cortos para mejorar registro de dispositivo.
+- Fix pasarela mobile: se normaliza `checkout_url/url/url_pago` a URL absoluta antes de `launchUrl`.
+- Fix pasarela backend: pago en línea ahora reutiliza cobro pendiente (idempotente) para evitar bloqueo al reintentar.
+- Fix pasarela tenant-aware: checkout URL dev ahora incluye prefijo `/t/<slug>/api/...` para no caer en 404 fuera de `public`.
+- Mobile ahora muestra detalle de error de API en facturas/pagos (no solo mensaje genérico).
+- Bloqueo actual push: `google-services.json` de Android está en modo plantilla (placeholders), por lo que FCM no puede operar de forma confiable.
+
+**Fecha:** 2026-06-02 — **Facturación: menos “duplicados” y filtro por cuenta app:**
+- `seed_reporting_6months` ahora genera 12 pacientes únicos por tenant (no 48 con nombres cíclicos).
+- Limpieza automática de dataset antiguo de reportes (`RPT6M-*` y analítica previa), preservando paciente demo con cuenta.
+- En frontend de facturación (`Nueva Factura`) se restringió el selector a pacientes con cuenta app vinculada.
+- Si hay un único paciente con cuenta (demo), queda auto-seleccionado para evitar que “no deje elegir”.
+
+**Fecha:** 2026-06-02 — **Seeders idempotentes + sync passwords demo:**
+- Aclaración operativa: rebuild Docker **no** resetea BD; seeders reportan `existentes` cuando omiten creación.
+- Nuevo `SYNC_DEMO_PASSWORDS=1` (`.env.example`); módulo `seeders/demo_password_sync.py`.
+- `seed_platform_admin` y `seed_admin` devuelven tupla `(creados, existentes, passwords_synced)`.
+- Entrypoint y `manage.py seed` muestran `passwords_synced` en logs.
+- Login plataforma: serializer usa `email__iexact`; frontend distingue error de red vs credenciales.
+
+**Fecha:** 2026-06-02 — **Flota SaaS demo (5 clínicas) en entrypoint:**
+- `seed_saas_demo_fleet` integrado en `entrypoint.sh` (`RUN_SAAS_DEMO_FLEET=1`).
+- Seeders tenant completos por clínica; credenciales en `DEMO_CREDENTIALS.md`.
+- Fix sintaxis en `seed.py`; `seed_platform_admin` sincroniza password demo.
+
 **Fecha:** 2026-05-31 — **Diagramas de secuencia UML 2.5 en EA (CU18, CU21, CU22):**
 - Nuevo paquete EA: `/Model/2.6 Diagramas de Secuencia` (ID 20).
 - Diagramas:

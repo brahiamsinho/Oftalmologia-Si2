@@ -156,9 +156,16 @@ class ConfirmarPasarelaSerializer(serializers.Serializer):
     exito = serializers.BooleanField(default=True)
 
     def create(self, validated_data):
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        from rest_framework.exceptions import ValidationError as DRFValidationError
+
         from .services import confirmar_pago_pasarela
 
-        return confirmar_pago_pasarela(
-            validated_data['referencia_pasarela'],
-            exito=validated_data['exito'],
-        )
+        try:
+            return confirmar_pago_pasarela(
+                validated_data['referencia_pasarela'],
+                exito=validated_data['exito'],
+            )
+        except DjangoValidationError as exc:
+            detail = exc.messages if hasattr(exc, 'messages') else [str(exc)]
+            raise DRFValidationError({'detail': detail}) from exc

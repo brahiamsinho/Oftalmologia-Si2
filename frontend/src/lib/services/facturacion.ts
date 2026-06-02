@@ -213,7 +213,9 @@ export const facturacionService = {
   },
 
   async getComprobanteTexto(id: number): Promise<{ texto: string }> {
-    const { data } = await api.get<{ texto: string }>(`${BASE_FAC}/${id}/comprobante/`);
+    const { data } = await api.get<{ texto: string }>(
+      `${BASE_FAC}/${id}/comprobante/?formato=texto`,
+    );
     return data;
   },
 

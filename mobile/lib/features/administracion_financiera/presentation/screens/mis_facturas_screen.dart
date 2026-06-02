@@ -111,6 +111,7 @@ class _MisFacturasScreenState extends ConsumerState<MisFacturasScreen> {
 class _FacturaCard extends ConsumerWidget {
   const _FacturaCard({required this.factura});
   final FacturaResumen factura;
+  static const _mockCheckoutPath = '/facturacion/pasarela/mock-checkout/';
 
   Color _estadoColor(EstadoFactura e) {
     switch (e) {
@@ -294,14 +295,37 @@ class _FacturaCard extends ConsumerWidget {
   Future<void> _pagarEnLinea(BuildContext ctx, WidgetRef ref, String id) async {
     try {
       final url = await ref.read(facturacionRepositoryProvider).iniciarPagoEnLinea(id);
-      if (url.isNotEmpty && await canLaunchUrl(Uri.parse(url))) {
-        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-      } else {
-        if (ctx.mounted) {
-          ScaffoldMessenger.of(ctx).showSnackBar(
-            const SnackBar(content: Text('No se pudo abrir la pasarela de pago.')),
-          );
+      if (!ctx.mounted) return;
+      if (url.isEmpty) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          const SnackBar(content: Text('No se pudo abrir la pasarela de pago.')),
+        );
+        return;
+      }
+
+      if (_isMockCheckout(url)) {
+        final shouldConfirm = await _askMockConfirmation(ctx);
+        if (!ctx.mounted) return;
+        if (shouldConfirm == true) {
+          await ref.read(facturacionRepositoryProvider).confirmarPagoMock(id);
+          ref.invalidate(misFacturasProvider);
+          if (ctx.mounted) {
+            ScaffoldMessenger.of(ctx).showSnackBar(
+              const SnackBar(content: Text('Pago confirmado (modo demo).')),
+            );
+          }
         }
+        return;
+      }
+
+      final opened = await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened && ctx.mounted) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          const SnackBar(content: Text('No se pudo abrir la pasarela de pago.')),
+        );
       }
     } catch (e) {
       if (ctx.mounted) {
@@ -310,6 +334,35 @@ class _FacturaCard extends ConsumerWidget {
         );
       }
     }
+  }
+
+  bool _isMockCheckout(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return false;
+    return uri.path.contains(_mockCheckoutPath);
+  }
+
+  Future<bool?> _askMockConfirmation(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Pago de prueba'),
+        content: const Text(
+          'Esta clínica está usando pasarela mock de desarrollo.\n\n'
+          '¿Deseas simular pago exitoso para marcar la factura como pagada?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Simular pago'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _verComprobante(BuildContext ctx, WidgetRef ref, String id) async {
