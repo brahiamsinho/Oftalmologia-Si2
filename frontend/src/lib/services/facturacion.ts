@@ -25,7 +25,8 @@ export type MetodoPago =
   | 'EFECTIVO'
   | 'TARJETA'
   | 'TRANSFERENCIA'
-  | 'EN_LINEA';
+  | 'EN_LINEA'
+  | 'QR';
 
 export type EstadoCobro =
   | 'PENDIENTE'
@@ -128,6 +129,30 @@ export interface RegistrarCobroPayload {
   observaciones?: string;
 }
 
+export interface GenerarQRResponse {
+  referencia_pasarela: string;
+  monto: string;
+  numero_factura: string;
+  qr_base64: string;
+  datos_pago: {
+    banco: string;
+    cuenta: string;
+    titular: string;
+    moneda: string;
+    monto: string;
+    factura: string;
+    paciente: string;
+    referencia: string;
+    descripcion: string;
+  };
+  instrucciones: string;
+}
+
+export interface ConfirmarPasarelaPayload {
+  referencia_pasarela: string;
+  exito: boolean;
+}
+
 // ── Service ───────────────────────────────────────────────────────────────────
 
 const BASE_FAC = '/facturacion/facturas';
@@ -198,6 +223,18 @@ export const facturacionService = {
     monto: string;
   }> {
     const { data } = await api.post(`${BASE_FAC}/${id}/iniciar-pago-en-linea/`);
+    return data;
+  },
+
+  /** Genera QR de pago para la factura. Crea cobro PENDIENTE con metodo=QR. */
+  async generarQR(id: number): Promise<GenerarQRResponse> {
+    const { data } = await api.post<GenerarQRResponse>(`${BASE_FAC}/${id}/generar-qr/`);
+    return data;
+  },
+
+  /** Confirma o rechaza un cobro PENDIENTE (QR o en línea) por referencia. */
+  async confirmarPasarela(payload: ConfirmarPasarelaPayload): Promise<{ cobro: CobroCli; factura: FacturaClinica }> {
+    const { data } = await api.post('/facturacion/cobros/confirmar-pasarela/', payload);
     return data;
   },
 };

@@ -27,10 +27,11 @@ class EstadoFactura(models.TextChoices):
 
 
 class MetodoPagoClinico(models.TextChoices):
-    EFECTIVO = 'EFECTIVO', 'Efectivo'
-    TARJETA = 'TARJETA', 'Tarjeta'
-    TRANSFERENCIA = 'TRANSFERENCIA', 'Transferencia'
-    EN_LINEA = 'EN_LINEA', 'Pago en línea'
+    EFECTIVO      = 'EFECTIVO',      'Efectivo'
+    TARJETA       = 'TARJETA',       'Tarjeta'
+    TRANSFERENCIA = 'TRANSFERENCIA', 'Transferencia bancaria'
+    EN_LINEA      = 'EN_LINEA',      'Pago en línea'
+    QR            = 'QR',            'Pago QR'
 
 
 class EstadoCobro(models.TextChoices):

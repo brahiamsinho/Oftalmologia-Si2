@@ -1,5 +1,27 @@
 # CURRENT STATE
 
+## Actualización 2026-06-01 — CU21: Pago QR + Transferencia bancaria
+
+### Backend
+- `MetodoPagoClinico` ahora incluye `QR = 'QR', 'Pago QR'` (migración `0002_qr_metodo_pago` aplicada en todos los schemas).
+- Nuevo servicio `apps/administracionFinanciera/facturacion/services/qr.py`:
+  - `generar_qr_pago(factura)` → crea `CobroClinico` PENDIENTE con `metodo=QR`, genera imagen PNG en base64 con `qrcode[pil]`.
+  - Reutiliza UUID único como `referencia_pasarela` para confirmar después.
+- `confirmar_pago_pasarela` en `pasarela.py` actualizado: acepta `metodo_pago__in=[EN_LINEA, QR]`.
+- Validación en `registrar_cobro_factura`: bloquea CONFIRMADO directo también para QR (requiere flujo 2 pasos).
+- Nuevo action `POST /api/facturacion/facturas/{id}/generar-qr/` en `FacturaClinicaViewSet`.
+- `requirements/base.txt` agrega `qrcode[pil]>=7.4,<9.0`.
+
+### Frontend
+- `MetodoPago` TypeScript incluye `'QR'`.
+- Nuevos tipos/interfaces: `GenerarQRResponse`, `ConfirmarPasarelaPayload`.
+- Nuevos métodos en `facturacionService`: `generarQR(id)`, `confirmarPasarela(payload)`.
+- `ModalRegistrarCobro` refactorizado con 3 flujos diferenciados:
+  - **QR**: botón "Generar QR" → imagen QR del PNG base64 → banco/cuenta/monto → botón "Confirmar pago QR".
+  - **TRANSFERENCIA**: campo obligatorio "N° de referencia/confirmación" (font-mono) → se envía como `referencia_pasarela`.
+  - **EFECTIVO/TARJETA/EN_LINEA**: flujo normal sin cambios.
+- Lista de métodos actualizada con "Pago QR" y "Transferencia bancaria".
+
 ## Actualizacion 2026-05-30 (Portainer ops en produccion)
 
 - Overlay opcional `docker-compose.portainer.yml` — Portainer CE LTS, red interna + localhost `:9000`.
