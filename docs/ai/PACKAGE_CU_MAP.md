@@ -101,9 +101,9 @@ Predefinidos del sistema (`is_system_report=True`) se consideran **parte de CU21
 
 | CU | Nombre | App | API |
 |----|--------|-----|-----|
-| CU23 | Asistente / NL → reporte + chatbot conversacional | `apps.ia` | `/api/ia/nlp-to-report/`, `/api/ia/chatbot/` |
+| CU23 | Asistente virtual Paciente + NL → reporte | `apps.InteligenciaArtificial` + `apps.ia` | `/api/inteligencia-artificial/asistente-virtual/`, `/api/ia/nlp-to-report/` |
 | CU24 | Clasificar urgencia por chatbot | `apps.ia` | `POST /t/<slug>/api/ia/urgency-classification/` (crear), `GET /t/<slug>/api/ia/urgency-classifications/` (listar) |
-| CU25 | Derivación humana desde urgencia crítica | `apps.ia` | `GET/POST /t/<slug>/api/ia/human-handoffs/`, `POST .../accept/`, `POST .../resolve/` |
+| CU25 | Derivación humana desde urgencia crítica | — | No implementado
 
 ---
 
@@ -127,7 +127,7 @@ Paquetes ya avanzados: **Administrativa** CU18–CU20 (backend).
 |-----------|---------|-----|--------|
 | **1** | Reportes | **CU21** | Parcial — CSV + QBE; falta cerrar motor/whitelist |
 | **2** | Reportes | **CU22** | Parcial — plantillas personalizadas + web `/reportes` |
-| **3** | IA | **CU23** | Parcial — NL → reporte (Gemini) |
+| **3** | IA | **CU23** | Parcial/avanzado — asistente Paciente backend + NL → reporte |
 | **4** | IA | **CU24** | Backend implementado — urgencia chatbot determinística |
 | **5** | IA | **CU25** | No implementado — derivar a humano |
 | — | Atención clínica | **CU26** | Revisar — recetas/indicaciones descargables |

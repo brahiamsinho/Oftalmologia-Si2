@@ -1,5 +1,26 @@
 # DECISIONS LOG
 
+---
+
+**Fecha:** 2026-06-18
+**Decision:** Automatizar la derivacion humana critica al crear una clasificacion CU24 `CRITICO`.
+**Motivo:** La derivacion no debe depender de una accion manual de staff cuando el clasificador ya marco una urgencia real; eso introduce demora operativa y riesgo clinico.
+**Impacto:** `ensure_handoff_for_classification(...)` crea o reusa el handoff y notifica al personal disponible desde `apps.ia.views.UrgencyClassificationView` y desde el puente CU23 en `apps.InteligenciaArtificial.views`.
+
+---
+
+**Fecha:** 2026-06-18
+**Decision:** Mantener CU23 con reglas deterministicas como fuente de verdad y usar Gemini solo para reformular respuestas no criticas ya validadas.
+**Motivo:** El asistente del paciente debe seguir siendo auditable y seguro; Gemini mejora el tono y la naturalidad sin decidir urgencias ni inventar contexto.
+**Impacto:** `AsistenteVirtualService` usa Gemini solo para intents reformulables, `views.py` pasa el historial real de `id_conversacion`, y `apps.ia.services.chatbot.GeminiChatbotAssistant` acepta `system_instruction` para reutilizacion.
+
+---
+
+**Fecha:** 2026-06-17
+**Decision:** Implementar el backend del asistente virtual para Paciente en `apps.InteligenciaArtificial`, manteniendo `apps.ia` para el flujo legacy Gemini/QBE.
+**Motivo:** El CU23 solicitado requiere persistencia de conversaciones del paciente, bitacora y derivacion a CU24; eso pertenece al schema tenant de la clinica y no debe mezclarse con el traductor QBE existente.
+**Impacto:** Se agrega una app tenant nueva, un modelo auditable de interacciones, un servicio deterministico de intenciones autorizadas y endpoints bajo `/inteligencia-artificial/` con alias `/ia/asistente-virtual/`. CU24 aun no existe como flujo formal; CU23 deja la senal `requiere_clasificacion_urgencia=True` y metadata `cu24_activado=True`.
+
 Este archivo documenta todas las decisiones técnicas arquitectónicas importantes tomadas en la evolución del proyecto.
 
 ## Formato de Registro

@@ -1,26 +1,93 @@
 # CURRENT STATE
 
-## Actualización 2026-06-17 — CU24 pytest Docker verde
+## Actualizacion 2026-06-18 — Derivacion critica automatica
 
-- Se corrigió el setup de tests API CU24 para subfolder tenancy:
-  - `Domain.domain` ahora coincide con `Tenant.slug` en `backend/apps/ia/tests/test_urgency_classification_api.py`.
-  - Esto permite que `/t/<slug>/api/ia/urgency-classification/` sea resuelto por `TenantSubfolderMiddleware` en pytest.
-- No se cambió código productivo ni contrato API.
-- Validación Docker:
-  - `docker compose exec backend pytest apps/ia/tests -q` -> `13 passed in 89.54s`.
+- La derivacion humana critica ahora se crea automaticamente cuando CU24 devuelve un caso `CRITICO` con `requiere_atencion_humana=True`.
+- El helper `ensure_handoff_for_classification(...)` en `backend/apps/ia/services/human_handoff.py` crea o reusa el handoff y dispara la notificacion al staff disponible.
+- Se engancho el mismo flujo automatico en:
+  - `backend/apps/ia/views.py` para el endpoint CU24.
+  - `backend/apps/InteligenciaArtificial/views.py` para el puente CU23 -> CU24.
+- La respuesta de clasificacion ahora expone `critical_handoff_id` y `critical_handoff_state` cuando ya existe la derivacion automatica.
+- CU23 sigue marcando urgencia de forma deterministica; la derivacion humana real ya no depende de un click manual de staff.
 
-## Actualización 2026-06-17 — CU24 code review fixes
+## Actualizacion 2026-06-18 — CU23 hibrido con Gemini y historial
 
-- Tests API de CU24 ahora apuntan a la ruta tenant canonical:
-  - `POST /t/<slug>/api/ia/urgency-classification/`
-- Se agregó cobertura básica de aislamiento schema-local para `ChatbotUrgencyClassification`: una clasificación creada en un tenant no aparece en otro schema tenant.
-- Se endureció el matcher del clasificador para buscar términos completos y evitar falsos positivos por substring; regresión cubierta: `cal` ya no matchea dentro de `calor`.
-- Assertion anti-spoofing tolera el formato real de error DRF sin relajar la validación de campos prohibidos.
-- Admin de `ChatbotUrgencyClassification` queda en modo lectura para campos generados/auditables y no permite altas manuales desde Django Admin.
-- `docs/ai/PACKAGE_CU_MAP.md` fue corregido para documentar la ruta tenant canonical de CU24.
-- Validación local:
-  - `python -m py_compile ...` OK en archivos Python modificados.
-  - `pytest backend/apps/ia/tests/test_urgency_classifier.py backend/apps/ia/tests/test_urgency_classification_api.py` no pudo correr por entorno local sin `django`/`django_tenants` instalados.
+- El asistente virtual de Paciente ahora tiene flujo hibrido:
+  - reglas deterministicas para urgencias, fuera de alcance y no comprendidas,
+  - Gemini solo para reformular respuestas ya validadas en intentos no criticos.
+- `backend/apps/InteligenciaArtificial/views.py` reconstruye el historial de la conversacion desde `id_conversacion` y lo pasa al motor de respuesta.
+- `backend/apps/InteligenciaArtificial/services/asistente_virtual.py` ahora guarda metadata de observabilidad:
+  - `historial_utilizado`
+  - `gemini_usado`
+  - `gemini_modelo`
+  - `gemini_error` cuando hay fallback.
+- `backend/apps/ia/services/chatbot.py` se generalizo con `system_instruction` para reutilizar el cliente Gemini sin duplicar la logica de llamada.
+- La respuesta base segura sigue siendo la fuente de verdad; Gemini no toca el flujo de urgencia.
+
+## Actualizacion 2026-06-18 — Login por rol y 403 menos agresivo
+
+- El login frontend ahora redirige según `tipo_usuario`:
+  - `PACIENTE` → `/InteligenciaArtificial`
+  - staff → `/dashboard`
+- Se agregó `frontend/src/lib/auth-routing.ts` para reutilizar esa decisión.
+- El interceptor de `frontend/src/lib/api.ts` ya no interpreta cualquier `403` como tenant inactivo; solo redirige si el backend devuelve un `detail` que suena a `inactiv`/`suspend`.
+- Esto evita que una denegación de permisos de un paciente se confunda con una clínica suspendida.
+
+## Actualizacion 2026-06-18 — Cuenta demo adicional de paciente
+
+- Se agregó una segunda cuenta PACIENTE demo para `clinica-demo` en `backend/seeders/seed_demo_paciente.py`.
+- Credencial nueva: `sofia.martinez@oftalmologia.local` / `Paciente456!`.
+- Se actualizó `docs/ai/DEMO_CREDENTIALS.md` para documentar el login de prueba adicional.
+
+## Actualizacion 2026-06-17 — Merge origin/Carlos (CU23) + spint_4_comienzos (CU24)
+
+- Se fusionaron las ramas `origin/Carlos` (CU23 frontend + backend) y `spint_4_comienzos` (CU24 backend + code review + tests Docker).
+- Conflictos resueltos en `docs/ai/CURRENT_STATE.md`, `docs/ai/HANDOFF_LATEST.md` y `docs/ai/PACKAGE_CU_MAP.md`.
+- Sidebar.tsx sin conflictos (resuelto previamente).
+- Cero marcadores de merge en el repo.
+- `NEXT_STEPS.md` actualizado con CU23 items marcados completos y nuevos items de merge.
+
+## Actualizacion 2026-06-17 (CU23 frontend - diseno asistente virtual Paciente)
+
+### Frontend
+- Nueva pantalla en `frontend/src/app/(dashboard)/InteligenciaArtificial/page.tsx`.
+- Ruta del dashboard: `/InteligenciaArtificial`.
+- Diseno implementado: chat para Paciente, accesos rapidos, panel lateral de temas, alerta de riesgo, estado de sesion y marca visual cuando backend activa CU24.
+- Servicio frontend extendido en `frontend/src/services/iaService.ts` con `postPatientAssistantMessage(...)`, `getPatientAssistantHistory(...)` y tipos del contrato CU23.
+- Navegacion actualizada: `Sidebar`, `Header` y `middleware.ts`.
+- Ajuste tecnico en `frontend/next.config.js`: carga dinamica ESM de `@serwist/next` para que `next lint` pueda cargar la config.
+- Fix minimo en facturacion: comillas escapadas en texto de QR para cumplir `react/no-unescaped-entities`.
+
+### Validacion
+- `npm install` ejecutado para restaurar dependencias faltantes del frontend.
+- `npm run lint` OK con warnings existentes en reportes, facturacion y `app/layout.tsx`.
+- `npm run build` fue abortado por duracion; no se considera validacion de esta tarea.
+
+## Actualizacion 2026-06-17 (CU23 backend - asistente virtual para Paciente)
+
+### Backend
+- Nueva app tenant `apps.InteligenciaArtificial` dentro de `backend/apps/InteligenciaArtificial`.
+- Integracion en `TENANT_APPS`, porque las interacciones del asistente pertenecen al schema de cada clinica.
+- Nuevo modelo auditable `InteraccionAsistenteVirtual` (`ia_interacciones_asistente_virtual`) para guardar paciente/usuario, conversacion, mensaje, respuesta, intencion, estado, prioridad, sintomas detectados, metadata, IP, user agent y fecha.
+- Nuevo servicio deterministico `AsistenteVirtualService` para intenciones autorizadas: citas/horarios, procedimientos, preoperatorio, postoperatorio, seguros/facturacion, sistema, saludo, fuera de alcance y no comprendida.
+- Si detecta sintomas o senales de riesgo, marca `requiere_clasificacion_urgencia=True`, `estado=REQUIERE_CU24` y `metadata.cu24_activado=True`.
+- Nuevas rutas tenant:
+  - `POST /t/<slug>/api/inteligencia-artificial/asistente-virtual/`
+  - alias `POST /t/<slug>/api/ia/asistente-virtual/`
+  - historial `GET /t/<slug>/api/inteligencia-artificial/interacciones-asistente/`
+- Seguridad: JWT tenant autenticado + `IsPaciente`; registra bitacora sin copiar el texto completo de la consulta en la descripcion de auditoria.
+- Tests agregados en `backend/apps/InteligenciaArtificial/tests/test_asistente_virtual.py`.
+
+### Validacion
+- `python manage.py check` y `pytest` no pudieron ejecutarse en host por falta de Django/DRF en el Python local.
+- Docker no estaba levantado (`dockerDesktopLinuxEngine` no disponible), por lo que tampoco se pudo validar dentro del contenedor.
+- Validacion estatica ejecutada: parseo/compilacion de sintaxis con `compile(...)` sobre los archivos nuevos: OK.
+
+### Pendiente operativo
+- Ejecutar cuando Docker este disponible:
+  - `docker compose exec backend python manage.py check`
+  - `docker compose exec backend pytest apps/InteligenciaArtificial/tests/test_asistente_virtual.py -q`
+  - `docker compose exec backend python manage.py migrate_schemas --tenant`
 
 ## Actualización 2026-06-17 — CU24 backend: clasificación de urgencia por chatbot
 
@@ -44,6 +111,28 @@
   - `python -m py_compile ...` OK.
   - `python manage.py check` y `pytest apps/ia/tests` no pudieron ejecutarse en este host porque no hay Django/DRF instalados y Docker Desktop no está levantado.
 
+## Actualización 2026-06-17 — CU24 code review fixes
+
+- Tests API de CU24 ahora apuntan a la ruta tenant canonical:
+  - `POST /t/<slug>/api/ia/urgency-classification/`
+- Se agregó cobertura básica de aislamiento schema-local para `ChatbotUrgencyClassification`: una clasificación creada en un tenant no aparece en otro schema tenant.
+- Se endureció el matcher del clasificador para buscar términos completos y evitar falsos positivos por substring; regresión cubierta: `cal` ya no matchea dentro de `calor`.
+- Assertion anti-spoofing tolera el formato real de error DRF sin relajar la validación de campos prohibidos.
+- Admin de `ChatbotUrgencyClassification` queda en modo lectura para campos generados/auditables y no permite altas manuales desde Django Admin.
+- `docs/ai/PACKAGE_CU_MAP.md` fue corregido para documentar la ruta tenant canonical de CU24.
+- Validación local:
+  - `python -m py_compile ...` OK en archivos Python modificados.
+  - `pytest backend/apps/ia/tests/test_urgency_classifier.py backend/apps/ia/tests/test_urgency_classification_api.py` no pudo correr por entorno local sin `django`/`django_tenants` instalados.
+
+## Actualización 2026-06-17 — CU24 pytest Docker verde
+
+- Se corrigió el setup de tests API CU24 para subfolder tenancy:
+  - `Domain.domain` ahora coincide con `Tenant.slug` en `backend/apps/ia/tests/test_urgency_classification_api.py`.
+  - Esto permite que `/t/<slug>/api/ia/urgency-classification/` sea resuelto por `TenantSubfolderMiddleware` en pytest.
+- No se cambió código productivo ni contrato API.
+- Validación Docker:
+  - `docker compose exec backend pytest apps/ia/tests -q` -> `13 passed in 89.54s`.
+
 ## Actualización 2026-06-02 — Fix verificar cobertura (400) + UX PacienteLookup
 
 - Corregido `GET /seguros/convenios/verificar-cobertura/` que devolvía **400** aunque `paciente_id` fuera válido.
@@ -52,7 +141,7 @@
   - `views.py`: solo incluye `fecha` en payload si viene en query string.
   - `VerificarCoberturaSerializer`: `fecha` opcional con default a `timezone.localdate()` en `validate`.
 - Fix frontend:
-  - `PacienteLookup` ya no dispara búsqueda con la etiqueta compuesta del paciente seleccionado (evita “Sin resultados…” falso).
+  - `PacienteLookup` ya no dispara búsqueda con la etiqueta compuesta del paciente seleccionado (evita "Sin resultados…" falso).
   - errores de validación por campo (`fecha`, `paciente_id`, etc.) visibles en UI.
   - al cambiar de pestaña se limpia el banner de error global.
 
@@ -138,7 +227,7 @@
   - fix: parser robusto `_asDouble(dynamic)` para aceptar `num|string|null`.
 - Se amplió mapeo de estado en mobile para compatibilidad con backend (`EMITIDA`, `PAGADA_PARCIAL`, `BORRADOR` -> `pendiente` visual).
 - Diagnóstico push en logs: login llega sin `fcm_token` (`[login] Sin FCM token...`) => notificación queda en BD pero no se envía push FCM al dispositivo.
-- Hardening mobile push: `PushNotifications._getToken()` ahora reintenta 3 veces con backoff corto antes de devolver `null`, para reducir falsos “sin token” justo al iniciar app.
+- Hardening mobile push: `PushNotifications._getToken()` ahora reintenta 3 veces con backoff corto antes de devolver `null`, para reducir falsos "sin token" justo al iniciar app.
 - Fix pasarela mobile: `FacturacionRepository.iniciarPagoEnLinea()` ahora resuelve URL relativa (`/api/...`) a URL absoluta con host del `API_BASE_URL`, evitando fallo de `url_launcher`.
 - Fix pasarela backend: `iniciar_pago_en_linea` ahora es idempotente; si ya hay cobro EN_LINEA pendiente reutiliza la referencia en vez de devolver error.
 - Fix multi-tenant pasarela: `iniciar_pago_en_linea_action` reescribe `checkout_url` a `/t/<slug>/api/...` cuando aplica tenant; evita 404 al abrir checkout desde mobile.
@@ -147,7 +236,7 @@
 
 ## Actualización 2026-06-02 — Facturación: pacientes de reportes sin duplicados visuales
 
-- `seed_reporting_6months` se rediseñó para usar **12 fichas clínicas únicas** por tenant (documento estable `CODE-RPT-###`) en vez de generar pacientes “nuevos por mes”.
+- `seed_reporting_6months` se rediseñó para usar **12 fichas clínicas únicas** por tenant (documento estable `CODE-RPT-###`) en vez de generar pacientes "nuevos por mes".
 - Antes de sembrar, ahora limpia:
   - legacy `RPT6M-*`,
   - fichas analíticas previas marcadas con `analítica de reportes` (conserva el paciente demo con cuenta móvil).
@@ -159,7 +248,7 @@
 ## Actualización 2026-06-02 — Seeders idempotentes + sync contraseñas demo
 
 - **Los seeders NO borran ni recrean datos** al reconstruir contenedores: PostgreSQL persiste en el volumen `postgres_data` (`Skipping initialization` en logs).
-- `creados=0, existentes=N` significa “ya estaba en BD, se saltó la creación”, no sobreescritura masiva.
+- `creados=0, existentes=N` significa "ya estaba en BD, se saltó la creación", no sobreescritura masiva.
 - `SYNC_DEMO_PASSWORDS=1` (default en `.env.example`): al arrancar, `seed_platform_admin` y `seed_admin` ejecutan `set_password()` en cuentas demo existentes.
 - Logs entrypoint: `passwords_synced=N` cuando se sincronizó una contraseña demo.
 - Login plataforma verificado: `POST /api/public/platform/auth/login/` con `platform@oftalmologia.local` / `platform123`.
@@ -413,7 +502,7 @@
 
 ## Actualizacion 2026-05-28 (Reportes inteligentes / Gemini)
 
-- **Causa del 503:** `gemini-1.5-flash` fue retirado de la API (404 en v1beta). El mensaje de “cuota agotada” en UI era engañoso cuando en realidad era 404.
+- **Causa del 503:** `gemini-1.5-flash` fue retirado de la API (404 en v1beta). El mensaje de "cuota agotada" en UI era engañoso cuando en realidad era 404.
 - **Fix:** modelo por defecto `gemini-2.5-flash` en `settings.py`, `.env`, `.env.example`; alias legacy (`1.5-flash`, `2.0-flash`) → `2.5-flash`; cadena de fallback (`2.5-flash`, `2.0-flash-lite`, `2.0-flash`) en `nlp_translator.py`.
 - **Docker:** tras cambiar `.env` usar `docker compose up -d --force-recreate backend` (no basta `restart`).
 - **Verificado:** `GeminiQBETranslator.translate_to_qbe('listar pacientes activos')` OK en contenedor con `GEMINI_MODEL=gemini-2.5-flash`.
@@ -536,7 +625,7 @@
   - Luego de crear tenant/settings/subscription/usage, crea el usuario admin dentro del schema del tenant usando `schema_context(...)` y `create_superuser(...)`.
   - Se valida nombre/apellido admin no vacíos y se controla unicidad de correo dentro del tenant.
 - Frontend:
-  - Modal “Nueva clínica” (`platform/dashboard`) ahora solicita datos del administrador inicial y los envía al endpoint de creación.
+  - Modal "Nueva clínica" (`platform/dashboard`) ahora solicita datos del administrador inicial y los envía al endpoint de creación.
   - Mensajería del modal actualizada para dejar explícito que también se crea el admin inicial.
 
 ## Actualizacion 2026-05-27 (fix errores de arranque Docker: frontend + scheduler)
@@ -613,7 +702,7 @@
 
 - **Frontend:** layout dedicado con sidebar + navbar reutilizando `SidebarContext` / `useMediaQuery` como el dashboard clínica; componentes `components/platform/PlatformSidebar.tsx`, `PlatformHeader.tsx`. Login plataforma conserva fondo oscuro en la propia página.
 
-## Actualizacion 2026-05-10 (Cursor: rules oficiales para “subagentes”)
+## Actualizacion 2026-05-10 (Cursor: rules oficiales para "subagentes")
 
 - **Project Rules** en `.cursor/rules/agent-*.mdc` según [documentación Cursor Rules](https://cursor.com/docs/context/rules): `alwaysApply: false` sin `description` ni `globs` → aplicación solo al **@-mencionar** la regla (equivalente manual a subagentes). Índice `.cursor/rules/README.md`. Carpeta `.cursor/agents/` reducida a puntero.
 
@@ -1107,9 +1196,9 @@
 - Android: `usesCleartextTraffic` para HTTP en dev.
 - Timeout HTTP 30 s (margen arranque Docker/Postgres).
 - **`intl` + `initializeDateFormatting('es')`** en `main.dart`.
-- Home **paciente** (`PatientHomeScreen`): cabecera, tarjeta **próxima cita** o **última cita** (si no hay turnos futuros), accesos rápidos (Mis citas → pestaña Citas; Historial → pantalla **Consultas / Estudios**; Contacto → `tel:` vía **`CLINIC_PHONE`** opcional en `mobile/.env`), lista Próximas/Historial, estados carga/vacío/error; `GET citas/` vía `CitasRepository` + Riverpod; pestaña **Citas** con el mismo listado (sin enlace redundante “Ver todas”); **Perfil** + logout; pull-to-refresh invalida también datos de consultas/estudios.
+- Home **paciente** (`PatientHomeScreen`): cabecera, tarjeta **próxima cita** o **última cita** (si no hay turnos futuros), accesos rápidos (Mis citas → pestaña Citas; Historial → pantalla **Consultas / Estudios**; Contacto → `tel:` vía **`CLINIC_PHONE`** opcional en `mobile/.env`), lista Próximas/Historial, estados carga/vacío/error; `GET citas/` vía `CitasRepository` + Riverpod; pestaña **Citas** con el mismo listado (sin enlace redundante "Ver todas"); **Perfil** + logout; pull-to-refresh invalida también datos de consultas/estudios.
 - **Mobile historial clínico:** `PatientClinicalScreen` — `GET consultas/lista/` y `GET consultas/estudios/` vía `ClinicalRepository` + providers Riverpod; listas con pull-to-refresh.
-- **Staff / admin / médico** (`HomeScreen` → `_StaffHomeShell`): KPIs desde API (`pacientes/`, `citas/`, `especialistas/` con conteos DRF; `null`/“—” si 403 por rol); primeras 5 citas; bottom nav **Citas** (listado según `get_queryset` del backend), **Pacientes** (lista primera página o mensaje si 403), **Perfil** + logout.
+- **Staff / admin / médico** (`HomeScreen` → `_StaffHomeShell`): KPIs desde API (`pacientes/`, `citas/`, `especialistas/` con conteos DRF; `null`/"—" si 403 por rol); primeras 5 citas; bottom nav **Citas** (listado según `get_queryset` del backend), **Pacientes** (lista primera página o mensaje si 403), **Perfil** + logout.
 
 ### Frontend (Next.js)
 
@@ -1121,12 +1210,12 @@
 - **Layout dashboard:** sidebar tipo drawer en `<768px` con overlay; desktop mantiene ancho colapsable; columna de contenido con **`min-h-0 overflow-hidden`** y `<main>` con **`min-h-0`** para que el flex no recorte la zona scrollable bajo `h-screen overflow-hidden`.
 - **Permisos (pantalla):** catálogo **solo lectura**; asignación en **Roles**.
 - **Bitácora (pantalla):** métricas con `count` de API; hora mostrada en **`America/La_Paz`** (Bolivia).
-- **Dashboard:** KPIs desde API (incl. citas `ATENDIDA`); sin contador hardcodeado de “visitas”.
+- **Dashboard:** KPIs desde API (incl. citas `ATENDIDA`); sin contador hardcodeado de "visitas".
 - **Consultas:** ruta **`/consultas`** lista `GET /consultas/lista/`; tras registrar consulta se redirige allí. **Registrar consulta:** al elegir cita se rellena el paciente; el desplegable de citas filtra por paciente y excluye canceladas; **backend:** al crear consulta con cita, pasa a estado **ATENDIDA** si estaba programada/confirmada/reprogramada; validación de coherencia paciente–cita.
 - **Roles:** listado de permisos en el modal sin filtrar por `activo` inexistente en API (`activo !== false` / tipo opcional).
-- **Usuarios (alta PACIENTE):** `POST /users/` acepta `id_paciente_existente` (vincular ficha sin `usuario`) o `paciente_tipo_documento` / `paciente_numero_documento` (nueva ficha con `generar_numero_historia`). Listado pacientes: `GET /pacientes/?sin_cuenta=true`. Web: modal “Nuevo usuario” con bloque azul si tipo Paciente.
+- **Usuarios (alta PACIENTE):** `POST /users/` acepta `id_paciente_existente` (vincular ficha sin `usuario`) o `paciente_tipo_documento` / `paciente_numero_documento` (nueva ficha con `generar_numero_historia`). Listado pacientes: `GET /pacientes/?sin_cuenta=true`. Web: modal "Nuevo usuario" con bloque azul si tipo Paciente.
 - **Pacientes (modal):** mensaje genérico ante errores sin mapa de campos (`detail`, `non_field_errors`, 500); **no** usar `items-center` en overlays altos (centraba el cuerpo y ocultaba cabecera y botones): patrón `min-h-[100dvh]` + tarjeta `self-start` + `max-h` con **scroll interno** y pie fijo; overlay renderizado con **`createPortal(..., document.body)`** para que no lo recorte el `overflow` del `<main>`; `z-[200]`; cierre al clic en backdrop; `noValidate` + scroll al tope si falla validación o error API.
-- **Historial clínico:** modelo **una HC por paciente** (`OneToOne`); el POST fallaba con 400 si el paciente ya tenía historia. Backend: `validate_id_paciente` con mensaje claro. Frontend: `fetchAll` de pacientes, opciones deshabilitadas con “ya tiene historia”, banner de error con cuerpo de la API, aviso si no queda ningún paciente elegible.
+- **Historial clínico:** modelo **una HC por paciente** (`OneToOne`); el POST fallaba con 400 si el paciente ya tenía historia. Backend: `validate_id_paciente` con mensaje claro. Frontend: `fetchAll` de pacientes, opciones deshabilitadas con "ya tiene historia", banner de error con cuerpo de la API, aviso si no queda ningún paciente elegible.
 - **`fetchAll` (Axios):** normaliza URLs `next` con host `0.0.0.0` o `backend` al origen de `NEXT_PUBLIC_API_URL`.
 
 ### Infra / configuración / despliegue
@@ -1167,4 +1256,4 @@ Ejecutar: `docker compose exec backend python manage.py seed --only demo_pacient
 
 ---
 
-_(Actualizado: 2026-05-09)_
+_(Actualizado: 2026-06-17)_

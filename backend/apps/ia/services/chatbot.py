@@ -55,11 +55,12 @@ class GeminiChatbotAssistant:
     Reutiliza ``settings.GEMINI_API_KEY`` y ``settings.GEMINI_MODEL``.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, system_instruction: str | None = None) -> None:
         self._api_key = (getattr(settings, 'GEMINI_API_KEY', None) or '').strip()
         self._model_name = normalize_gemini_model_name(
             getattr(settings, 'GEMINI_MODEL', None) or _GEMINI_MODEL_DEFAULT,
         )
+        self._system_instruction = (system_instruction or _CHATBOT_SYSTEM_PROMPT).strip()
         if not self._api_key:
             raise GeminiChatbotError(
                 'GEMINI_API_KEY no está configurada. Defina la variable de entorno o settings.',
@@ -102,7 +103,7 @@ class GeminiChatbotAssistant:
             used_model = model_name
             model = genai.GenerativeModel(
                 model_name=model_name,
-                system_instruction=_CHATBOT_SYSTEM_PROMPT,
+                system_instruction=self._system_instruction,
             )
             try:
                 response = model.generate_content(

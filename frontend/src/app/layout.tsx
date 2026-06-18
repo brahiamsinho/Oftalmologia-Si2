@@ -20,10 +20,10 @@ export const metadata: Metadata = {
   },
   description: 'Sistema integral para clínica oftalmológica.',
   manifest: '/manifest.webmanifest',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: APP_NAME,
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-title': APP_NAME,
+    'apple-mobile-web-app-status-bar-style': 'default',
   },
   formatDetection: {
     telephone: false,

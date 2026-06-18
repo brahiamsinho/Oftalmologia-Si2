@@ -2,6 +2,62 @@
 
 ## Resumen
 
+**Fecha:** 2026-06-18 — **Derivacion critica automatica:**
+- CU24 ahora crea el handoff critico automaticamente cuando la clasificacion sale `CRITICO`.
+- Se agrego `ensure_handoff_for_classification(...)` para crear/reusar y notificar sin depender de un click manual.
+- El flujo automatico esta conectado tanto al endpoint CU24 como al puente CU23 -> CU24.
+- La respuesta API de clasificacion ahora expone `critical_handoff_id` y `critical_handoff_state` para reflejar el handoff real.
+- La derivacion manual por staff sigue existiendo como fallback, pero ya no es el camino principal.
+
+**Fecha:** 2026-06-18 — **CU23 hibrido con Gemini y historial:**
+- El asistente virtual de Paciente ya no responde solo con reglas duras en casos no criticos.
+- `AsistenteVirtualService` valida primero el mensaje, luego reformula la respuesta base con Gemini cuando el intento es reformulable.
+- La vista reconstruye el historial de la conversacion desde `id_conversacion` y lo entrega al servicio.
+- Si Gemini falla, el backend conserva la respuesta base segura y registra metadata de fallback.
+- `backend/apps/ia/services/chatbot.py` quedo reutilizable mediante `system_instruction`.
+
+**Fecha:** 2026-06-18 — **Fix login por rol y 403 genérico:**
+- `PACIENTE` ahora entra a `/InteligenciaArtificial` en vez de `/dashboard`.
+- Staff sigue yendo a `/dashboard`.
+- Se redujo el interceptor de `403` para que no mande al login como “tenant inactivo” salvo que el backend realmente lo indique.
+- Archivo nuevo: `frontend/src/lib/auth-routing.ts`.
+
+**Fecha:** 2026-06-18 — **Paciente demo adicional para clinica-demo:**
+- Se agregó una segunda cuenta PACIENTE demo en `backend/seeders/seed_demo_paciente.py`.
+- Credencial nueva: `sofia.martinez@oftalmologia.local` / `Paciente456!`.
+- `docs/ai/DEMO_CREDENTIALS.md` ya quedó actualizado.
+
+**Fecha:** 2026-06-17 — **Merge origin/Carlos en spint_4_comienzos:**
+- Se integraron las ramas CU23 (origin/Carlos) y CU24 (spint_4_comienzos):
+  - CU23 frontend: `/InteligenciaArtificial` con chat Paciente, accesos rapidos, alerta de riesgo.
+  - CU23 backend: `apps.InteligenciaArtificial`, `AsistenteVirtualService`, `POST /t/<slug>/api/ia/asistente-virtual/`.
+  - CU24 backend: `POST /t/<slug>/api/ia/urgency-classification/`, clasificación determinística.
+  - CU24 code review: tests tenant canonical, aislamiento schema, matcher terminos completos.
+  - CU24 pytest Docker verde: `13 passed in 89.54s`.
+- Conflictos resueltos en: CURRENT_STATE.md, HANDOFF_LATEST.md, PACKAGE_CU_MAP.md.
+- Sidebar.tsx ya no tiene marcadores (resuelto antes del merge final).
+- Cero marcadores `<<<<<<<`/`=======`/`>>>>>>>` en el repo.
+- Pendiente: validar en Docker (manage.py check, pytest, migrate_schemas --tenant).
+
+**Fecha:** 2026-06-17 — **CU23 frontend asistente virtual para Paciente:**
+- Nueva pantalla dashboard en `frontend/src/app/(dashboard)/InteligenciaArtificial/page.tsx`.
+- Ruta protegida: `/InteligenciaArtificial`.
+- UI: chat, accesos rapidos, panel de temas, alerta de senales de riesgo, contador de interacciones y estado visual de derivacion CU24.
+- Servicio extendido: `postPatientAssistantMessage` y `getPatientAssistantHistory` en `frontend/src/services/iaService.ts`.
+- Navegacion: `Sidebar` apunta "Asistente Virtual" a `/InteligenciaArtificial`; `Header` agrega breadcrumb; `middleware.ts` protege la ruta.
+- Validacion: `npm run lint` OK con warnings historicos; `npm run build` fue abortado por duracion.
+
+**Fecha:** 2026-06-17 — **CU23 backend asistente virtual para Paciente:**
+- Se creo app tenant `apps.InteligenciaArtificial` en `backend/apps/InteligenciaArtificial`.
+- Endpoint principal: `POST /t/<slug>/api/inteligencia-artificial/asistente-virtual/`.
+- Alias compatible: `POST /t/<slug>/api/ia/asistente-virtual/`.
+- Historial del paciente: `GET /t/<slug>/api/inteligencia-artificial/interacciones-asistente/`.
+- Modelo persistente: `InteraccionAsistenteVirtual` (`ia_interacciones_asistente_virtual`), con intencion, estado, prioridad, sintomas y metadata.
+- Servicio deterministico `AsistenteVirtualService`: respuestas autorizadas para citas, horarios, procedimientos, preoperatorio, postoperatorio, seguros/facturacion y sistema.
+- Si detecta sintomas/senales de riesgo, marca `requiere_clasificacion_urgencia=True`, `estado=REQUIERE_CU24`, `metadata.cu24_activado=True`.
+- Seguridad: `IsAuthenticated + IsPaciente`; bitacora en modulo `inteligencia_artificial`.
+- Validacion pendiente en Docker: `manage.py check`, pytest especifico y `migrate_schemas --tenant`.
+
 **Fecha:** 2026-06-17 — **CU24 tests IA en Docker OK:**
 - Causa de los 404 en `apps/ia/tests/test_urgency_classification_api.py`: los fixtures creaban `Domain.domain` como host tipo `tenant-cu24-xxx.localhost`, pero el endpoint probado usa subfolder `/t/<slug>/...`.
 - En este proyecto, para `TenantSubfolderMiddleware`, el valor de `Domain.domain` debe coincidir con el slug/subfolder.
@@ -97,11 +153,11 @@
 - Mobile ahora muestra detalle de error de API en facturas/pagos (no solo mensaje genérico).
 - Bloqueo actual push: `google-services.json` de Android está en modo plantilla (placeholders), por lo que FCM no puede operar de forma confiable.
 
-**Fecha:** 2026-06-02 — **Facturación: menos “duplicados” y filtro por cuenta app:**
+**Fecha:** 2026-06-02 — **Facturación: menos "duplicados" y filtro por cuenta app:**
 - `seed_reporting_6months` ahora genera 12 pacientes únicos por tenant (no 48 con nombres cíclicos).
 - Limpieza automática de dataset antiguo de reportes (`RPT6M-*` y analítica previa), preservando paciente demo con cuenta.
 - En frontend de facturación (`Nueva Factura`) se restringió el selector a pacientes con cuenta app vinculada.
-- Si hay un único paciente con cuenta (demo), queda auto-seleccionado para evitar que “no deje elegir”.
+- Si hay un único paciente con cuenta (demo), queda auto-seleccionado para evitar que "no deje elegir".
 
 **Fecha:** 2026-06-02 — **Seeders idempotentes + sync passwords demo:**
 - Aclaración operativa: rebuild Docker **no** resetea BD; seeders reportan `existentes` cuando omiten creación.

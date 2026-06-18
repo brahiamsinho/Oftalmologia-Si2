@@ -15,6 +15,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { useRouter } from 'next/navigation';
 import { authService } from '@/lib/services/auth';
 import { TenantStorage, TokenStorage } from '@/lib/api';
+import { getLandingRoute } from '@/lib/auth-routing';
 import type { Usuario } from '@/lib/types';
 
 interface AuthContextValue {
@@ -51,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const { usuario } = await authService.login({ email: email.trim(), password });
     setUser(usuario);
-    router.push('/dashboard');
+    router.push(getLandingRoute(usuario.tipo_usuario));
   }, [router]);
 
   const refreshUser = useCallback(async () => {

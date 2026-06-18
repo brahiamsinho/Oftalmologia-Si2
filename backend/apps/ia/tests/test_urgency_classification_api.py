@@ -5,7 +5,12 @@ from django_tenants.utils import get_public_schema_name, schema_context
 from rest_framework.test import APIClient
 
 from apps.bitacora.models import Bitacora
-from apps.ia.models import ChatbotUrgencyClassification, EstadoDerivacionChatbot, NivelUrgenciaChatbot
+from apps.ia.models import (
+    ChatbotUrgencyClassification,
+    CriticalHumanHandoff,
+    EstadoDerivacionChatbot,
+    NivelUrgenciaChatbot,
+)
 from apps.pacientes.pacientes.models import Paciente
 from apps.tenant.models import Domain, Tenant
 from apps.usuarios.users.models import TipoUsuario, Usuario
@@ -101,13 +106,18 @@ def test_endpoint_paciente_clasifica_persiste_y_audita(
     assert response.data['requires_human_attention'] is True
     assert response.data['derivation_status'] == EstadoDerivacionChatbot.PENDIENTE
     assert response.data['handoff_status'] == EstadoDerivacionChatbot.PENDIENTE
+    assert response.data['critical_handoff_id'] is not None
+    assert response.data['critical_handoff_state'] == 'PENDIENTE'
     assert response.data['classification_id']
 
     with schema_context(tenant_cu24.schema_name):
         classification = ChatbotUrgencyClassification.objects.get(pk=response.data['classification_id'])
+        handoff = CriticalHumanHandoff.objects.get(classification=classification)
         assert classification.paciente_id == paciente.pk
         assert classification.usuario_id == paciente_user.pk
         assert classification.nivel == NivelUrgenciaChatbot.CRITICO
+        assert handoff.paciente_id == paciente.pk
+        assert handoff.nivel_urgencia == NivelUrgenciaChatbot.CRITICO
 
         audit = Bitacora.objects.get(
             modulo='ia',

@@ -22,7 +22,11 @@ from apps.ia.serializers import (
     UrgencyClassificationResponseSerializer,
 )
 from apps.ia.services.chatbot import GeminiChatbotAssistant, GeminiChatbotError
-from apps.ia.services.human_handoff import create_handoff, notify_available_staff
+from apps.ia.services.human_handoff import (
+    create_handoff,
+    ensure_handoff_for_classification,
+    notify_available_staff,
+)
 from apps.ia.services.nlp_translator import GeminiQBETranslator, GeminiTranslatorError
 from apps.ia.services.urgency_classifier import classify_urgency
 from apps.pacientes.pacientes.models import Paciente
@@ -159,6 +163,14 @@ class UrgencyClassificationView(APIView):
                 requiere_atencion_humana=result.requires_human_attention,
                 estado_derivacion=result.derivation_status,
             )
+            if result.requires_human_attention:
+                handoff = ensure_handoff_for_classification(
+                    classification=classification,
+                    usuario=request.user,
+                    ip_origen=get_client_ip(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                )
+                classification._critical_handoff = handoff
         except Exception:
             return Response(
                 {'detail': 'No se pudo procesar la clasificación de urgencia.'},

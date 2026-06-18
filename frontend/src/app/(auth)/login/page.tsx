@@ -16,6 +16,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { getLandingRoute } from "@/lib/auth-routing";
 import { TenantStorage, resolveApiOrigin } from "@/lib/api";
 import type { TenantPublicData } from "@/lib/types";
 import SnellenEvaluation from "@/components/SnellenEvaluation";
@@ -42,7 +43,7 @@ function LoginPageInner() {
   useEffect(() => {
     if (authLoading) return;
     if (user) {
-      router.replace("/dashboard");
+      router.replace(getLandingRoute(user.tipo_usuario));
     }
   }, [authLoading, user, router]);
 

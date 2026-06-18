@@ -54,6 +54,10 @@ Credenciales:
   - Username: `brandon`
   - Email: `brandon@gmail.com`
   - Password: `Felipe321`
+- Paciente demo adicional
+  - Username: `sofia`
+  - Email: `sofia.martinez@oftalmologia.local`
+  - Password: `Paciente456!`
 
 ## 4) Usuarios médicos demo (`clinica-demo`)
 

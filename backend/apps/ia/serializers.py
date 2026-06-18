@@ -107,6 +107,8 @@ class UrgencyClassificationResponseSerializer(serializers.ModelSerializer):
     matched_criteria = serializers.JSONField(source='criterios_detectados')
     derivation_status = serializers.CharField(source='estado_derivacion')
     handoff_status = serializers.CharField(source='estado_derivacion')
+    critical_handoff_id = serializers.SerializerMethodField()
+    critical_handoff_state = serializers.SerializerMethodField()
 
     class Meta:
         model = ChatbotUrgencyClassification
@@ -119,8 +121,24 @@ class UrgencyClassificationResponseSerializer(serializers.ModelSerializer):
             'matched_criteria',
             'derivation_status',
             'handoff_status',
+            'critical_handoff_id',
+            'critical_handoff_state',
             'created_at',
         ]
+
+    def _get_handoff(self, obj):
+        handoff = getattr(obj, '_critical_handoff', None)
+        if handoff is not None:
+            return handoff
+        return obj.handoffs.order_by('-created_at').first()
+
+    def get_critical_handoff_id(self, obj):
+        handoff = self._get_handoff(obj)
+        return handoff.id_handoff if handoff else None
+
+    def get_critical_handoff_state(self, obj):
+        handoff = self._get_handoff(obj)
+        return handoff.estado if handoff else None
 
 
 class UrgencyClassificationListSerializer(serializers.ModelSerializer):

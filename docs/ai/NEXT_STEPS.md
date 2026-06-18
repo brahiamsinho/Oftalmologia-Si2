@@ -2,6 +2,9 @@
 
 Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tenants).
 
+- [ ] **CU23 hibrido:** smoke test del rewrite Gemini + fallback seguro + historial desde `id_conversacion` en Docker.
+- [ ] **CU25 auto handoff:** validar en Docker que una clasificacion crítica crea `CriticalHumanHandoff` y notifica staff sin accion manual.
+
 **Contexto SaaS:** ver **`docs/ai/PLATFORM_SAAS.md`** antes de cambiar auth, tenants o rutas públicas.
 
 ## Corto Plazo
@@ -34,7 +37,6 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [ ] **URGENTE: Mobile Flutter con URLs de tenant** — adaptar Dio client para usar `/t/<tenantSlug>/api/...`, crear flujo de seleccion de clinica, consumir endpoints de tenant antes del login.
 - [x] Mobile Android Firebase: alinear `google-services.json` con `applicationId` actual para desbloquear `:app:processDebugGoogleServices`.
 - [x] OpenCode workflows: crear comandos reutilizables (`/check-project`, `/commit`, `/update-memory`, `/review-security`, `/validate-stack`, `/puds-status`, `/handoff`, `/todo-start`).
-- [x] OpenCode workflows: crear comandos reutilizables (`/check-project`, `/commit`, `/update-memory`, `/review-security`, `/validate-stack`, `/puds-status`, `/handoff`, `/todo-start`).
 - [x] Artefacto de diseno vivo: crear `docs/ai/DESING.md` para registrar decisiones UI/UX y backlog mobile paciente.
 - [x] OpenCode skills locales: agregar `project-memory`, `puds-traceability`, `security-review`, `docker-debug`, `clinical-ux-review` y `todo-workflow`.
 - [x] OpenCode plugin inicial: agregar `env-protection` para bloquear acceso a `.env` reales y permitir plantillas.
@@ -59,10 +61,14 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] **CU20 Backend (cerrado):** facturación, pasarela mock, PDF, notificaciones, API paciente/cita.
 - [ ] **CU20:** UI `/facturacion`, pasarela real producción, mobile pagos.
 - [x] Predicciones plataforma: agregar explicación funcional ("qué predice" + "qué significa probabilidad") y acción sugerida por riesgo.
+- [x] **CU23 Frontend:** pantalla `/InteligenciaArtificial` con chat, accesos rápidos, panel de temas y alerta de riesgo.
+- [x] **CU23 Backend Paciente:** app `apps.InteligenciaArtificial`, modelo `InteraccionAsistenteVirtual`, servicio `AsistenteVirtualService`, rutas `/t/<slug>/api/ia/asistente-virtual/`.
+- [x] **CU23 → CU24 bridge:** CU23 marca `requiere_clasificacion_urgencia=True` cuando detecta síntomas; CU24 consume esa marca para clasificación determinística.
 - [x] **CU24 Backend:** clasificación de urgencia del chatbot en endpoint separado `POST /t/<slug>/api/ia/urgency-classification/`, reglas determinísticas, persistencia tenant-aware y bitácora sin mensaje clínico completo.
-- [x] **CU24 Backend code review:** tests usan ruta tenant canonical, aislamiento básico por schema, spoofing tolera formato DRF, matcher evita `cal` dentro de `calor`, admin readonly y mapa PUDS corregido.
-- [x] **CU24 Backend:** ejecutar `manage.py check`, `pytest apps/ia/tests` y contraste de migración en Docker/venv con Django instalado.
-- [ ] **CU24 Backend:** aplicar migración en schemas tenant con `migrate_schemas --tenant` cuando se valide el entorno.
+- [x] **CU24 Code review:** tests ruta tenant canonical, aislamiento schema, spoofing tolera DRF, matcher evita falso positivo por substring, admin readonly, mapa PUDS corregido.
+- [x] **CU24 pytest Docker verde:** fix `Domain.domain` coincide con `Tenant.slug` para `TenantSubfolderMiddleware` en tests. `docker compose exec backend pytest apps/ia/tests -q` -> `13 passed in 89.54s`.
+- [x] **Merge origin/Carlos en spint_4_comienzos:** resuelto conflicto 3-way en CURRENT_STATE.md, HANDOFF_LATEST.md y PACKAGE_CU_MAP.md. CU23 + CU24 integrados en una rama.
+- [ ] **CU23 + CU24:** validar en Docker (`manage.py check`, pytest, migrate_schemas --tenant) cuando Docker Desktop esté disponible.
 - [ ] **CU25:** implementar derivación humana real a partir de `ChatbotUrgencyClassification.estado_derivacion=PENDIENTE` para casos críticos; no está hecho todavía.
 - [ ] Predicciones plataforma: agregar tooltips por feature clave (`pct_canceladas`, `tasa_asistencia`, `total_ingresos`) para interpretación guiada.
 - [ ] **Referencia:** mapa paquetes → `docs/ai/PACKAGE_CU_MAP.md`.
@@ -92,7 +98,7 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [ ] Frontend: pantalla de seleccion de clinica + branding dinamico por tenant.
 - [ ] Mobile: pantalla de seleccion de clinica + branding dinamico por tenant.
 - [x] Mobile: pantalla de seleccion de clinica (slug) + enrutamiento multi-tenant runtime.
-- [ ] Mobile: enriquecer pantalla de selección de clínica con branding completo (logo/color) y “clínicas recientes”.
+- [ ] Mobile: enriquecer pantalla de selección de clínica con branding completo (logo/color) y "clínicas recientes".
 - [ ] Validar flujo completo end-to-end con Docker: crear tenant nuevo → seed → login → operaciones.
 
 ## Largo Plazo
@@ -116,7 +122,10 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [ ] Multi-tenant: extender pruebas anti-cruce al plano HTTP tenant (`/t/<slug>/api/...`) en entorno de test, ajustando configuración de URL/middleware para evitar `404` en pytest.
 - [ ] Seguros/Descuentos: ejecutar smoke E2E en Docker (`POST/GET` convenios, afiliaciones, promociones y beneficios) para confirmar fix `date vs datetime` en entorno de contenedores.
 - [ ] Seguros: agregar tests automatizados de regresión para serialización `DateField` en convenios/afiliaciones.
-- [ ] IA asistente virtual: validar en QA conversacional 10 prompts clínico-operativos (agenda, seguros, reportes, urgencias) para confirmar tono/seguridad y evitar respuestas ambiguas.
+- [ ] IA asistente virtual: validar en QA conversacional 10 prompts clínico-operativos (agenda, seguros, reportes, urgencias) para confirmar tono/seguridad, historial y fallback Gemini.
+- [ ] CU23 + CU24: ejecutar validacion en Docker (`manage.py check`, pytest, migrate_schemas --tenant) cuando Docker Desktop este disponible.
+- [ ] CU23 frontend Paciente: probar manualmente `/InteligenciaArtificial` con cuenta `PACIENTE` y backend migrado; validar flujo normal, historial y flujo con sintomas de riesgo.
+- [ ] CU23 frontend Paciente: probar manualmente `/InteligenciaArtificial` con cuenta `PACIENTE` y backend migrado; validar flujo normal y flujo con sintomas de riesgo.
 - [ ] PWA: validar instalación en Chrome/Edge (desktop) y flujo manual en iOS (Agregar a inicio).
 - [ ] PWA producción: servir frontend con HTTPS para criterios completos de instalabilidad.
 - [ ] Multi-tenant: documentar procedimiento para crear nuevo tenant en produccion (comando o endpoint + seeders).

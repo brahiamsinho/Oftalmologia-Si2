@@ -10,6 +10,7 @@ const PROTECTED = [
   "/historial",
   "/reportes",
   "/asistente-virtual",
+  "/InteligenciaArtificial",
 ];
 
 export function middleware(request: NextRequest) {
@@ -42,6 +43,8 @@ export const config = {
     "/reportes/:path*",
     "/asistente-virtual",
     "/asistente-virtual/:path*",
+    "/InteligenciaArtificial",
+    "/InteligenciaArtificial/:path*",
     "/login",
   ],
 };

@@ -8,7 +8,7 @@ import { ClinicSessionGate } from '@/components/auth/ClinicSessionGate';
 import { SidebarProvider, useSidebar } from '@/context/SidebarContext';
 import { TenantProvider, useTenant }   from '@/context/TenantContext';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { X, Clock, TrendingUp } from 'lucide-react';
+import { X, Clock, TrendingUp, MessageSquareMore } from 'lucide-react';
 
 // ── Banner de período de prueba ───────────────────────────────────────────────
 function TrialBanner() {
@@ -87,6 +87,13 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         <main className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
           {children}
         </main>
+        <Link
+          href="/InteligenciaArtificial"
+          className="fixed bottom-6 right-6 z-50 flex min-h-[56px] min-w-[56px] items-center justify-center gap-2 rounded-full bg-blue-700 text-white shadow-lg transition hover:bg-blue-800 hover:shadow-xl active:scale-95"
+          aria-label="Asistente virtual"
+        >
+          <MessageSquareMore className="h-6 w-6" aria-hidden />
+        </Link>
       </div>
     </div>
   );

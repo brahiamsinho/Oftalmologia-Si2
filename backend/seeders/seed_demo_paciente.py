@@ -33,6 +33,12 @@ DEMO_NUMERO_DOCUMENTO = 'DEMO-BRANDON-001'
 # Fijo para no chocar con HC-YYYY-NNNNNN generados por otros seeders o borrados/restores.
 DEMO_NUMERO_HISTORIA = 'HC-DEMO-BRANDON'
 
+SECONDARY_USERNAME = 'sofia'
+SECONDARY_EMAIL = 'sofia.martinez@oftalmologia.local'
+SECONDARY_PASSWORD = 'Paciente456!'
+SECONDARY_NUMERO_DOCUMENTO = 'DEMO-SOFIA-001'
+SECONDARY_NUMERO_HISTORIA = 'HC-DEMO-SOFIA'
+
 
 def _ensure_tipo_consulta():
     return TipoCita.objects.get(nombre=TipoCitaNombre.CONSULTA)
@@ -202,6 +208,67 @@ def run():
         )
         existentes += 1
 
+    secundaria_user = _ensure_user(
+        SECONDARY_USERNAME,
+        SECONDARY_EMAIL,
+        SECONDARY_PASSWORD,
+        'Sofía',
+        'Martínez',
+        'PACIENTE',
+    )
+
+    secundaria_paciente, secundaria_created = Paciente.objects.get_or_create(
+        numero_documento=SECONDARY_NUMERO_DOCUMENTO,
+        defaults={
+            'usuario': secundaria_user,
+            'numero_historia': SECONDARY_NUMERO_HISTORIA,
+            'tipo_documento': 'CI',
+            'nombres': 'Sofía',
+            'apellidos': 'Martínez',
+            'email': SECONDARY_EMAIL,
+            'telefono': '+59171234567',
+            'sexo': 'F',
+            'direccion': 'Calle Bolívar 123, Santa Cruz',
+            'contacto_emergencia_nombre': 'Laura Martínez',
+            'contacto_emergencia_telefono': '+59170011223',
+            'observaciones_generales': 'Paciente demo adicional para pruebas de login y asistente virtual.',
+        },
+    )
+
+    if secundaria_created:
+        creados += 1
+    else:
+        secundaria_paciente.usuario = secundaria_user
+        secundaria_paciente.nombres = 'Sofía'
+        secundaria_paciente.apellidos = 'Martínez'
+        secundaria_paciente.email = SECONDARY_EMAIL
+        secundaria_paciente.telefono = '+59171234567'
+        secundaria_paciente.tipo_documento = 'CI'
+        secundaria_paciente.sexo = 'F'
+        secundaria_paciente.direccion = 'Calle Bolívar 123, Santa Cruz'
+        secundaria_paciente.contacto_emergencia_nombre = 'Laura Martínez'
+        secundaria_paciente.contacto_emergencia_telefono = '+59170011223'
+        secundaria_paciente.observaciones_generales = 'Paciente demo adicional para pruebas de login y asistente virtual.'
+        if not secundaria_paciente.numero_historia:
+            secundaria_paciente.numero_historia = SECONDARY_NUMERO_HISTORIA
+        secundaria_paciente.save(
+            update_fields=[
+                'usuario',
+                'tipo_documento',
+                'nombres',
+                'apellidos',
+                'email',
+                'telefono',
+                'sexo',
+                'direccion',
+                'contacto_emergencia_nombre',
+                'contacto_emergencia_telefono',
+                'observaciones_generales',
+                'numero_historia',
+            ],
+        )
+        existentes += 1
+
     citas_data = [
         {
             'inicio': _fecha_futura(days=3, hour=10, minute=30),
@@ -255,6 +322,9 @@ def run():
         '\n  📱 Paciente demo\n'
         f'     email:    {DEMO_EMAIL}\n'
         f'     password: {DEMO_PASSWORD}\n'
+        '\n  📱 Paciente demo adicional\n'
+        f'     email:    {SECONDARY_EMAIL}\n'
+        f'     password: {SECONDARY_PASSWORD}\n'
     )
 
     return creados, existentes

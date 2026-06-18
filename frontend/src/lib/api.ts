@@ -274,12 +274,16 @@ api.interceptors.response.use(
       _retry?: boolean;
     };
 
-    // ── 403: tenant inactivo/suspendido ──────────────────────────────────────
-    // Si el backend responde 403 (que no sea en el login), interpretamos que el
-    // tenant fue suspendido. Limpiamos sesión y redirigimos al login.
+    // ── 403: solo redirigir si el backend lo marca como tenant inactivo ───────
     if (error.response?.status === 403) {
       const isLoginRoute = original?.url?.includes("/auth/login/");
-      if (!isLoginRoute && typeof window !== "undefined") {
+      const detail =
+        typeof error.response?.data === 'object' && error.response?.data !== null
+          ? String((error.response.data as { detail?: unknown }).detail ?? '')
+          : '';
+      const looksLikeTenantInactive = /inactiv|suspend/i.test(detail);
+
+      if (!isLoginRoute && looksLikeTenantInactive && typeof window !== "undefined") {
         TenantStorage.clear();
         TokenStorage.clear();
         window.location.href = "/login?motivo=tenant_inactivo";

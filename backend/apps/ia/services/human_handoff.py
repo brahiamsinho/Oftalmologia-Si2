@@ -107,6 +107,43 @@ def create_handoff(
     return handoff
 
 
+def ensure_handoff_for_classification(
+    classification: ChatbotUrgencyClassification,
+    usuario,
+    ip_origen: str | None = None,
+    user_agent: str | None = None,
+) -> CriticalHumanHandoff:
+    """Crea o reactiva la derivación humana de forma automática.
+
+    Si la derivación ya existe, reutiliza el mismo handoff y vuelve a notificar
+    cuando todavía está pendiente.
+    """
+    if not _classification_is_valid(classification):
+        raise ValueError(
+            f'La clasificación {classification.id_clasificacion} no es crítica '
+            f'y no puede ser derivada (nivel={classification.nivel}).',
+        )
+
+    handoff = CriticalHumanHandoff.objects.filter(classification=classification).first()
+    if handoff is None:
+        handoff = create_handoff(
+            classification=classification,
+            usuario=usuario,
+            ip_origen=ip_origen,
+            user_agent=user_agent,
+        )
+
+    if handoff.estado == EstadoDerivacionHumana.PENDIENTE:
+        notify_available_staff(
+            handoff=handoff,
+            usuario=usuario,
+            ip_origen=ip_origen,
+            user_agent=user_agent,
+        )
+
+    return handoff
+
+
 def notify_available_staff(
     handoff: CriticalHumanHandoff,
     usuario,
