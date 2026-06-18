@@ -1,5 +1,12 @@
 # DECISIONS LOG
 
+---
+
+**Fecha:** 2026-06-17
+**Decision:** Implementar el backend del asistente virtual para Paciente en `apps.InteligenciaArtificial`, manteniendo `apps.ia` para el flujo legacy Gemini/QBE.
+**Motivo:** El CU23 solicitado requiere persistencia de conversaciones del paciente, bitacora y derivacion a CU24; eso pertenece al schema tenant de la clinica y no debe mezclarse con el traductor QBE existente.
+**Impacto:** Se agrega una app tenant nueva, un modelo auditable de interacciones, un servicio deterministico de intenciones autorizadas y endpoints bajo `/inteligencia-artificial/` con alias `/ia/asistente-virtual/`. CU24 aun no existe como flujo formal; CU23 deja la senal `requiere_clasificacion_urgencia=True` y metadata `cu24_activado=True`.
+
 Este archivo documenta todas las decisiones técnicas arquitectónicas importantes tomadas en la evolución del proyecto.
 
 ## Formato de Registro

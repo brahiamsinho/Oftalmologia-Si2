@@ -41,6 +41,7 @@ const BREADCRUMB: Record<string, string> = {
   '/crm':                       'CRM',
   '/notificaciones':            'Notificaciones',
   '/reportes':                  'Reportes',
+  '/InteligenciaArtificial':    'Inteligencia Artificial · Asistente Virtual',
 };
 
 // ── Panel de notificaciones ────────────────────────────────────────────────

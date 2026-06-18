@@ -501,7 +501,7 @@ function ModalRegistrarCobro({
                       </p>
                     </div>
                     <p className="text-[11px] text-center text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                      Esperando que el paciente escanee y transfiera. Una vez recibido el pago, presiona "Confirmar pago QR".
+                      Esperando que el paciente escanee y transfiera. Una vez recibido el pago, presiona &quot;Confirmar pago QR&quot;.
                     </p>
                   </div>
                   <div className="flex gap-3">

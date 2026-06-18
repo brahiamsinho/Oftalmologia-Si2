@@ -1,5 +1,47 @@
 # CURRENT STATE
 
+## Actualizacion 2026-06-17 (CU23 frontend - diseno asistente virtual Paciente)
+
+### Frontend
+- Nueva pantalla en `frontend/src/app/(dashboard)/InteligenciaArtificial/page.tsx`.
+- Ruta del dashboard: `/InteligenciaArtificial`.
+- Diseno implementado: chat para Paciente, accesos rapidos, panel lateral de temas, alerta de riesgo, estado de sesion y marca visual cuando backend activa CU24.
+- Servicio frontend extendido en `frontend/src/services/iaService.ts` con `postPatientAssistantMessage(...)`, `getPatientAssistantHistory(...)` y tipos del contrato CU23.
+- Navegacion actualizada: `Sidebar`, `Header` y `middleware.ts`.
+- Ajuste tecnico en `frontend/next.config.js`: carga dinamica ESM de `@serwist/next` para que `next lint` pueda cargar la config.
+- Fix minimo en facturacion: comillas escapadas en texto de QR para cumplir `react/no-unescaped-entities`.
+
+### Validacion
+- `npm install` ejecutado para restaurar dependencias faltantes del frontend.
+- `npm run lint` OK con warnings existentes en reportes, facturacion y `app/layout.tsx`.
+- `npm run build` fue abortado por duracion; no se considera validacion de esta tarea.
+
+## Actualizacion 2026-06-17 (CU23 backend - asistente virtual para Paciente)
+
+### Backend
+- Nueva app tenant `apps.InteligenciaArtificial` dentro de `backend/apps/InteligenciaArtificial`.
+- Integracion en `TENANT_APPS`, porque las interacciones del asistente pertenecen al schema de cada clinica.
+- Nuevo modelo auditable `InteraccionAsistenteVirtual` (`ia_interacciones_asistente_virtual`) para guardar paciente/usuario, conversacion, mensaje, respuesta, intencion, estado, prioridad, sintomas detectados, metadata, IP, user agent y fecha.
+- Nuevo servicio deterministico `AsistenteVirtualService` para intenciones autorizadas: citas/horarios, procedimientos, preoperatorio, postoperatorio, seguros/facturacion, sistema, saludo, fuera de alcance y no comprendida.
+- Si detecta sintomas o senales de riesgo, marca `requiere_clasificacion_urgencia=True`, `estado=REQUIERE_CU24` y `metadata.cu24_activado=True`.
+- Nuevas rutas tenant:
+  - `POST /t/<slug>/api/inteligencia-artificial/asistente-virtual/`
+  - alias `POST /t/<slug>/api/ia/asistente-virtual/`
+  - historial `GET /t/<slug>/api/inteligencia-artificial/interacciones-asistente/`
+- Seguridad: JWT tenant autenticado + `IsPaciente`; registra bitacora sin copiar el texto completo de la consulta en la descripcion de auditoria.
+- Tests agregados en `backend/apps/InteligenciaArtificial/tests/test_asistente_virtual.py`.
+
+### Validacion
+- `python manage.py check` y `pytest` no pudieron ejecutarse en host por falta de Django/DRF en el Python local.
+- Docker no estaba levantado (`dockerDesktopLinuxEngine` no disponible), por lo que tampoco se pudo validar dentro del contenedor.
+- Validacion estatica ejecutada: parseo/compilacion de sintaxis con `compile(...)` sobre los archivos nuevos: OK.
+
+### Pendiente operativo
+- Ejecutar cuando Docker este disponible:
+  - `docker compose exec backend python manage.py check`
+  - `docker compose exec backend pytest apps/InteligenciaArtificial/tests/test_asistente_virtual.py -q`
+  - `docker compose exec backend python manage.py migrate_schemas --tenant`
+
 ## Actualización 2026-06-01 — CU21: Pago QR + Transferencia bancaria
 
 ### Backend
