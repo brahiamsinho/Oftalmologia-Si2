@@ -11,6 +11,13 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+**Fecha:** 2026-06-17
+**Decisión:** CU24 clasifica urgencia oftalmológica con un servicio determinístico (`apps.ia.services.urgency_classifier`) y no con Gemini/LLM.
+**Motivo:** La clasificación de urgencia clínica debe ser auditable, reproducible y testeable. Un LLM puede variar respuestas, inventar contexto o degradar seguridad clínica si se usa como fuente de decisión. CU23 puede seguir usando Gemini para conversación, pero CU24 necesita reglas explícitas.
+**Impacto:** Se agrega `ChatbotUrgencyClassification` en `apps.ia` como modelo tenant-aware sin `tenant_id`. El endpoint nuevo `POST /t/<slug>/api/ia/urgency-classification/` persiste clasificación y solo deja `estado_derivacion=PENDIENTE` para críticos como preparación pasiva de CU25; no dispara derivaciones ni notificaciones.
+
+---
+
 **Fecha:** 2026-05-31
 **Decisión:** Estandarizar el sistema multi-agente de OpenCode en `.opencode/agents/` con `orchestrator` como `mode: primary` y delegacion explicita por `permission.task`, agregando especialistas `reviewer`, `security`, `docs-memory`, `puds`, `ai-inference`, `ai-researcher` y `diagrams-modeling`.
 **Motivo:** Tener paridad funcional con la estrategia de orquestacion por dominio, sin mezclar formato Cursor y OpenCode, y mejorar trazabilidad de routing, seguridad y memoria viva del proyecto.

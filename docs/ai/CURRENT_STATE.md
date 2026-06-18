@@ -1,5 +1,49 @@
 # CURRENT STATE
 
+## Actualización 2026-06-17 — CU24 pytest Docker verde
+
+- Se corrigió el setup de tests API CU24 para subfolder tenancy:
+  - `Domain.domain` ahora coincide con `Tenant.slug` en `backend/apps/ia/tests/test_urgency_classification_api.py`.
+  - Esto permite que `/t/<slug>/api/ia/urgency-classification/` sea resuelto por `TenantSubfolderMiddleware` en pytest.
+- No se cambió código productivo ni contrato API.
+- Validación Docker:
+  - `docker compose exec backend pytest apps/ia/tests -q` -> `13 passed in 89.54s`.
+
+## Actualización 2026-06-17 — CU24 code review fixes
+
+- Tests API de CU24 ahora apuntan a la ruta tenant canonical:
+  - `POST /t/<slug>/api/ia/urgency-classification/`
+- Se agregó cobertura básica de aislamiento schema-local para `ChatbotUrgencyClassification`: una clasificación creada en un tenant no aparece en otro schema tenant.
+- Se endureció el matcher del clasificador para buscar términos completos y evitar falsos positivos por substring; regresión cubierta: `cal` ya no matchea dentro de `calor`.
+- Assertion anti-spoofing tolera el formato real de error DRF sin relajar la validación de campos prohibidos.
+- Admin de `ChatbotUrgencyClassification` queda en modo lectura para campos generados/auditables y no permite altas manuales desde Django Admin.
+- `docs/ai/PACKAGE_CU_MAP.md` fue corregido para documentar la ruta tenant canonical de CU24.
+- Validación local:
+  - `python -m py_compile ...` OK en archivos Python modificados.
+  - `pytest backend/apps/ia/tests/test_urgency_classifier.py backend/apps/ia/tests/test_urgency_classification_api.py` no pudo correr por entorno local sin `django`/`django_tenants` instalados.
+
+## Actualización 2026-06-17 — CU24 backend: clasificación de urgencia por chatbot
+
+- Se implementó endpoint tenant separado para CU24:
+  - `POST /t/<slug>/api/ia/urgency-classification/`
+- No se modificó el endpoint CU23 `POST /t/<slug>/api/ia/chatbot/` salvo agregar la ruta nueva en `apps.ia.urls`.
+- Nuevo modelo tenant-aware en `apps.ia`:
+  - `ChatbotUrgencyClassification` en tabla `ia_chatbot_urgency_classifications`.
+  - Vive en `TENANT_APPS`; no lleva `tenant_id` porque el aislamiento es por schema `django-tenants`.
+- Clasificación determinística en `apps.ia.services.urgency_classifier`:
+  - niveles: `BAJO`, `MEDIO`, `ALTO`, `CRITICO`, `INSUFICIENTE`, `INDETERMINADO`.
+  - No usa Gemini ni LLM para decisión clínica.
+  - Marca `estado_derivacion=PENDIENTE` y `requiere_atencion_humana=true` solo si el nivel es `CRITICO` como preparación pasiva para CU25, sin notificar ni derivar.
+- Seguridad:
+  - permiso `IsAuthenticated + IsPaciente`.
+  - paciente resuelto desde `request.user`, no desde body.
+  - serializer rechaza campos de spoofing (`paciente_id`, `nivel`, `confidence`, `estado_derivacion`, etc.).
+  - bitácora registra clasificación sin incluir el mensaje clínico completo.
+- Tests agregados para service y API en `backend/apps/ia/tests/`.
+- Validación local disponible:
+  - `python -m py_compile ...` OK.
+  - `python manage.py check` y `pytest apps/ia/tests` no pudieron ejecutarse en este host porque no hay Django/DRF instalados y Docker Desktop no está levantado.
+
 ## Actualización 2026-06-02 — Fix verificar cobertura (400) + UX PacienteLookup
 
 - Corregido `GET /seguros/convenios/verificar-cobertura/` que devolvía **400** aunque `paciente_id` fuera válido.

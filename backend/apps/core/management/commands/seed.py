@@ -96,6 +96,10 @@ SEEDERS = {
         'seeders.seed_saas_demo_fleet',
         'Flota SaaS demo (5 clinicas + planes + datos 6 meses)',
     ),
+    'ia': (
+        'seeders.seed_ia',
+        'Clasificaciones urgencia CU24 + derivaciones CU25',
+    ),
 }
 
 

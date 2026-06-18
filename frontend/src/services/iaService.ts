@@ -63,6 +63,91 @@ export async function postExecuteQbe(payload: QBEPayload): Promise<ExecuteReport
   return data;
 }
 
+export interface UrgencyClassificationItem {
+  classification_id: number;
+  paciente: number;
+  paciente_nombre: string;
+  nivel: string;
+  confianza: number;
+  requiere_atencion_humana: boolean;
+  created_at: string;
+}
+
+export interface CriticalHandoffListItem {
+  handoff_id: number;
+  paciente: number;
+  paciente_nombre: string;
+  nivel_urgencia: string;
+  estado: string;
+  asignado_a: number | null;
+  created_at: string;
+}
+
+export interface CriticalHandoffDetail {
+  handoff_id: number;
+  classification_id: number;
+  paciente: number;
+  paciente_nombre: string;
+  mensaje_original: string;
+  nivel_urgencia: string;
+  criterios_detectados: Record<string, unknown>[];
+  estado: string;
+  asignado_a: number | null;
+  aceptado_por: number | null;
+  notificado_en: string | null;
+  aceptado_en: string | null;
+  resuelto_en: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function listClassifications(): Promise<UrgencyClassificationItem[]> {
+  const { data } = await api.get<UrgencyClassificationItem[]>('/ia/urgency-classifications/');
+  return data;
+}
+
+export async function listHandoffs(): Promise<CriticalHandoffListItem[]> {
+  const { data } = await api.get<CriticalHandoffListItem[]>('/ia/human-handoffs/');
+  return data;
+}
+
+export async function getHandoff(id: number): Promise<CriticalHandoffDetail> {
+  const { data } = await api.get<CriticalHandoffDetail>(`/ia/human-handoffs/${id}/`);
+  return data;
+}
+
+export async function createHandoffFromClassification(classificationId: number): Promise<CriticalHandoffDetail> {
+  const { data } = await api.post<CriticalHandoffDetail>(
+    `/ia/human-handoffs/from-classification/${classificationId}/`,
+  );
+  return data;
+}
+
+export async function acceptHandoff(id: number): Promise<CriticalHandoffDetail> {
+  const { data } = await api.post<CriticalHandoffDetail>(`/ia/human-handoffs/${id}/accept/`);
+  return data;
+}
+
+export async function resolveHandoff(id: number): Promise<CriticalHandoffDetail> {
+  const { data } = await api.post<CriticalHandoffDetail>(`/ia/human-handoffs/${id}/resolve/`);
+  return data;
+}
+
+export async function startCareHandoff(id: number): Promise<CriticalHandoffDetail> {
+  const { data } = await api.post<CriticalHandoffDetail>(`/ia/human-handoffs/${id}/start-care/`);
+  return data;
+}
+
+export async function cancelHandoff(id: number): Promise<CriticalHandoffDetail> {
+  const { data } = await api.post<CriticalHandoffDetail>(`/ia/human-handoffs/${id}/cancel/`);
+  return data;
+}
+
+export async function failHandoff(id: number): Promise<CriticalHandoffDetail> {
+  const { data } = await api.post<CriticalHandoffDetail>(`/ia/human-handoffs/${id}/fail/`);
+  return data;
+}
+
 export async function postChatbotMessage(payload: ChatbotRequest): Promise<ChatbotResponse> {
   const message = payload.message.trim();
   if (!message) {

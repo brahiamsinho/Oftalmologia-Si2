@@ -32,10 +32,12 @@ import {
   Tags,
   DatabaseBackup,
   Bot,
+  Brain,
   Receipt,
   Landmark,
   Search,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
@@ -81,6 +83,8 @@ const NAV_CATALOG: NavEntry[] = [
   { label: "Reportes", href: "/reportes", icon: BarChart2, keywords: "CU22 informe estadística exportar excel pdf" },
   // IA
   { label: "Asistente Virtual", href: "/asistente-virtual", icon: Bot, group: "Inteligencia Artificial", keywords: "CU23 IA chatbot consulta lenguaje natural" },
+  { label: "Clasificaciones de Urgencia", href: "/clasificaciones", icon: Brain, group: "Inteligencia Artificial", keywords: "CU24 clasificación urgencia crítica chatbot auditoría" },
+  { label: "Derivaciones Críticas", href: "/derivaciones-criticas", icon: AlertTriangle, group: "Inteligencia Artificial", keywords: "CU25 derivación crítica urgencia clasificación atención humana" },
   // Notificaciones
   { label: "Notificaciones", href: "/notificaciones", icon: Bell, keywords: "CU18 recordatorio alerta aviso automático" },
   // Admin
@@ -703,15 +707,33 @@ export default function Sidebar() {
           <NavGroup
             label="Inteligencia Artificial"
             icon={Bot}
-            active={is("/asistente-virtual")}
+            active={is("/asistente-virtual") || is("/derivaciones-criticas") || is("/clasificaciones")}
             collapsed={isCollapsed}
-            defaultOpen={is("/asistente-virtual")}
+            defaultOpen={is("/asistente-virtual") || is("/derivaciones-criticas") || is("/clasificaciones")}
           >
             <NavItem
               href="/asistente-virtual"
               label="Asistente Virtual"
               icon={MessageSquare}
               active={is("/asistente-virtual")}
+              collapsed={false}
+              depth={1}
+              onNavigate={closeMobileDrawer}
+            />
+            <NavItem
+              href="/clasificaciones"
+              label="Clasificaciones de Urgencia"
+              icon={Brain}
+              active={is("/clasificaciones")}
+              collapsed={false}
+              depth={1}
+              onNavigate={closeMobileDrawer}
+            />
+            <NavItem
+              href="/derivaciones-criticas"
+              label="Derivaciones Críticas"
+              icon={AlertTriangle}
+              active={is("/derivaciones-criticas")}
               collapsed={false}
               depth={1}
               onNavigate={closeMobileDrawer}

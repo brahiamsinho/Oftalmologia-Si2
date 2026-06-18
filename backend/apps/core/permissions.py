@@ -49,6 +49,18 @@ class IsPaciente(BasePermission):
         )
 
 
+class IsStaffUser(BasePermission):
+    """Personal clínico/administrativo activo (ADMIN, ADMINISTRATIVO, MEDICO, ESPECIALISTA)."""
+    message = 'Acceso restringido a personal del sistema.'
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        return request.user.tipo_usuario in (
+            'ADMIN', 'ADMINISTRATIVO', 'MEDICO', 'ESPECIALISTA',
+        )
+
+
 class IsStaffOrReadOnly(BasePermission):
     """Lectura pública; escritura sólo para staff."""
     def has_permission(self, request, view):

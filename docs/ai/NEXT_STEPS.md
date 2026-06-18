@@ -59,6 +59,11 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] **CU20 Backend (cerrado):** facturación, pasarela mock, PDF, notificaciones, API paciente/cita.
 - [ ] **CU20:** UI `/facturacion`, pasarela real producción, mobile pagos.
 - [x] Predicciones plataforma: agregar explicación funcional ("qué predice" + "qué significa probabilidad") y acción sugerida por riesgo.
+- [x] **CU24 Backend:** clasificación de urgencia del chatbot en endpoint separado `POST /t/<slug>/api/ia/urgency-classification/`, reglas determinísticas, persistencia tenant-aware y bitácora sin mensaje clínico completo.
+- [x] **CU24 Backend code review:** tests usan ruta tenant canonical, aislamiento básico por schema, spoofing tolera formato DRF, matcher evita `cal` dentro de `calor`, admin readonly y mapa PUDS corregido.
+- [x] **CU24 Backend:** ejecutar `manage.py check`, `pytest apps/ia/tests` y contraste de migración en Docker/venv con Django instalado.
+- [ ] **CU24 Backend:** aplicar migración en schemas tenant con `migrate_schemas --tenant` cuando se valide el entorno.
+- [ ] **CU25:** implementar derivación humana real a partir de `ChatbotUrgencyClassification.estado_derivacion=PENDIENTE` para casos críticos; no está hecho todavía.
 - [ ] Predicciones plataforma: agregar tooltips por feature clave (`pct_canceladas`, `tasa_asistencia`, `total_ingresos`) para interpretación guiada.
 - [ ] **Referencia:** mapa paquetes → `docs/ai/PACKAGE_CU_MAP.md`.
 - [x] Backend: CustomUser + JWT (ya existía; login refinado a email + `check_password`).

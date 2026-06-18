@@ -1,7 +1,7 @@
 # PACKAGE_CU_MAP — Paquetes PUDS ↔ código
 
 **Fuente de verdad** para numeración de casos de uso (diagramas §3.10 Paquetes y casos de uso).  
-Actualizado: 2026-05-23.
+Actualizado: 2026-06-17.
 
 ## Regla de tenant
 
@@ -101,8 +101,9 @@ Predefinidos del sistema (`is_system_report=True`) se consideran **parte de CU21
 
 | CU | Nombre | App | API |
 |----|--------|-----|-----|
-| CU23 | Asistente / NL → reporte | `apps.ia` | `/api/ia/nlp-to-report/` |
-| CU24–CU25 | Urgencia chatbot / derivación | pendiente / parcial | — |
+| CU23 | Asistente / NL → reporte + chatbot conversacional | `apps.ia` | `/api/ia/nlp-to-report/`, `/api/ia/chatbot/` |
+| CU24 | Clasificar urgencia por chatbot | `apps.ia` | `POST /t/<slug>/api/ia/urgency-classification/` (crear), `GET /t/<slug>/api/ia/urgency-classifications/` (listar) |
+| CU25 | Derivación humana desde urgencia crítica | `apps.ia` | `GET/POST /t/<slug>/api/ia/human-handoffs/`, `POST .../accept/`, `POST .../resolve/` |
 
 ---
 
@@ -127,7 +128,7 @@ Paquetes ya avanzados: **Administrativa** CU18–CU20 (backend).
 | **1** | Reportes | **CU21** | Parcial — CSV + QBE; falta cerrar motor/whitelist |
 | **2** | Reportes | **CU22** | Parcial — plantillas personalizadas + web `/reportes` |
 | **3** | IA | **CU23** | Parcial — NL → reporte (Gemini) |
-| **4** | IA | **CU24** | No implementado — urgencia chatbot |
+| **4** | IA | **CU24** | Backend implementado — urgencia chatbot determinística |
 | **5** | IA | **CU25** | No implementado — derivar a humano |
 | — | Atención clínica | **CU26** | Revisar — recetas/indicaciones descargables |
 | — | CRM | **CU17** | Parcial — recordatorios (cron/UI pendiente) |

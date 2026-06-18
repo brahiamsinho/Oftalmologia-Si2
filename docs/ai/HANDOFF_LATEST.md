@@ -2,6 +2,35 @@
 
 ## Resumen
 
+**Fecha:** 2026-06-17 — **CU24 tests IA en Docker OK:**
+- Causa de los 404 en `apps/ia/tests/test_urgency_classification_api.py`: los fixtures creaban `Domain.domain` como host tipo `tenant-cu24-xxx.localhost`, pero el endpoint probado usa subfolder `/t/<slug>/...`.
+- En este proyecto, para `TenantSubfolderMiddleware`, el valor de `Domain.domain` debe coincidir con el slug/subfolder.
+- Fix mínimo: usar `domain=tenant.slug` y `domain=other_tenant.slug` en los tenants de test CU24.
+- Validación: `docker compose exec backend pytest apps/ia/tests -q` -> `13 passed in 89.54s`.
+- No hubo cambios productivos ni cambios de contrato API.
+
+**Fecha:** 2026-06-17 — **CU24 code review fixes:**
+- Tests API actualizados para consumir `POST /t/<slug>/api/ia/urgency-classification/` en vez de depender solo de `/api/...`.
+- Nuevo test básico valida aislamiento entre schemas tenant para `ChatbotUrgencyClassification`.
+- `urgency_classifier` ahora matchea términos completos con regex de frontera; evita falso crítico por `cal` dentro de `calor`.
+- Admin de `ChatbotUrgencyClassification` queda readonly para datos generados/auditables y sin alta manual.
+- Pendiente de entorno: correr pytest focalizado en venv/Docker con Django + django-tenants instalados.
+
+**Fecha:** 2026-06-17 — **CU24 backend: clasificación de urgencia por chatbot:**
+- Endpoint nuevo: `POST /t/<slug>/api/ia/urgency-classification/`.
+- CU23 se preserva: `POST /t/<slug>/api/ia/chatbot/` no fue modificado funcionalmente.
+- Archivos clave:
+  - `backend/apps/ia/models.py` — `ChatbotUrgencyClassification`, niveles y estado de derivación pasiva.
+  - `backend/apps/ia/services/urgency_classifier.py` — reglas determinísticas testeables, sin Gemini.
+  - `backend/apps/ia/views.py` — `UrgencyClassificationView`, permiso paciente, resolución de ficha, persistencia y bitácora.
+  - `backend/apps/ia/serializers.py` — request/response + rechazo anti-spoofing.
+  - `backend/apps/ia/migrations/0001_initial.py` — migración manual por falta de runtime Django local/Docker.
+  - `backend/apps/ia/tests/test_urgency_classifier.py` y `test_urgency_classification_api.py`.
+- Pendiente para quien continúe:
+  - Ejecutar en entorno correcto: `python manage.py check`, `pytest apps/ia/tests`, y preferentemente `python manage.py makemigrations ia --check --dry-run` para contrastar la migración manual.
+  - Aplicar migraciones con `migrate_schemas --tenant` cuando corresponda.
+- Importante: CU25 NO está implementado; solo se persiste `estado_derivacion=PENDIENTE` cuando CU24 clasifica `CRITICO`.
+
 **Fecha:** 2026-06-02 — **Seguros: hotfix backend 500 + mensajes de error legibles:**
 - Se corrigió crash 500 de DRF al crear convenios/afiliaciones en seguros.
 - Error original: `Expected a date, but got a datetime` en serialización de `fecha_inicio/fecha_fin`.
