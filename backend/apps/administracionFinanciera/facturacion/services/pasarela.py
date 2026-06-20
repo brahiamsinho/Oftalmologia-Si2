@@ -63,17 +63,18 @@ def confirmar_pago_pasarela(referencia: str, *, exito: bool) -> CobroClinico:
     if not referencia:
         raise ValidationError('referencia_pasarela es obligatoria.')
 
+    # Aceptar tanto EN_LINEA como QR (ambos flujos usan referencia_pasarela)
     try:
         cobro = CobroClinico.objects.select_related(
             'id_factura',
             'id_factura__id_paciente',
         ).get(
             referencia_pasarela=referencia,
-            metodo_pago=MetodoPagoClinico.EN_LINEA,
+            metodo_pago__in=[MetodoPagoClinico.EN_LINEA, MetodoPagoClinico.QR],
             estado=EstadoCobro.PENDIENTE,
         )
     except CobroClinico.DoesNotExist as exc:
-        raise ValidationError('No hay cobro pendiente con esa referencia.') from exc
+        raise ValidationError('No hay cobro pendiente (QR o en línea) con esa referencia.') from exc
 
     factura = cobro.id_factura
 

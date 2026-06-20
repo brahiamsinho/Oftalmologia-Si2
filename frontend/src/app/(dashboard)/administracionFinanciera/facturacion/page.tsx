@@ -24,6 +24,8 @@ import {
   TrendingUp,
   ShieldCheck,
   Tag,
+  QrCode,
+  ArrowLeftRight,
 } from 'lucide-react';
 
 import {
@@ -33,6 +35,7 @@ import {
   type EstadoFactura,
   type MetodoPago,
   type PreviewResult,
+  type GenerarQRResponse,
 } from '@/lib/services/facturacion';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -54,10 +57,11 @@ const ESTADO_COLORS: Record<EstadoFactura, string> = {
 };
 
 const METODOS_PAGO: { value: MetodoPago; label: string }[] = [
-  { value: 'EFECTIVO', label: 'Efectivo' },
-  { value: 'TARJETA', label: 'Tarjeta' },
-  { value: 'TRANSFERENCIA', label: 'Transferencia' },
-  { value: 'EN_LINEA', label: 'Pago en línea' },
+  { value: 'EFECTIVO',      label: 'Efectivo' },
+  { value: 'TARJETA',       label: 'Tarjeta' },
+  { value: 'TRANSFERENCIA', label: 'Transferencia bancaria' },
+  { value: 'EN_LINEA',      label: 'Pago en línea' },
+  { value: 'QR',            label: 'Pago QR' },
 ];
 
 function fmt(v: string | number | undefined | null): string {
@@ -337,14 +341,61 @@ function ModalRegistrarCobro({
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [monto, setMonto] = useState(factura.saldo_pendiente || '');
-  const [metodo, setMetodo] = useState<MetodoPago>('EFECTIVO');
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState<string | null>(null);
+  const [monto, setMonto]             = useState(factura.saldo_pendiente || '');
+  const [metodo, setMetodo]           = useState<MetodoPago>('EFECTIVO');
+  const [referencia, setReferencia]   = useState('');
   const [observaciones, setObservaciones] = useState('');
 
+  // Estado del flujo QR
+  const [qrData, setQrData]           = useState<GenerarQRResponse | null>(null);
+  const [generandoQR, setGenerandoQR] = useState(false);
+  const [confirmandoQR, setConfirmandoQR] = useState(false);
+
+  const esQR           = metodo === 'QR';
+  const esTransferencia = metodo === 'TRANSFERENCIA';
+
+  // ── Flujo QR: paso 1 — generar imagen QR ──────────────────────────────
+  const handleGenerarQR = async () => {
+    setError(null);
+    setGenerandoQR(true);
+    try {
+      const data = await facturacionService.generarQR(factura.id_factura);
+      setQrData(data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al generar QR');
+    } finally {
+      setGenerandoQR(false);
+    }
+  };
+
+  // ── Flujo QR: paso 2 — confirmar pago escaneado ───────────────────────
+  const handleConfirmarQR = async () => {
+    if (!qrData) return;
+    setError(null);
+    setConfirmandoQR(true);
+    try {
+      await facturacionService.confirmarPasarela({
+        referencia_pasarela: qrData.referencia_pasarela,
+        exito: true,
+      });
+      onSuccess();
+      onClose();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al confirmar pago QR');
+    } finally {
+      setConfirmandoQR(false);
+    }
+  };
+
+  // ── Flujo normal: efectivo, tarjeta, transferencia ────────────────────
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (esTransferencia && !referencia.trim()) {
+      setError('El número de referencia de transferencia es obligatorio.');
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -352,6 +403,7 @@ function ModalRegistrarCobro({
         monto,
         metodo_pago: metodo,
         estado: 'CONFIRMADO',
+        referencia_pasarela: referencia.trim(),
         observaciones,
       });
       onSuccess();
@@ -366,9 +418,12 @@ function ModalRegistrarCobro({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-green-600" />
+            {esQR
+              ? <QrCode className="w-5 h-5 text-violet-600" />
+              : <CreditCard className="w-5 h-5 text-green-600" />}
             <h2 className="text-base font-semibold text-gray-900">Registrar Cobro</h2>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -377,6 +432,7 @@ function ModalRegistrarCobro({
         </div>
 
         <div className="px-6 py-5 space-y-4">
+          {/* Info factura */}
           <div className="bg-blue-50 rounded-lg p-3 text-sm">
             <p className="text-gray-600">Factura: <span className="font-semibold text-gray-900">{factura.numero_factura}</span></p>
             <p className="text-gray-600">Paciente: <span className="font-medium">{factura.paciente_nombre}</span></p>
@@ -390,71 +446,143 @@ function ModalRegistrarCobro({
             </div>
           )}
 
-          <form onSubmit={handleSave} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Monto <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  value={monto}
-                  onChange={e => setMonto(e.target.value)}
-                  className="w-full pl-9 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
+          {/* Selector de método */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Método de pago</label>
+            <select
+              value={metodo}
+              onChange={e => { setMetodo(e.target.value as MetodoPago); setQrData(null); setError(null); setReferencia(''); }}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            >
+              {METODOS_PAGO.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* ── FLUJO QR ───────────────────────────────────────────────── */}
+          {esQR && (
+            <div className="space-y-4">
+              {!qrData ? (
+                <>
+                  <p className="text-sm text-gray-500">
+                    Se generará un código QR con el monto pendiente de <strong>{fmt(factura.saldo_pendiente)}</strong>.
+                    El paciente lo escanea con su app bancaria para pagar.
+                  </p>
+                  <div className="flex gap-3">
+                    <button type="button" onClick={onClose}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50">
+                      Cancelar
+                    </button>
+                    <button type="button" onClick={handleGenerarQR} disabled={generandoQR}
+                      className="flex-1 px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 flex items-center justify-center gap-2 disabled:opacity-50">
+                      {generandoQR ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
+                      {generandoQR ? 'Generando…' : 'Generar QR'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* QR generado */}
+                  <div className="flex flex-col items-center gap-3 py-2">
+                    <img
+                      src={`data:image/png;base64,${qrData.qr_base64}`}
+                      alt="Código QR de pago"
+                      className="w-48 h-48 border border-gray-200 rounded-lg shadow-sm"
+                    />
+                    <div className="text-center text-xs text-gray-500 space-y-0.5">
+                      <p className="font-semibold text-gray-700">{qrData.datos_pago.banco}</p>
+                      <p>Cuenta: <span className="font-mono">{qrData.datos_pago.cuenta}</span></p>
+                      <p className="text-lg font-bold text-violet-700 mt-1">
+                        {qrData.datos_pago.moneda} {qrData.monto}
+                      </p>
+                      <p className="text-gray-400 text-[10px] font-mono break-all">
+                        Ref: {qrData.referencia_pasarela.slice(0, 20)}…
+                      </p>
+                    </div>
+                    <p className="text-[11px] text-center text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                      Esperando que el paciente escanee y transfiera. Una vez recibido el pago, presiona &quot;Confirmar pago QR&quot;.
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => setQrData(null)}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50">
+                      Regenerar
+                    </button>
+                    <button type="button" onClick={handleConfirmarQR} disabled={confirmandoQR}
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 flex items-center justify-center gap-2 disabled:opacity-50">
+                      {confirmandoQR ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                      {confirmandoQR ? 'Confirmando…' : 'Confirmar pago QR'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ── FLUJO NORMAL (efectivo, tarjeta, transferencia) ─────────── */}
+          {!esQR && (
+            <form onSubmit={handleSave} className="space-y-4">
+              {/* Monto */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Monto <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input type="number" step="0.01" min="0.01" required
+                    value={monto} onChange={e => setMonto(e.target.value)}
+                    className="w-full pl-9 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Referencia de transferencia — obligatoria solo para TRANSFERENCIA */}
+              {esTransferencia && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <span className="flex items-center gap-1.5">
+                      <ArrowLeftRight className="w-3.5 h-3.5 text-blue-500" />
+                      N° de referencia / confirmación <span className="text-red-500">*</span>
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={referencia}
+                    onChange={e => setReferencia(e.target.value)}
+                    required
+                    placeholder="Ej: TRX-20250601-00123"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 font-mono"
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Número de comprobante o referencia que entrega el banco al paciente.
+                  </p>
+                </div>
+              )}
+
+              {/* Observaciones */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones</label>
+                <textarea rows={2} value={observaciones}
+                  onChange={e => setObservaciones(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 resize-none"
+                  placeholder={esTransferencia ? 'Banco emisor, titular, etc.' : 'Notas opcionales…'}
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Método de pago
-              </label>
-              <select
-                value={metodo}
-                onChange={e => setMetodo(e.target.value as MetodoPago)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                {METODOS_PAGO.map(m => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Observaciones
-              </label>
-              <textarea
-                value={observaciones}
-                onChange={e => setObservaciones(e.target.value)}
-                rows={2}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                placeholder="Referencia, notas, etc."
-              />
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                Confirmar cobro
-              </button>
-            </div>
-          </form>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={onClose}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={loading}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 flex items-center justify-center gap-2 disabled:opacity-50">
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                  Confirmar cobro
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     </div>

@@ -29,6 +29,7 @@ from .cobros import aplicar_cobro_confirmado_a_factura
 from .comprobante import generar_comprobante_pdf, generar_comprobante_texto
 from .notificaciones import notificar_paciente_factura
 from .pasarela import confirmar_pago_pasarela, iniciar_pago_en_linea
+from .qr import generar_qr_pago
 from .resumen import listar_facturas_paciente, resumen_facturacion_cita
 
 __all__ = [
@@ -38,6 +39,7 @@ __all__ = [
     'anular_factura',
     'iniciar_pago_en_linea',
     'confirmar_pago_pasarela',
+    'generar_qr_pago',
     'generar_comprobante_pdf',
     'generar_comprobante_texto',
     'notificar_paciente_factura',
@@ -237,9 +239,11 @@ def registrar_cobro_factura(
     if factura.estado == EstadoFactura.PAGADA:
         raise ValidationError('La factura ya está pagada.')
 
-    if metodo_pago == MetodoPagoClinico.EN_LINEA and estado == EstadoCobro.CONFIRMADO:
+    # EN_LINEA y QR requieren flujo en dos pasos (generar → confirmar-pasarela)
+    if metodo_pago in (MetodoPagoClinico.EN_LINEA, MetodoPagoClinico.QR) and estado == EstadoCobro.CONFIRMADO:
         raise ValidationError(
-            'Use iniciar-pago-en-linea y confirmar-pasarela para cobros EN_LINEA.',
+            'Use generar-qr o iniciar-pago-en-linea para iniciar el cobro, '
+            'luego confirmar con POST /cobros/confirmar-pasarela/.',
         )
 
     monto = _q(monto)

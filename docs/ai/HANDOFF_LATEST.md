@@ -2,6 +2,25 @@
 
 ## Resumen
 
+**Fecha:** 2026-06-17 — **CU23 frontend asistente virtual para Paciente:**
+- Nueva pantalla dashboard en `frontend/src/app/(dashboard)/InteligenciaArtificial/page.tsx`.
+- Ruta protegida: `/InteligenciaArtificial`.
+- UI: chat, accesos rapidos, panel de temas, alerta de senales de riesgo, contador de interacciones y estado visual de derivacion CU24.
+- Servicio extendido: `postPatientAssistantMessage` y `getPatientAssistantHistory` en `frontend/src/services/iaService.ts`.
+- Navegacion: `Sidebar` apunta "Asistente Virtual" a `/InteligenciaArtificial`; `Header` agrega breadcrumb; `middleware.ts` protege la ruta.
+- Validacion: `npm run lint` OK con warnings historicos; `npm run build` fue abortado por duracion.
+
+**Fecha:** 2026-06-17 — **CU23 backend asistente virtual para Paciente:**
+- Se creo app tenant `apps.InteligenciaArtificial` en `backend/apps/InteligenciaArtificial`.
+- Endpoint principal: `POST /t/<slug>/api/inteligencia-artificial/asistente-virtual/`.
+- Alias compatible: `POST /t/<slug>/api/ia/asistente-virtual/`.
+- Historial del paciente: `GET /t/<slug>/api/inteligencia-artificial/interacciones-asistente/`.
+- Modelo persistente: `InteraccionAsistenteVirtual` (`ia_interacciones_asistente_virtual`), con intencion, estado, prioridad, sintomas y metadata.
+- Servicio deterministico `AsistenteVirtualService`: respuestas autorizadas para citas, horarios, procedimientos, preoperatorio, postoperatorio, seguros/facturacion y sistema.
+- Si detecta sintomas/senales de riesgo, marca `requiere_clasificacion_urgencia=True`, `estado=REQUIERE_CU24`, `metadata.cu24_activado=True`.
+- Seguridad: `IsAuthenticated + IsPaciente`; bitacora en modulo `inteligencia_artificial`.
+- Validacion pendiente en Docker: `manage.py check`, pytest especifico y `migrate_schemas --tenant`.
+
 **Fecha:** 2026-05-31 — **Diagramas de secuencia UML 2.5 en EA (CU18, CU21, CU22):**
 - Nuevo paquete EA: `/Model/2.6 Diagramas de Secuencia` (ID 20).
 - Diagramas:

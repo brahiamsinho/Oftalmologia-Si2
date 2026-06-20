@@ -29,6 +29,7 @@ from .serializers import (
 from .services import (
     generar_comprobante_pdf,
     generar_comprobante_texto,
+    generar_qr_pago,
     iniciar_pago_en_linea,
     listar_facturas_paciente,
 )
@@ -207,6 +208,40 @@ class FacturaClinicaViewSet(FacturacionBitacoraMixin, viewsets.ModelViewSet):
             },
             status=status.HTTP_201_CREATED,
         )
+
+    @action(
+        detail=True,
+        methods=['post'],
+        url_path='generar-qr',
+        permission_classes=[IsAuthenticated, IsAdministrativoOrAdmin],
+    )
+    def generar_qr(self, request, pk=None):
+        """
+        POST /api/facturacion/facturas/{id}/generar-qr/
+
+        Genera un código QR de pago para la factura.
+        Devuelve la imagen PNG en base64 y la referencia para confirmar después.
+
+        Flujo:
+          1. Llamar este endpoint → obtener qr_base64 + referencia_pasarela
+          2. Mostrar QR al paciente para que escanee y pague
+          3. Confirmar con POST /cobros/confirmar-pasarela/ {referencia, exito: true}
+        """
+        from django.core.exceptions import ValidationError as DjangoValidationError  # noqa: PLC0415
+        from rest_framework.exceptions import ValidationError as DRFValidationError   # noqa: PLC0415
+
+        factura = self.get_object()
+        try:
+            resultado = generar_qr_pago(factura)
+        except DjangoValidationError as exc:
+            raise DRFValidationError({'detail': exc.message}) from exc
+
+        self._registrar(
+            AccionBitacora.EDITAR,
+            f'Generó QR de pago para factura {factura.numero_factura} monto {resultado["monto"]}',
+            factura,
+        )
+        return Response(resultado, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], url_path='iniciar-pago-en-linea')
     def iniciar_pago_en_linea_action(self, request, pk=None):
