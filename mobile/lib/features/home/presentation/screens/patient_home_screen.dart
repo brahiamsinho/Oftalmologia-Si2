@@ -66,6 +66,7 @@ class _PatientHomeScreenState extends ConsumerState<PatientHomeScreen> {
             },
             onVerTodasCitas: () => setState(() => _navIndex = 1),
             onMisCitasQuickAccess: () => setState(() => _navIndex = 1),
+            onAsistenteVirtual: () => context.push('/asistente-virtual-paciente'),
           ),
           const _PatientCitasTab(),
           _ProfileTab(
@@ -109,6 +110,7 @@ class _InicioTab extends ConsumerWidget {
     required this.onRefresh,
     required this.onVerTodasCitas,
     required this.onMisCitasQuickAccess,
+    required this.onAsistenteVirtual,
   });
 
   final String firstName;
@@ -116,6 +118,7 @@ class _InicioTab extends ConsumerWidget {
   final Future<void> Function() onRefresh;
   final VoidCallback onVerTodasCitas;
   final VoidCallback onMisCitasQuickAccess;
+  final VoidCallback onAsistenteVirtual;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -166,7 +169,10 @@ class _InicioTab extends ConsumerWidget {
           const SliverToBoxAdapter(child: PatientNextAppointmentCard()),
           const SliverToBoxAdapter(child: SizedBox(height: 20)),
           SliverToBoxAdapter(
-            child: PatientQuickAccessRow(onMisCitas: onMisCitasQuickAccess),
+            child: PatientQuickAccessRow(
+              onMisCitas: onMisCitasQuickAccess,
+              onAsistenteVirtual: onAsistenteVirtual,
+            ),
           ),
           SliverToBoxAdapter(
             child: PatientAppointmentsSection(onVerTodas: onVerTodasCitas),

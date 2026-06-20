@@ -1,5 +1,33 @@
 # DECISIONS LOG
 
+---
+
+**Fecha:** 2026-06-20
+**Decision:** Las siglas internas (`CU24`, `CU`) no deben aparecer en el texto visible al paciente; la UI debe usar lenguaje clinico natural.
+**Motivo:** El nombre tecnico del caso de uso es util para desarrollo y trazabilidad, pero en la interfaz de paciente se percibe como jerga de implementacion.
+**Impacto:** Se eliminan referencias visibles a `CU24` del asistente virtual y la tarjeta de urgencia; se mantienen solo identificadores internos y bitacoras tecnicas.
+
+---
+
+**Fecha:** 2026-06-20
+**Decision:** El mobile de paciente debe generar `id_conversacion` como UUID v4 real para alinearse con el `UUIDField` del backend en CU23.
+**Motivo:** El formato local `mob-...` rompia la validacion del serializer y terminaba en error genérico en la UI.
+**Impacto:** Se evita el 400/validacion fallida en el POST del asistente virtual y el historial puede correlacionarse por un identificador compatible con el backend.
+
+---
+
+**Fecha:** 2026-06-20
+**Decision:** CU24 se implementa como clasificacion formal deterministicamente explicable dentro de `apps.InteligenciaArtificial`, reutilizando la alerta de CU23 y persistiendo un modelo propio `ClasificacionUrgencia`.
+**Motivo:** CU23 solo detectaba sintomas de riesgo; para que CU24 sea defendible y auditable hacia el personal clinico necesitabamos un score, nivel, factores evaluados y trazabilidad por interaccion.
+**Impacto:** Se agrega una clasificacion one-to-one por interaccion con endpoints para staff, se muestra el nivel/puntaje en frontend y CU25 puede reutilizar el flag de derivacion sin volver a calcular.
+
+---
+
+**Fecha:** 2026-06-17
+**Decision:** Implementar el backend del asistente virtual para Paciente en `apps.InteligenciaArtificial`, manteniendo `apps.ia` para el flujo legacy Gemini/QBE.
+**Motivo:** El CU23 solicitado requiere persistencia de conversaciones del paciente, bitacora y derivacion a CU24; eso pertenece al schema tenant de la clinica y no debe mezclarse con el traductor QBE existente.
+**Impacto:** Se agrega una app tenant nueva, un modelo auditable de interacciones, un servicio deterministico de intenciones autorizadas y endpoints bajo `/inteligencia-artificial/` con alias `/ia/asistente-virtual/`. CU24 aun no existe como flujo formal; CU23 deja la senal `requiere_clasificacion_urgencia=True` y metadata `cu24_activado=True`.
+
 Este archivo documenta todas las decisiones técnicas arquitectónicas importantes tomadas en la evolución del proyecto.
 
 ## Formato de Registro

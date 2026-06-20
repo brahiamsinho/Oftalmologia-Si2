@@ -2,89 +2,62 @@
 
 ## Resumen
 
-**Fecha:** 2026-06-02 — **Seguros: hotfix backend 500 + mensajes de error legibles:**
-- Se corrigió crash 500 de DRF al crear convenios/afiliaciones en seguros.
-- Error original: `Expected a date, but got a datetime` en serialización de `fecha_inicio/fecha_fin`.
-- Solución:
-  - `_normalize_date(...)` en serializers de seguros,
-  - override `to_representation` en `ConvenioSerializer` y `AfiliacionSeguroPacienteSerializer`.
-- Además, `frontend/src/lib/services/seguros.ts` ahora traduce `detail/non_field_errors` y muestra errores útiles al usuario.
-- Verificación técnica:
-  - `manage.py check` OK
-  - `npm run build` OK
+**Fecha:** 2026-06-20 — **UX paciente: sin siglas CU visibles:**
+- Se eliminaron las siglas tecnicas visibles al paciente en el asistente virtual.
+- El texto del asistente y la tarjeta de urgencia ahora usan lenguaje clinico normal (valoracion/urgencia) sin `CU24`.
 
-**Fecha:** 2026-06-02 — **Seguros UI/UX: verificar cobertura sin ID manual:**
-- Se implementó `PacienteLookup` (autocomplete local en página) para:
-  - pestaña **Verificar cobertura**,
-  - formulario de **Afiliaciones**.
-- Ahora la selección de paciente se hace por búsqueda (nombre/apellido/documento/email) y no por input numérico de ID.
-- Se añadió feedback de paciente seleccionado y validación previa al submit.
-- Resultado: menos errores operativos y flujo más usable para administrativo.
-- Archivo: `frontend/src/app/(dashboard)/administracionFinanciera/seguros/page.tsx`.
-- Verificación: `npm run build` frontend OK.
+**Fecha:** 2026-06-20 — **Fix mobile CU23: `id_conversacion` UUID válido:**
+- Se identificó que el error en la pantalla de paciente venía del `conversationId` local, que no era UUID y rompía el serializer `UUIDField` del backend.
+- Se corrigió el generador de conversación en `PatientVirtualAssistantNotifier` para producir UUID v4 reales.
+- Efecto esperado: el POST al asistente virtual ya no debería caer en el mensaje genérico de error al enviar una consulta.
+- Validacion: `flutter analyze` sin errores nuevos en los archivos tocados.
 
-**Fecha:** 2026-06-02 — **Reportes Predictivos: pantalla autoexplicativa para negocio:**
-- Se ajustó UI en `/platform/dashboard/predicciones` para explicar claramente:
-  - objetivo del modelo (riesgo operativo por tenant),
-  - significado de probabilidad (confianza del modelo).
-- Se agregó columna **Acción sugerida** por clínica con recomendación contextual:
-  - riesgo alto: intervención semanal en cancelaciones/asistencia/ingresos;
-  - riesgo medio: monitoreo quincenal;
-  - riesgo bajo: seguimiento mensual.
-- Implementado en `frontend/src/app/platform/dashboard/predicciones/page.tsx`.
-- Verificación: `npm run build` frontend en verde (warnings existentes no bloqueantes).
+**Fecha:** 2026-06-20 — **Mobile paciente asistente virtual CU23/CU24:**
+- Se fijo la UI mobile de paciente para el chatbot con ruta propia `/asistente-virtual-paciente`.
+- Se mantuvo el flujo staff separado en `/asistente-virtual`.
+- Se corrigieron detalles de analyzer en `patient_virtual_assistant_screen.dart` y `patient_assistant_models.dart`.
+- Validacion: `flutter analyze` sin errores en archivos tocados; solo warnings/info historicos en el resto del proyecto.
 
-**Fecha:** 2026-06-02 — **Pasarela Stripe real en facturación clínica:**
-- Se cambió `iniciar_pago_en_linea` para usar **Stripe Checkout** cuando existe `STRIPE_SECRET_KEY`.
-- Se mantiene fallback a mock si Stripe no está habilitado (entorno dev).
-- Si existe cobro pendiente con referencia Stripe (`cs_...`), intenta reutilizar sesión.
-- Si Stripe indica `payment_status=paid`, se confirma cobro/factura automáticamente en backend.
-- `iniciar_pago_en_linea_action` pasa `tenant_slug` al servicio para URLs de retorno con contexto multi-tenant.
-- Verificación ejecutada: `docker compose exec backend python manage.py check` OK.
+**Fecha:** 2026-06-20 — **CU24 clasificacion formal de urgencia chatbot:**
+- Se agrego `ClasificacionUrgencia` + `ClasificadorUrgenciaService` en `backend/apps/InteligenciaArtificial`.
+- CU23 ahora autogenera la clasificacion cuando detecta sintomas de riesgo y la deja persistida con puntaje, nivel y recomendacion.
+- Se expuso API de staff para revisar y derivar clasificaciones:
+  - `GET /t/<slug>/api/inteligencia-artificial/clasificaciones-urgencia/`
+  - `GET /t/<slug>/api/inteligencia-artificial/clasificaciones-urgencia/pendientes/`
+  - `PATCH /t/<slug>/api/inteligencia-artificial/clasificaciones-urgencia/<id>/revisar/`
+- Frontend IA muestra badge con nivel/puntaje cuando la clasificacion existe.
+- Validacion:
+  - `docker compose exec backend python manage.py check` -> OK
+  - `docker compose exec backend pytest apps/InteligenciaArtificial/tests/test_clasificador_urgencia.py -q` -> 3 passed
+  - `docker compose exec frontend npm run lint` -> OK con warnings historicos
 
-**Fecha:** 2026-06-02 — **Pasarela de pagos mobile (modo demo) ahora usable:**
-- Problema UX: paciente tocaba "Pagar en línea" y era enviado a una respuesta técnica DRF (`mock-checkout`) percibida como "no funciona".
-- Backend:
-  - Nuevo action en factura: `POST /facturacion/facturas/{id}/confirmar-pago-mock/`.
-  - Implementación en `FacturaClinicaViewSet.confirmar_pago_mock_action`.
-  - Toma el último cobro `EN_LINEA` pendiente y confirma vía `confirmar_pago_pasarela(...)`.
-  - Permiso: `IsAuthenticated + EsPropietarioFacturaPaciente`.
-- Mobile:
-  - `FacturacionRepository.confirmarPagoMock(idFactura)` para consumir el endpoint nuevo.
-  - `MisFacturasScreen` detecta checkout mock y muestra diálogo "Simular pago".
-  - Al confirmar: invoca endpoint, refresca `misFacturasProvider` y notifica éxito.
-- Verificación:
-  - `flutter analyze` (facturación mobile) OK.
-  - `docker compose exec backend python manage.py check` OK.
+**Fecha:** 2026-06-02 — **Mobile facturación: comprobante PDF visible tras pagar**
+- Se implementó apertura de comprobante PDF en app móvil para facturas pagadas.
+- Cambios:
+  - `FacturacionRepository.fetchComprobantePdf(...)` descarga bytes PDF autenticados.
+  - `MisFacturasScreen._verComprobante(...)` guarda PDF temporal y lo abre con `url_launcher` (`Uri.file`).
+  - fallback automático a modal texto si el dispositivo no puede abrir PDFs.
+- Mejora UX: luego de `confirmar-pago-mock` se dispara apertura automática del comprobante.
+- Verificación: `flutter analyze` (archivos facturación mobile) OK.
 
-**Fecha:** 2026-06-02 — **Mobile paciente: fix Mis Facturas + hallazgo FCM token:**
-- Fix en parser `FacturaResumen.fromJson`: montos ahora aceptan string/num/null (evita crash de casteo al abrir Mis Facturas).
-- Mapeo de estados backend extendido en mobile (`EMITIDA`, `PAGADA_PARCIAL`, `BORRADOR` tratados como pendiente).
-- Hallazgo de logs: login sin `fcm_token` => push no sale por FCM, queda solo notificación en BD/API.
-- Hardening aplicado: obtención de token FCM en mobile con 3 reintentos cortos para mejorar registro de dispositivo.
-- Fix pasarela mobile: se normaliza `checkout_url/url/url_pago` a URL absoluta antes de `launchUrl`.
-- Fix pasarela backend: pago en línea ahora reutiliza cobro pendiente (idempotente) para evitar bloqueo al reintentar.
-- Fix pasarela tenant-aware: checkout URL dev ahora incluye prefijo `/t/<slug>/api/...` para no caer en 404 fuera de `public`.
-- Mobile ahora muestra detalle de error de API en facturas/pagos (no solo mensaje genérico).
-- Bloqueo actual push: `google-services.json` de Android está en modo plantilla (placeholders), por lo que FCM no puede operar de forma confiable.
+**Fecha:** 2026-06-17 — **CU23 frontend asistente virtual para Paciente:**
+- Nueva pantalla dashboard en `frontend/src/app/(dashboard)/InteligenciaArtificial/page.tsx`.
+- Ruta protegida: `/InteligenciaArtificial`.
+- UI: chat, accesos rapidos, panel de temas, alerta de senales de riesgo, contador de interacciones y estado visual de derivacion CU24.
+- Servicio extendido: `postPatientAssistantMessage` y `getPatientAssistantHistory` en `frontend/src/services/iaService.ts`.
+- Navegacion: `Sidebar` apunta "Asistente Virtual" a `/InteligenciaArtificial`; `Header` agrega breadcrumb; `middleware.ts` protege la ruta.
+- Validacion: `npm run lint` OK con warnings historicos; `npm run build` fue abortado por duracion.
 
-**Fecha:** 2026-06-02 — **Facturación: menos “duplicados” y filtro por cuenta app:**
-- `seed_reporting_6months` ahora genera 12 pacientes únicos por tenant (no 48 con nombres cíclicos).
-- Limpieza automática de dataset antiguo de reportes (`RPT6M-*` y analítica previa), preservando paciente demo con cuenta.
-- En frontend de facturación (`Nueva Factura`) se restringió el selector a pacientes con cuenta app vinculada.
-- Si hay un único paciente con cuenta (demo), queda auto-seleccionado para evitar que “no deje elegir”.
-
-**Fecha:** 2026-06-02 — **Seeders idempotentes + sync passwords demo:**
-- Aclaración operativa: rebuild Docker **no** resetea BD; seeders reportan `existentes` cuando omiten creación.
-- Nuevo `SYNC_DEMO_PASSWORDS=1` (`.env.example`); módulo `seeders/demo_password_sync.py`.
-- `seed_platform_admin` y `seed_admin` devuelven tupla `(creados, existentes, passwords_synced)`.
-- Entrypoint y `manage.py seed` muestran `passwords_synced` en logs.
-- Login plataforma: serializer usa `email__iexact`; frontend distingue error de red vs credenciales.
-
-**Fecha:** 2026-06-02 — **Flota SaaS demo (5 clínicas) en entrypoint:**
-- `seed_saas_demo_fleet` integrado en `entrypoint.sh` (`RUN_SAAS_DEMO_FLEET=1`).
-- Seeders tenant completos por clínica; credenciales en `DEMO_CREDENTIALS.md`.
-- Fix sintaxis en `seed.py`; `seed_platform_admin` sincroniza password demo.
+**Fecha:** 2026-06-17 — **CU23 backend asistente virtual para Paciente:**
+- Se creo app tenant `apps.InteligenciaArtificial` en `backend/apps/InteligenciaArtificial`.
+- Endpoint principal: `POST /t/<slug>/api/inteligencia-artificial/asistente-virtual/`.
+- Alias compatible: `POST /t/<slug>/api/ia/asistente-virtual/`.
+- Historial del paciente: `GET /t/<slug>/api/inteligencia-artificial/interacciones-asistente/`.
+- Modelo persistente: `InteraccionAsistenteVirtual` (`ia_interacciones_asistente_virtual`), con intencion, estado, prioridad, sintomas y metadata.
+- Servicio deterministico `AsistenteVirtualService`: respuestas autorizadas para citas, horarios, procedimientos, preoperatorio, postoperatorio, seguros/facturacion y sistema.
+- Si detecta sintomas/senales de riesgo, marca `requiere_clasificacion_urgencia=True`, `estado=REQUIERE_CU24`, `metadata.cu24_activado=True`.
+- Seguridad: `IsAuthenticated + IsPaciente`; bitacora en modulo `inteligencia_artificial`.
+- Validacion pendiente en Docker: `manage.py check`, pytest especifico y `migrate_schemas --tenant`.
 
 **Fecha:** 2026-05-31 — **Diagramas de secuencia UML 2.5 en EA (CU18, CU21, CU22):**
 - Nuevo paquete EA: `/Model/2.6 Diagramas de Secuencia` (ID 20).

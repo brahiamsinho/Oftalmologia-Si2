@@ -13,9 +13,13 @@ class IaAccess {
     return _staffRoles.contains(tipoUsuario);
   }
 
+  static bool canUsePatientVirtualAssistant(String tipoUsuario) {
+    return tipoUsuario == 'PACIENTE';
+  }
+
   static String deniedMessage(String tipoUsuario) {
     if (tipoUsuario == 'PACIENTE') {
-      return 'El asistente virtual está disponible para el personal de la clínica.';
+      return 'No tenés acceso a este asistente. Usá el chatbot de paciente en tu pantalla de inicio.';
     }
     return 'Tu rol no tiene acceso al asistente virtual en esta app.';
   }

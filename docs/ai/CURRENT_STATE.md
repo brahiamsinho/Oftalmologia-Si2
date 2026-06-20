@@ -1,132 +1,104 @@
 # CURRENT STATE
 
-## Actualización 2026-06-02 — Fix verificar cobertura (400) + UX PacienteLookup
+## Actualizacion 2026-06-20 — UX paciente: sin siglas CU en la interfaz
 
-- Corregido `GET /seguros/convenios/verificar-cobertura/` que devolvía **400** aunque `paciente_id` fuera válido.
-- Causa: la vista enviaba `fecha: null` explícito; DRF rechazaba el campo (`Este campo no puede ser nulo.`).
-- Fix backend:
-  - `views.py`: solo incluye `fecha` en payload si viene en query string.
-  - `VerificarCoberturaSerializer`: `fecha` opcional con default a `timezone.localdate()` en `validate`.
-- Fix frontend:
-  - `PacienteLookup` ya no dispara búsqueda con la etiqueta compuesta del paciente seleccionado (evita “Sin resultados…” falso).
-  - errores de validación por campo (`fecha`, `paciente_id`, etc.) visibles en UI.
-  - al cambiar de pestaña se limpia el banner de error global.
+- Se limpiaron las siglas tecnicas visibles al paciente en el asistente virtual.
+- La respuesta del backend ya no menciona `CU24`; ahora habla de valoracion/ clasificacion de urgencia clinica.
+- La tarjeta mobile de urgencia tambien dejo de mostrar `CU24` y ahora presenta solo `Urgencia <nivel> (<puntaje>/100)`.
 
-## Actualización 2026-06-02 — Fix Seguros backend (500 en convenios/afiliaciones) + errores UX
+## Actualizacion 2026-06-20 — Fix mobile CU23: conversationId UUID valido
 
-- Se corrigió el error 500 en:
-  - `POST /seguros/convenios/`
-  - `POST /seguros/afiliaciones/`
-- Causa raíz: DRF `DateField` recibía `datetime` en `to_representation` para `fecha_inicio/fecha_fin` y lanzaba:
-  - `AssertionError: Expected a date, but got a datetime`
-- Fix aplicado en `backend/apps/administracionFinanciera/seguros/serializers.py`:
-  - helper `_normalize_date(...)`,
-  - hardening en `to_representation` de `ConvenioSerializer` y `AfiliacionSeguroPacienteSerializer`.
-- Mejora frontend en `frontend/src/lib/services/seguros.ts`:
-  - parseo explícito de errores API (`detail`, `non_field_errors`, status code),
-  - mensajes más claros en UI (ya no solo `Request failed with status code XXX`).
-- Validación:
+- Se detecto que el flujo mobile de paciente estaba generando `conversationId` con formato propio (`mob-...`), pero el backend exige `UUIDField` en `id_conversacion`.
+- Se corrigio `PatientVirtualAssistantNotifier` para generar un UUID v4 real antes de llamar a `POST /t/<slug>/api/inteligencia-artificial/asistente-virtual/`.
+- Esto elimina el error genérico `No se pudo obtener respuesta del asistente.` que aparecia al intentar enviar un mensaje desde la app.
+- Validacion:
+  - `flutter analyze` -> sin errores nuevos en los archivos tocados; quedan warnings/info historicos en otras pantallas
+
+## Actualizacion 2026-06-20 — Mobile paciente: asistente virtual CU23/CU24
+
+- Se agrego la pantalla mobile `patient_virtual_assistant_screen.dart` para paciente con acceso propio a CU23.
+- Se separo el acceso del staff (`/asistente-virtual`) del flujo de paciente (`/asistente-virtual-paciente`).
+- El repositorio mobile de IA ahora consume:
+  - `POST /t/<slug>/api/inteligencia-artificial/asistente-virtual/`
+  - `GET /t/<slug>/api/inteligencia-artificial/interacciones-asistente/`
+- Se corrigieron dos detalles de compilacion/analyzer en el contrato mobile:
+  - icono inexistente `shield_alert_outlined` -> `shield_outlined`
+  - cast innecesario en el parser de `factores_clinicos`
+- Validacion actual:
+  - `flutter analyze` -> sin errores en los archivos tocados; persisten warnings/info historicos en otras pantallas
+
+## Actualizacion 2026-06-20 — CU24: clasificacion formal de urgencia chatbot
+
+- Se formalizo CU24 dentro de `backend/apps/InteligenciaArtificial` con el modelo `ClasificacionUrgencia` y el servicio `ClasificadorUrgenciaService`.
+- Cuando CU23 detecta sintomas de riesgo, ahora crea automaticamente una clasificacion persistida con:
+  - `nivel_urgencia` (BAJA / MEDIA / ALTA / CRITICA),
+  - `puntaje_riesgo` 0..100,
+  - factores clinicos explicables,
+  - recomendacion y flag de derivacion.
+- Se agrego endpoint staff para revisar clasificaciones:
+  - `GET /t/<slug>/api/inteligencia-artificial/clasificaciones-urgencia/`
+  - `GET /t/<slug>/api/inteligencia-artificial/clasificaciones-urgencia/pendientes/`
+  - `PATCH /t/<slug>/api/inteligencia-artificial/clasificaciones-urgencia/<id>/revisar/`
+- Frontend CU23 ahora puede mostrar el badge `CU24 <nivel> · <puntaje>/100` cuando la clasificacion ya existe.
+- Validacion:
   - `docker compose exec backend python manage.py check` -> OK
-  - `npm run build` frontend -> OK
+  - `docker compose exec backend pytest apps/InteligenciaArtificial/tests/test_clasificador_urgencia.py -q` -> 3 passed
+  - `docker compose exec frontend npm run lint` -> OK con warnings historicos no bloqueantes
 
-## Actualización 2026-06-02 — Seguros UX: selección de paciente por búsqueda (sin ID manual)
+## Actualización 2026-06-02 — Mobile: comprobante en PDF tras pago
 
-- En `frontend/src/app/(dashboard)/administracionFinanciera/seguros/page.tsx` se reemplazó la entrada manual por ID en **Verificar cobertura** por un selector/autocomplete de paciente.
-- También se aplicó el mismo selector en **Afiliaciones** para evitar selects largos y mejorar precisión de carga.
-- Nuevo comportamiento:
-  - búsqueda por nombre/apellido/documento/email (debounce 300ms),
-  - lista de resultados con contexto (`ID`, documento, email),
-  - selección explícita del paciente antes de enviar.
-- Validación de formulario:
-  - `Verificar` queda deshabilitado hasta seleccionar un paciente.
-  - Mensaje de error claro si no hay paciente seleccionado.
-- Impacto UX: reduce errores por captura manual de ID y mejora usabilidad para personal administrativo.
-- Validación técnica: `npm run build` frontend OK (warnings existentes no bloqueantes en otros módulos).
-
-## Actualización 2026-06-02 — UX explicativa en Reportes Predictivos (plataforma)
-
-- Se mejoró la claridad funcional en `frontend/src/app/platform/dashboard/predicciones/page.tsx`.
-- En la pestaña **Predicciones** ahora se muestra un bloque explicativo:
-  - qué predice el modelo (riesgo operativo por clínica/tenant),
-  - qué significa la probabilidad (confianza del modelo).
-- Se agregó columna **Acción sugerida** por fila de clínica, basada en:
-  - nivel de riesgo (`bajo`, `medio`, `alto`),
-  - confianza de predicción (`alta`, `media`, `baja`).
-- Se mantuvo la información técnica existente (métricas, variables e historial), pero con contexto de negocio más entendible para usuario no técnico.
-- Validación: `npm run build` frontend OK (sin errores bloqueantes).
-
-## Actualización 2026-06-02 — Facturación mobile con Stripe real (fallback a mock)
-
-- Se integró Stripe Checkout en `backend/apps/administracionFinanciera/facturacion/services/pasarela.py` para pagos de facturas clínicas.
-- `iniciar_pago_en_linea(...)` ahora:
-  - usa Stripe si `STRIPE_SECRET_KEY` está configurada;
-  - conserva fallback mock solo si Stripe no está habilitado.
-- Se implementó reutilización robusta del cobro pendiente:
-  - si ya hay sesión Stripe asociada (`cs_...`), intenta reutilizar URL;
-  - si Stripe reporta `payment_status=paid`, confirma internamente y pide refrescar factura.
-- Se agregó metadata de tenant/factura/cobro en la sesión Stripe para trazabilidad.
-- `FacturaClinicaViewSet.iniciar_pago_en_linea_action` ahora pasa `tenant_slug` al servicio para construir `success_url/cancel_url` con contexto tenant.
-- Mobile mantiene:
-  - Stripe real abre checkout externo;
-  - mock detectado sigue permitiendo "Simular pago" para entornos sin Stripe.
-
-## Actualización 2026-06-02 — Pasarela mobile demo usable (sin pantalla técnica DRF)
-
-- Se agregó endpoint tenant para UX demo de paciente:
-  - `POST /t/<slug>/api/facturacion/facturas/{id}/confirmar-pago-mock/`
-  - Implementado en `FacturaClinicaViewSet.confirmar_pago_mock_action`.
-  - Confirma el último cobro `EN_LINEA` pendiente de la factura usando `confirmar_pago_pasarela(...)`.
-- Objetivo: evitar que el paciente dependa del webhook técnico `confirmar-pasarela` (header secreto) y de la pantalla DRF mock.
-- Mobile actualizado:
-  - `FacturacionRepository.confirmarPagoMock(idFactura)` nuevo método.
-  - `MisFacturasScreen._pagarEnLinea(...)` ahora detecta URL mock (`/facturacion/pasarela/mock-checkout/`) y abre diálogo:
-    - **Simular pago** -> confirma desde app -> refresca lista (`ref.invalidate(misFacturasProvider)`).
-    - Muestra snackbar `Pago confirmado (modo demo).`
+- En mobile facturación (`Mis Facturas`) el comprobante ahora intenta abrirse en **PDF real**.
+- `FacturacionRepository` agrega `fetchComprobantePdf(idFactura)` con `ResponseType.bytes`.
+- `MisFacturasScreen`:
+  - guarda bytes PDF en directorio temporal,
+  - abre archivo `.pdf` con app externa del dispositivo,
+  - mantiene fallback al comprobante de texto si no hay visor PDF.
+- UX post-pago demo:
+  - tras `confirmar-pago-mock`, la app abre automáticamente el comprobante PDF.
 - Validación:
-  - `flutter analyze` en archivos mobile modificados -> sin issues.
-  - `docker compose exec backend python manage.py check` -> OK.
+  - `flutter analyze` sobre archivos modificados -> OK.
 
-## Actualización 2026-06-02 — Mobile paciente: fix crash en Mis Facturas + estado push
+## Actualizacion 2026-06-17 (CU23 frontend - diseno asistente virtual Paciente)
 
-- Se corrigió crash en `mobile/lib/features/administracion_financiera/domain/factura_resumen.dart`:
-  - error observado: `type 'String' is not a subtype of type 'num?' in type cast`.
-  - causa: backend serializa montos como string (`"2125.00"`), parser mobile casteaba a `num`.
-  - fix: parser robusto `_asDouble(dynamic)` para aceptar `num|string|null`.
-- Se amplió mapeo de estado en mobile para compatibilidad con backend (`EMITIDA`, `PAGADA_PARCIAL`, `BORRADOR` -> `pendiente` visual).
-- Diagnóstico push en logs: login llega sin `fcm_token` (`[login] Sin FCM token...`) => notificación queda en BD pero no se envía push FCM al dispositivo.
-- Hardening mobile push: `PushNotifications._getToken()` ahora reintenta 3 veces con backoff corto antes de devolver `null`, para reducir falsos “sin token” justo al iniciar app.
-- Fix pasarela mobile: `FacturacionRepository.iniciarPagoEnLinea()` ahora resuelve URL relativa (`/api/...`) a URL absoluta con host del `API_BASE_URL`, evitando fallo de `url_launcher`.
-- Fix pasarela backend: `iniciar_pago_en_linea` ahora es idempotente; si ya hay cobro EN_LINEA pendiente reutiliza la referencia en vez de devolver error.
-- Fix multi-tenant pasarela: `iniciar_pago_en_linea_action` reescribe `checkout_url` a `/t/<slug>/api/...` cuando aplica tenant; evita 404 al abrir checkout desde mobile.
-- Mejora UX de errores en mobile facturas: muestra `detail` de API cuando existe (ej. validaciones de pago), en lugar de mensaje genérico.
-- Hallazgo de configuración: `mobile/android/app/google-services.json` está con placeholders (`tu-project-id`, `TU_API_KEY_AQUI`) y no corresponde al proyecto Firebase real.
+### Frontend
+- Nueva pantalla en `frontend/src/app/(dashboard)/InteligenciaArtificial/page.tsx`.
+- Ruta del dashboard: `/InteligenciaArtificial`.
+- Diseno implementado: chat para Paciente, accesos rapidos, panel lateral de temas, alerta de riesgo, estado de sesion y marca visual cuando backend activa CU24.
+- Servicio frontend extendido en `frontend/src/services/iaService.ts` con `postPatientAssistantMessage(...)`, `getPatientAssistantHistory(...)` y tipos del contrato CU23.
+- Navegacion actualizada: `Sidebar`, `Header` y `middleware.ts`.
+- Ajuste tecnico en `frontend/next.config.js`: carga dinamica ESM de `@serwist/next` para que `next lint` pueda cargar la config.
+- Fix minimo en facturacion: comillas escapadas en texto de QR para cumplir `react/no-unescaped-entities`.
 
-## Actualización 2026-06-02 — Facturación: pacientes de reportes sin duplicados visuales
+### Validacion
+- `npm install` ejecutado para restaurar dependencias faltantes del frontend.
+- `npm run lint` OK con warnings existentes en reportes, facturacion y `app/layout.tsx`.
+- `npm run build` fue abortado por duracion; no se considera validacion de esta tarea.
 
-- `seed_reporting_6months` se rediseñó para usar **12 fichas clínicas únicas** por tenant (documento estable `CODE-RPT-###`) en vez de generar pacientes “nuevos por mes”.
-- Antes de sembrar, ahora limpia:
-  - legacy `RPT6M-*`,
-  - fichas analíticas previas marcadas con `analítica de reportes` (conserva el paciente demo con cuenta móvil).
-- Resultado esperado en facturación: desaparece el patrón de nombres repetidos que parecía duplicado.
-- En modal **Nueva Factura** el selector quedó restringido a **pacientes con usuario app vinculado** (`usuario != null`).
-- Si solo existe una cuenta paciente (caso demo), queda auto-seleccionada para evitar bloqueo de UX.
-- Se mantiene explícita la diferencia entre **ficha clínica Paciente** y **Usuario tipo PACIENTE**.
+## Actualizacion 2026-06-17 (CU23 backend - asistente virtual para Paciente)
 
-## Actualización 2026-06-02 — Seeders idempotentes + sync contraseñas demo
+### Backend
+- Nueva app tenant `apps.InteligenciaArtificial` dentro de `backend/apps/InteligenciaArtificial`.
+- Integracion en `TENANT_APPS`, porque las interacciones del asistente pertenecen al schema de cada clinica.
+- Nuevo modelo auditable `InteraccionAsistenteVirtual` (`ia_interacciones_asistente_virtual`) para guardar paciente/usuario, conversacion, mensaje, respuesta, intencion, estado, prioridad, sintomas detectados, metadata, IP, user agent y fecha.
+- Nuevo servicio deterministico `AsistenteVirtualService` para intenciones autorizadas: citas/horarios, procedimientos, preoperatorio, postoperatorio, seguros/facturacion, sistema, saludo, fuera de alcance y no comprendida.
+- Si detecta sintomas o senales de riesgo, marca `requiere_clasificacion_urgencia=True`, `estado=REQUIERE_CU24` y `metadata.cu24_activado=True`.
+- Nuevas rutas tenant:
+  - `POST /t/<slug>/api/inteligencia-artificial/asistente-virtual/`
+  - alias `POST /t/<slug>/api/ia/asistente-virtual/`
+  - historial `GET /t/<slug>/api/inteligencia-artificial/interacciones-asistente/`
+- Seguridad: JWT tenant autenticado + `IsPaciente`; registra bitacora sin copiar el texto completo de la consulta en la descripcion de auditoria.
+- Tests agregados en `backend/apps/InteligenciaArtificial/tests/test_asistente_virtual.py`.
 
-- **Los seeders NO borran ni recrean datos** al reconstruir contenedores: PostgreSQL persiste en el volumen `postgres_data` (`Skipping initialization` en logs).
-- `creados=0, existentes=N` significa “ya estaba en BD, se saltó la creación”, no sobreescritura masiva.
-- `SYNC_DEMO_PASSWORDS=1` (default en `.env.example`): al arrancar, `seed_platform_admin` y `seed_admin` ejecutan `set_password()` en cuentas demo existentes.
-- Logs entrypoint: `passwords_synced=N` cuando se sincronizó una contraseña demo.
-- Login plataforma verificado: `POST /api/public/platform/auth/login/` con `platform@oftalmologia.local` / `platform123`.
+### Validacion
+- `python manage.py check` y `pytest` no pudieron ejecutarse en host por falta de Django/DRF en el Python local.
+- Docker no estaba levantado (`dockerDesktopLinuxEngine` no disponible), por lo que tampoco se pudo validar dentro del contenedor.
+- Validacion estatica ejecutada: parseo/compilacion de sintaxis con `compile(...)` sobre los archivos nuevos: OK.
 
-## Actualización 2026-06-02 — Flota SaaS demo en entrypoint
-
-- `seed_saas_demo_fleet` ahora corre en arranque Docker (`RUN_SAAS_DEMO_FLEET=1`, default) junto a `seed_platform_admin`.
-- Cada clínica de la flota recibe seeders tenant completos (permisos, roles, seguros, descuentos, facturación, reportes 6 meses) vía `seeders/tenant_seeders.py`.
-- 5 organizaciones visibles en `/platform/dashboard`: norte/sur (FREE), andina/pacífico (PLUS), prime (PRO).
-- Credenciales: `docs/ai/DEMO_CREDENTIALS.md` §2.
-- Comando manual: `python manage.py seed --schema public --only saas_demo_fleet`.
+### Pendiente operativo
+- Ejecutar cuando Docker este disponible:
+  - `docker compose exec backend python manage.py check`
+  - `docker compose exec backend pytest apps/InteligenciaArtificial/tests/test_asistente_virtual.py -q`
+  - `docker compose exec backend python manage.py migrate_schemas --tenant`
 
 ## Actualización 2026-06-01 — CU21: Pago QR + Transferencia bancaria
 

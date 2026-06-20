@@ -32,6 +32,8 @@ api_patterns = [
     path('', include('apps.backup.urls')),
     path('', include('apps.reportes.urls')),
     path('ia/', include('apps.ia.urls')),
+    path('ia/', include('apps.InteligenciaArtificial.urls')),
+    path('inteligencia-artificial/', include('apps.InteligenciaArtificial.urls')),
 ]
 
 urlpatterns = [

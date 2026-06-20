@@ -137,6 +137,7 @@ TENANT_APPS = [
 
     # Paquete IA: CU23+ (NL → QBE).
     'apps.ia',
+    'apps.InteligenciaArtificial',
 ]
 
 

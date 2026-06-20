@@ -80,7 +80,7 @@ const NAV_CATALOG: NavEntry[] = [
   // Reportes
   { label: "Reportes", href: "/reportes", icon: BarChart2, keywords: "CU22 informe estadística exportar excel pdf" },
   // IA
-  { label: "Asistente Virtual", href: "/asistente-virtual", icon: Bot, group: "Inteligencia Artificial", keywords: "CU23 IA chatbot consulta lenguaje natural" },
+  { label: "Asistente Virtual", href: "/InteligenciaArtificial", icon: Bot, group: "Inteligencia Artificial", keywords: "CU23 IA chatbot consulta lenguaje natural paciente" },
   // Notificaciones
   { label: "Notificaciones", href: "/notificaciones", icon: Bell, keywords: "CU18 recordatorio alerta aviso automático" },
   // Admin
@@ -703,15 +703,15 @@ export default function Sidebar() {
           <NavGroup
             label="Inteligencia Artificial"
             icon={Bot}
-            active={is("/asistente-virtual")}
+            active={is("/asistente-virtual") || is("/InteligenciaArtificial")}
             collapsed={isCollapsed}
-            defaultOpen={is("/asistente-virtual")}
+            defaultOpen={is("/asistente-virtual") || is("/InteligenciaArtificial")}
           >
             <NavItem
-              href="/asistente-virtual"
+              href="/InteligenciaArtificial"
               label="Asistente Virtual"
               icon={MessageSquare}
-              active={is("/asistente-virtual")}
+              active={is("/asistente-virtual") || is("/InteligenciaArtificial")}
               collapsed={false}
               depth={1}
               onNavigate={closeMobileDrawer}
