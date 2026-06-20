@@ -194,13 +194,13 @@ class AsistenteVirtualService:
     def _respuesta_urgencia(sintomas: list[str], prioridad: str) -> ResultadoAsistenteVirtual:
         if prioridad == NivelPrioridadUrgencia.ALTA:
             respuesta = (
-                'Detecte sintomas o senales de riesgo. Este caso debe pasar a CU24 para clasificar la urgencia. '
+                'Detecte sintomas o senales de riesgo. Este caso debe pasar a valoracion clinica para clasificar la urgencia. '
                 'Si presentas perdida subita de vision, dolor ocular intenso, trauma, quimicos en el ojo o sangrado, '
                 'busca atencion medica inmediata o comunicate con urgencias de la clinica.'
             )
         else:
             respuesta = (
-                'Detecte sintomas que requieren clasificacion de prioridad mediante CU24. '
+                'Detecte sintomas que requieren clasificacion de prioridad clinica. '
                 'Evita automedicarte y solicita orientacion de la clinica, especialmente si el cuadro empeora.'
             )
         return ResultadoAsistenteVirtual(

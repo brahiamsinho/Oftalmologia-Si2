@@ -46,8 +46,14 @@ export default function PlatformLoginPage() {
       );
       PlatformTokenStorage.setAccess(data.access);
       router.replace('/platform/dashboard');
-    } catch {
-      setError('Correo o contraseña incorrectos.');
+    } catch (err) {
+      if (axios.isAxiosError(err) && !err.response) {
+        setError(
+          'No se pudo conectar con el backend. Comprueba que el contenedor backend esté activo en http://localhost:8000.',
+        );
+      } else {
+        setError('Correo o contraseña incorrectos.');
+      }
     } finally {
       setLoading(false);
     }

@@ -10,6 +10,7 @@ import '../features/auth/presentation/screens/reset_password_screen.dart';
 import '../features/home/presentation/screens/home_screen.dart';
 import '../features/home/presentation/screens/schedule_appointment_screen.dart';
 import '../features/ia/presentation/screens/virtual_assistant_screen.dart';
+import '../features/ia/presentation/screens/patient_virtual_assistant_screen.dart';
 
 /// Configuración de rutas de la aplicación.
 final GoRouter appRouter = GoRouter(
@@ -79,6 +80,11 @@ final GoRouter appRouter = GoRouter(
       path: '/asistente-virtual',
       name: 'asistente-virtual',
       builder: (context, state) => const VirtualAssistantScreen(),
+    ),
+    GoRoute(
+      path: '/asistente-virtual-paciente',
+      name: 'asistente-virtual-paciente',
+      builder: (context, state) => const PatientVirtualAssistantScreen(),
     ),
   ],
 );

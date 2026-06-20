@@ -37,6 +37,8 @@ import {
   type PreviewResult,
   type GenerarQRResponse,
 } from '@/lib/services/facturacion';
+import { pacientesService } from '@/lib/services/pacientes';
+import type { Paciente } from '@/lib/types';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -103,15 +105,55 @@ function ModalEmitirFactura({
   const [preview, setPreview] = useState<PreviewResult | null>(null);
 
   const [pacienteId, setPacienteId] = useState('');
+  const [pacienteSearch, setPacienteSearch] = useState('');
+  const [pacienteOpts, setPacienteOpts] = useState<Paciente[]>([]);
+  const [loadingPacientes, setLoadingPacientes] = useState(false);
   const [servicioId, setServicioId] = useState('');
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
   const [observaciones, setObservaciones] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setLoadingPacientes(true);
+      try {
+        const all = await pacientesService.listAll({
+          search: pacienteSearch.trim() || undefined,
+          ordering: 'apellidos',
+        });
+        if (!cancelled) {
+          const onlyWithAccount = all.filter(p => p.usuario !== null);
+          setPacienteOpts(onlyWithAccount);
+          if (onlyWithAccount.length === 1) {
+            setPacienteId(String(onlyWithAccount[0].id_paciente));
+          } else if (
+            pacienteId &&
+            !onlyWithAccount.some(p => String(p.id_paciente) === pacienteId)
+          ) {
+            setPacienteId('');
+          }
+        }
+      } catch {
+        if (!cancelled) setPacienteOpts([]);
+      } finally {
+        if (!cancelled) setLoadingPacientes(false);
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [pacienteId, pacienteSearch]);
+
+  const pacienteSeleccionado = pacienteOpts.find(
+    p => String(p.id_paciente) === pacienteId,
+  );
 
   const handlePreview = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!pacienteId || !servicioId) {
-      setError('Completa el ID de paciente y el servicio.');
+      setError('Selecciona un paciente y un servicio.');
       return;
     }
     setStep('saving');
@@ -174,16 +216,47 @@ function ModalEmitirFactura({
             <form onSubmit={handlePreview} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ID Paciente <span className="text-red-500">*</span>
+                  Paciente <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="number"
-                  value={pacienteId}
-                  onChange={e => setPacienteId(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ej: 1"
-                  required
-                />
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={pacienteSearch}
+                    onChange={e => setPacienteSearch(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Buscar paciente con cuenta app (nombre, documento o email)…"
+                  />
+                  <select
+                    value={pacienteId}
+                    onChange={e => setPacienteId(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">
+                      {loadingPacientes ? 'Cargando pacientes…' : 'Seleccionar paciente…'}
+                    </option>
+                    {pacienteOpts.map(p => (
+                      <option key={p.id_paciente} value={p.id_paciente}>
+                        {`${p.apellidos}, ${p.nombres} · ${p.numero_documento}`}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-500">
+                      {pacienteSeleccionado
+                        ? `Seleccionado: ${pacienteSeleccionado.nombre_completo} (ID ${pacienteSeleccionado.id_paciente})`
+                        : 'Solo se listan pacientes con usuario de app vinculado.'}
+                    </span>
+                    <a
+                      href="/pacientes"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      + Nuevo paciente
+                    </a>
+                  </div>
+                </div>
               </div>
 
               <div>

@@ -69,16 +69,26 @@ export default function DescuentosPage() {
     fetchData();
   }, [fetchData]);
 
+  const buildPayload = (): Partial<PromocionDescuento> => {
+    const payload = { ...formData };
+    // El backend espera null/ausente, no string vacío en fecha_fin
+    if (!payload.fecha_fin) {
+      delete payload.fecha_fin;
+    }
+    return payload;
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    const payload = buildPayload();
     try {
       if (editingId) {
-        await descuentosService.updatePromocion(editingId, formData);
+        await descuentosService.updatePromocion(editingId, payload);
         setSuccess('Campaña actualizada correctamente.');
       } else {
-        await descuentosService.createPromocion(formData);
+        await descuentosService.createPromocion(payload);
         setSuccess('Campaña creada correctamente.');
       }
       setShowModal(false);

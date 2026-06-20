@@ -128,6 +128,16 @@ function extractErrorMessage(error: unknown): string {
 }
 
 function StatusPill({ interaction }: { interaction: PatientAssistantInteraction }) {
+  if (interaction.clasificacion_urgencia) {
+    const level = interaction.clasificacion_urgencia.nivel_urgencia.toLowerCase();
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
+        <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+        CU24 {level} · {interaction.clasificacion_urgencia.puntaje_riesgo}/100
+      </span>
+    );
+  }
+
   if (interaction.requiere_clasificacion_urgencia) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">

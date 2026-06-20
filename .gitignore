@@ -25,7 +25,6 @@ coverage.xml
 *.log
 .hypothesis/
 .pytest_cache/
-pytest-cache-files-*/
 celerybeat-schedule
 *.sage.py
 
@@ -66,7 +65,7 @@ mobile/.metadata
 # =========================
 # Environment & Secrets
 # =========================
-.env
+#.env
 .env.local
 .env.*.local
 !.env.example
@@ -134,4 +133,5 @@ google-services.json
 firebase-credentials.json
 google-services.json
 BaseDeDatos.sql
+.env
 

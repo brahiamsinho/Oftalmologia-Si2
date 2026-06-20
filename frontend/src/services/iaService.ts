@@ -48,6 +48,26 @@ export type AssistantState =
 
 export type AssistantPriority = 'NO_APLICA' | 'BAJA' | 'MEDIA' | 'ALTA';
 
+export type UrgencyLevel = 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
+export type UrgencyClassificationState = 'PENDIENTE' | 'REVISADO' | 'DERIVADO';
+
+export interface UrgencyClassification {
+  id_clasificacion: number;
+  id_interaccion: number;
+  id_usuario: number;
+  nivel_urgencia: UrgencyLevel;
+  puntaje_riesgo: number;
+  factores_clinicos: Array<Record<string, unknown>>;
+  criterios_evaluados: Record<string, unknown>;
+  recomendacion: string;
+  requiere_derivacion: boolean;
+  estado: UrgencyClassificationState;
+  revisado_por: number | null;
+  fecha_revision: string | null;
+  notas_internas: string;
+  fecha_creacion: string;
+}
+
 export interface PatientAssistantInteraction {
   id_interaccion: number;
   id_conversacion: string;
@@ -60,6 +80,7 @@ export interface PatientAssistantInteraction {
   nivel_prioridad: AssistantPriority;
   sintomas_detectados: string[];
   metadata: Record<string, unknown>;
+  clasificacion_urgencia?: UrgencyClassification | null;
   fecha_creacion: string;
 }
 

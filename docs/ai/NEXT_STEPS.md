@@ -6,6 +6,9 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 
 ## Corto Plazo
 
+- [x] **UX paciente sin siglas CU:** limpiar textos visibles del asistente virtual para usar lenguaje clinico normal.
+- [x] **Fix mobile CU23 `id_conversacion`:** generar UUID v4 real en `PatientVirtualAssistantNotifier` para cumplir el contrato del backend.
+- [x] **Mobile paciente asistente virtual CU23/CU24:** ruta `/asistente-virtual-paciente`, repo, provider y UI propios; staff sigue en `/asistente-virtual`.
 - [x] **EA UML 2.5 Secuencia CU18/CU21/CU22:** crear paquete `/Model/2.6 Diagramas de Secuencia` y diagramas SD-CU18, SD-CU21, SD-CU22 basados en codigo real backend/frontend.
 - [x] **OpenCode MCP draw.io:** agregar servidor `drawio` en `opencode.jsonc` con `npx -y @drawio/mcp` y mantener `enterprise-architect`.
 - [x] **OpenCode multi-agente (orchestrator + especialistas):** normalizar `.opencode/agents/` con routing formal, `permission.task`, subagentes `reviewer/security/docs-memory/puds/ai-inference/ai-researcher/diagrams-modeling` y skill `uml-c4-puds-diagrams`.
@@ -52,9 +55,14 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] CU16 Backend: CRM pacientes (segmentacion + campanas + historial de contacto + CRUD + permisos + bitacora + tests minimos).
 - [x] **CU17 Backend:** recordatorios (`automatizaciones`). **Pendiente:** cron compose, UI, tests tenant.
 - [x] **CU18 Backend + web:** `apps.administracionFinanciera.seguros`, `/seguros`. Paneles en paciente (modal).
+- [x] Seguros UX: reemplazar verificación por ID manual con selector/autocomplete de paciente en Verificar cobertura y Afiliaciones.
+- [x] Seguros backend: hotfix `date vs datetime` en serializers (create convenio/afiliación sin 500).
+- [x] Seguros frontend: errores API legibles (`detail` / `non_field_errors`) en vez de mensaje genérico de Axios.
 - [x] **CU19 Backend:** `apps.administracionFinanciera.descuentos`. **Pendiente:** UI `/descuentos`, notificación asignación, tests.
 - [x] **CU20 Backend (cerrado):** facturación, pasarela mock, PDF, notificaciones, API paciente/cita.
 - [ ] **CU20:** UI `/facturacion`, pasarela real producción, mobile pagos.
+- [x] Predicciones plataforma: agregar explicación funcional ("qué predice" + "qué significa probabilidad") y acción sugerida por riesgo.
+- [ ] Predicciones plataforma: agregar tooltips por feature clave (`pct_canceladas`, `tasa_asistencia`, `total_ingresos`) para interpretación guiada.
 - [ ] **Referencia:** mapa paquetes → `docs/ai/PACKAGE_CU_MAP.md`.
 - [x] Backend: CustomUser + JWT (ya existía; login refinado a email + `check_password`).
 - [x] Mobile: Login real + home paciente con `GET /citas/` + tema/rutas base.
@@ -65,6 +73,7 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] Mobile: **Recuperacion de contraseña** (forgot + reset con token de Mailhog).
 - [x] Mobile: **Agendar cita** desde la app (3 pasos: especialista → fecha/hora → confirmar).
 - [ ] Mobile: **Detalle de cita** (ver info completa de una cita existente).
+- [ ] Mobile facturación: agregar visor PDF embebido (in-app) para comprobante, evitando salida a app externa cuando sea posible.
 - [ ] Mobile UI/UX: ejecutar primer ciclo interno (sin API externa) sobre Home paciente, Citas e Historial usando `docs/ai/DESING.md` como fuente de diseno.
 - [x] Mobile UI/UX (iteracion 1): unificar estados loading/empty/error y microanimaciones base en Citas + Historial con componentes reutilizables.
 - [x] Mobile UI/UX (iteracion 2): aplicar mismos componentes/animaciones en `PatientNextAppointmentCard` y `Profile` para cerrar consistencia de Home.
@@ -105,16 +114,25 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] Multi-tenant: crear tests de aislamiento cross-schema para verificar que datos de un tenant no son accesibles desde otro.
 - [ ] Multi-tenant: extender pruebas anti-cruce al plano HTTP tenant (`/t/<slug>/api/...`) en entorno de test, ajustando configuración de URL/middleware para evitar `404` en pytest.
 - [ ] Seguros/Descuentos: ejecutar smoke E2E en Docker (`POST/GET` convenios, afiliaciones, promociones y beneficios) para confirmar fix `date vs datetime` en entorno de contenedores.
+- [ ] Seguros: agregar tests automatizados de regresión para serialización `DateField` en convenios/afiliaciones.
 - [ ] IA asistente virtual: validar en QA conversacional 10 prompts clínico-operativos (agenda, seguros, reportes, urgencias) para confirmar tono/seguridad y evitar respuestas ambiguas.
 - [ ] CU23 backend Paciente: ejecutar validacion en Docker (`manage.py check`, pytest especifico y `migrate_schemas --tenant`) cuando Docker Desktop este disponible.
-- [ ] CU24: implementar clasificador formal de urgencia y conectar el flag `requiere_clasificacion_urgencia` del CU23 con el flujo definitivo de clasificacion.
-- [ ] CU23 frontend Paciente: probar manualmente `/InteligenciaArtificial` con cuenta `PACIENTE` y backend migrado; validar flujo normal y flujo con sintomas de riesgo.
+- [x] CU24: clasificador formal de urgencia implementado en `apps.InteligenciaArtificial` con score, nivel, recomendacion y API de staff.
+- [ ] CU25: derivar caso critico a personal humano usando la clasificacion formal de CU24 y el sistema de notificaciones/bitacora.
+- [ ] CU23 frontend Paciente: probar manualmente `/asistente-virtual-paciente` con cuenta `PACIENTE` y backend migrado; validar flujo normal, historial y flujo con sintomas de riesgo.
 - [ ] PWA: validar instalación en Chrome/Edge (desktop) y flujo manual en iOS (Agregar a inicio).
 - [ ] PWA producción: servir frontend con HTTPS para criterios completos de instalabilidad.
 - [ ] Multi-tenant: documentar procedimiento para crear nuevo tenant en produccion (comando o endpoint + seeders).
 - [x] Multi-tenant: escenario demo con múltiples clínicas (2 FREE, 2 PLUS, 1 PRO) y dataset histórico por tenant.
 - [ ] Multi-tenant: exponer selector de clínica en frontend web igual que mobile (slug -> login) para operar la flota demo sin cambiar URLs manualmente.
 - [ ] Multi-tenant: validar que seeders se ejecutan correctamente en schema del tenant y no en `public`.
+- [ ] Facturación: cambiar selector de paciente a autocomplete virtualizado (componente reutilizable) para escalar cuando haya >500 fichas.
+- [ ] Mobile push: forzar registro de token FCM (post-login y al abrir app) con trazas de diagnóstico en dispositivo real para evitar `Sin FCM token`.
+- [ ] Mobile push: reemplazar `mobile/android/app/google-services.json` placeholder por archivo real del mismo proyecto Firebase que usa `backend/firebase-credentials.json`.
+- [x] Facturación mobile demo: agregar flujo "Simular pago" dentro de app para evitar pantalla técnica DRF y confirmar cobro mock desde factura.
+- [x] Pasarela CU20 producción (fase 1): iniciar pago en línea con Stripe Checkout real para facturación clínica, manteniendo fallback mock.
+- [ ] Pasarela CU20 producción (fase 2): webhook/confirmación automática post-checkout para reflejo inmediato en mobile sin refresco manual.
+- [x] Facturación: definir regla de negocio final para emisión (`solo pacientes con cuenta app` vs `todas las fichas clínicas`) y documentarla en UX.
 - [x] Reportes: corregir ejecución de predefinidos agregando endpoint `POST /reportes-qbe/plantillas/<id>/run/` y alinear contrato `{qbe, report}`.
 - [x] UX copy: quitar referencias visibles `CUxx` de la UI en módulos operativos.
 - [ ] Backup: rebuild Docker backend para incluir `postgresql-client` (pg_dump/psql).

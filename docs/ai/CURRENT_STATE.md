@@ -1,5 +1,63 @@
 # CURRENT STATE
 
+## Actualizacion 2026-06-20 — UX paciente: sin siglas CU en la interfaz
+
+- Se limpiaron las siglas tecnicas visibles al paciente en el asistente virtual.
+- La respuesta del backend ya no menciona `CU24`; ahora habla de valoracion/ clasificacion de urgencia clinica.
+- La tarjeta mobile de urgencia tambien dejo de mostrar `CU24` y ahora presenta solo `Urgencia <nivel> (<puntaje>/100)`.
+
+## Actualizacion 2026-06-20 — Fix mobile CU23: conversationId UUID valido
+
+- Se detecto que el flujo mobile de paciente estaba generando `conversationId` con formato propio (`mob-...`), pero el backend exige `UUIDField` en `id_conversacion`.
+- Se corrigio `PatientVirtualAssistantNotifier` para generar un UUID v4 real antes de llamar a `POST /t/<slug>/api/inteligencia-artificial/asistente-virtual/`.
+- Esto elimina el error genérico `No se pudo obtener respuesta del asistente.` que aparecia al intentar enviar un mensaje desde la app.
+- Validacion:
+  - `flutter analyze` -> sin errores nuevos en los archivos tocados; quedan warnings/info historicos en otras pantallas
+
+## Actualizacion 2026-06-20 — Mobile paciente: asistente virtual CU23/CU24
+
+- Se agrego la pantalla mobile `patient_virtual_assistant_screen.dart` para paciente con acceso propio a CU23.
+- Se separo el acceso del staff (`/asistente-virtual`) del flujo de paciente (`/asistente-virtual-paciente`).
+- El repositorio mobile de IA ahora consume:
+  - `POST /t/<slug>/api/inteligencia-artificial/asistente-virtual/`
+  - `GET /t/<slug>/api/inteligencia-artificial/interacciones-asistente/`
+- Se corrigieron dos detalles de compilacion/analyzer en el contrato mobile:
+  - icono inexistente `shield_alert_outlined` -> `shield_outlined`
+  - cast innecesario en el parser de `factores_clinicos`
+- Validacion actual:
+  - `flutter analyze` -> sin errores en los archivos tocados; persisten warnings/info historicos en otras pantallas
+
+## Actualizacion 2026-06-20 — CU24: clasificacion formal de urgencia chatbot
+
+- Se formalizo CU24 dentro de `backend/apps/InteligenciaArtificial` con el modelo `ClasificacionUrgencia` y el servicio `ClasificadorUrgenciaService`.
+- Cuando CU23 detecta sintomas de riesgo, ahora crea automaticamente una clasificacion persistida con:
+  - `nivel_urgencia` (BAJA / MEDIA / ALTA / CRITICA),
+  - `puntaje_riesgo` 0..100,
+  - factores clinicos explicables,
+  - recomendacion y flag de derivacion.
+- Se agrego endpoint staff para revisar clasificaciones:
+  - `GET /t/<slug>/api/inteligencia-artificial/clasificaciones-urgencia/`
+  - `GET /t/<slug>/api/inteligencia-artificial/clasificaciones-urgencia/pendientes/`
+  - `PATCH /t/<slug>/api/inteligencia-artificial/clasificaciones-urgencia/<id>/revisar/`
+- Frontend CU23 ahora puede mostrar el badge `CU24 <nivel> · <puntaje>/100` cuando la clasificacion ya existe.
+- Validacion:
+  - `docker compose exec backend python manage.py check` -> OK
+  - `docker compose exec backend pytest apps/InteligenciaArtificial/tests/test_clasificador_urgencia.py -q` -> 3 passed
+  - `docker compose exec frontend npm run lint` -> OK con warnings historicos no bloqueantes
+
+## Actualización 2026-06-02 — Mobile: comprobante en PDF tras pago
+
+- En mobile facturación (`Mis Facturas`) el comprobante ahora intenta abrirse en **PDF real**.
+- `FacturacionRepository` agrega `fetchComprobantePdf(idFactura)` con `ResponseType.bytes`.
+- `MisFacturasScreen`:
+  - guarda bytes PDF en directorio temporal,
+  - abre archivo `.pdf` con app externa del dispositivo,
+  - mantiene fallback al comprobante de texto si no hay visor PDF.
+- UX post-pago demo:
+  - tras `confirmar-pago-mock`, la app abre automáticamente el comprobante PDF.
+- Validación:
+  - `flutter analyze` sobre archivos modificados -> OK.
+
 ## Actualizacion 2026-06-17 (CU23 frontend - diseno asistente virtual Paciente)
 
 ### Frontend

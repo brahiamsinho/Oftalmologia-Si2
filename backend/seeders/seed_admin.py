@@ -5,6 +5,8 @@ Crea el superusuario administrador del sistema dentro del schema actual.
 """
 from django.contrib.auth import get_user_model
 
+from seeders.demo_password_sync import should_sync_demo_passwords
+
 
 ADMIN_DATA = {
     'username': 'admin',
@@ -19,12 +21,24 @@ ADMIN_DATA = {
 def run():
     """
     Crea el superusuario si no existe en el schema actual.
-    Retorna (creados, existentes).
+    Retorna (creados, existentes, passwords_synced).
     """
     User = get_user_model()
 
-    if User.objects.filter(username=ADMIN_DATA['username']).exists():
-        return 0, 1
+    user = User.objects.filter(username=ADMIN_DATA['username']).first()
+    if user is not None:
+        if should_sync_demo_passwords():
+            user.set_password(ADMIN_DATA['password'])
+            user.email = ADMIN_DATA['email']
+            user.nombres = ADMIN_DATA['nombres']
+            user.apellidos = ADMIN_DATA['apellidos']
+            user.tipo_usuario = ADMIN_DATA['tipo_usuario']
+            user.is_active = True
+            user.is_superuser = True
+            user.is_staff = True
+            user.save()
+            return 0, 0, 1
+        return 0, 1, 0
 
     User.objects.create_superuser(
         username=ADMIN_DATA['username'],
@@ -35,4 +49,4 @@ def run():
         tipo_usuario=ADMIN_DATA['tipo_usuario'],
     )
 
-    return 1, 0
+    return 1, 0, 0

@@ -1,9 +1,40 @@
 import api from '@/lib/api';
+import { AxiosError } from 'axios';
 import type { PaginatedResponse } from '@/lib/types';
 
 function unwrapList<T>(data: T[] | PaginatedResponse<T>): T[] {
   if (Array.isArray(data)) return data;
   return data.results ?? [];
+}
+
+function apiError(error: unknown, fallback: string): Error {
+  if (error instanceof AxiosError) {
+    const data = error.response?.data as
+      | { detail?: string; non_field_errors?: string[]; [key: string]: unknown }
+      | undefined;
+    if (data?.detail && typeof data.detail === 'string') {
+      return new Error(data.detail);
+    }
+    if (Array.isArray(data?.non_field_errors) && data.non_field_errors.length > 0) {
+      return new Error(String(data.non_field_errors[0]));
+    }
+    if (data && typeof data === 'object') {
+      for (const [field, value] of Object.entries(data)) {
+        if (field === 'detail' || field === 'non_field_errors') continue;
+        if (Array.isArray(value) && value.length > 0) {
+          return new Error(`${field}: ${String(value[0])}`);
+        }
+        if (typeof value === 'string' && value.trim()) {
+          return new Error(`${field}: ${value}`);
+        }
+      }
+    }
+    if (error.response?.status) {
+      return new Error(`Error ${error.response.status}: ${fallback}`);
+    }
+  }
+  if (error instanceof Error) return error;
+  return new Error(fallback);
 }
 
 export interface Aseguradora {
@@ -92,8 +123,12 @@ export const segurosService = {
   },
 
   async createAseguradora(payload: Partial<Aseguradora>): Promise<Aseguradora> {
-    const { data } = await api.post<Aseguradora>(`${BASE}/aseguradoras/`, payload);
-    return data;
+    try {
+      const { data } = await api.post<Aseguradora>(`${BASE}/aseguradoras/`, payload);
+      return data;
+    } catch (error) {
+      throw apiError(error, 'No se pudo crear la aseguradora.');
+    }
   },
 
 
@@ -115,8 +150,12 @@ export const segurosService = {
   },
 
   async createConvenio(payload: Partial<Convenio>): Promise<Convenio> {
-    const { data } = await api.post<Convenio>(`${BASE}/convenios/`, payload);
-    return data;
+    try {
+      const { data } = await api.post<Convenio>(`${BASE}/convenios/`, payload);
+      return data;
+    } catch (error) {
+      throw apiError(error, 'No se pudo crear el convenio.');
+    }
   },
 
 
@@ -139,8 +178,12 @@ export const segurosService = {
   },
 
   async createAfiliacion(payload: Partial<AfiliacionSeguro>): Promise<AfiliacionSeguro> {
-    const { data } = await api.post<AfiliacionSeguro>(`${BASE}/afiliaciones/`, payload);
-    return data;
+    try {
+      const { data } = await api.post<AfiliacionSeguro>(`${BASE}/afiliaciones/`, payload);
+      return data;
+    } catch (error) {
+      throw apiError(error, 'No se pudo crear la afiliación.');
+    }
   },
 
   async deleteAfiliacion(id: number): Promise<void> {
@@ -152,10 +195,14 @@ export const segurosService = {
     pacienteId: number,
     fecha?: string,
   ): Promise<VerificarCoberturaResult> {
-    const { data } = await api.get<VerificarCoberturaResult>(
-      `${BASE}/convenios/verificar-cobertura/`,
-      { params: { paciente_id: pacienteId, fecha } },
-    );
-    return data;
+    try {
+      const { data } = await api.get<VerificarCoberturaResult>(
+        `${BASE}/convenios/verificar-cobertura/`,
+        { params: { paciente_id: pacienteId, fecha } },
+      );
+      return data;
+    } catch (error) {
+      throw apiError(error, 'No se pudo verificar la cobertura.');
+    }
   },
 };

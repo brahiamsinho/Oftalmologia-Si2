@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../config/theme.dart';
+
 import '../screens/patient_clinical_screen.dart';
 import '../utils/launch_clinic_phone.dart';
 import '../../../administracion_financiera/presentation/screens/mis_facturas_screen.dart';
@@ -11,9 +12,11 @@ class PatientQuickAccessRow extends StatelessWidget {
   const PatientQuickAccessRow({
     super.key,
     required this.onMisCitas,
+    required this.onAsistenteVirtual,
   });
 
   final VoidCallback onMisCitas;
+  final VoidCallback onAsistenteVirtual;
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +85,27 @@ class PatientQuickAccessRow extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+
+          SizedBox(height: AppTheme.space4),
+          Text(
+            'Asistencia clínica',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0F172A),
+            ),
+          ),
+          SizedBox(height: AppTheme.space3),
+          Semantics(
+            label: 'Acceso rápido: Asistente virtual para pacientes.',
+            button: true,
+            child: _QuickTile(
+              icon: Icons.smart_toy_outlined,
+              iconColor: const Color(0xFF2563EB),
+              title: 'Asistente',
+              subtitle: 'Chatbot',
+              onTap: onAsistenteVirtual,
+            ),
           ),
 
           // ── Sección Mis finanzas ──────────────────────────────────────────

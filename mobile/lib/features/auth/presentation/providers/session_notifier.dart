@@ -83,7 +83,7 @@ class SessionNotifier extends Notifier<AuthUser?> {
     authListenable.value = AppSessionStatus.authenticated;
     // Sincronizar token FCM en segundo plano.
     // Cubre el caso en que el token no estaba disponible durante el login.
-    PushNotifications.syncTokenWithBackend();
+    await PushNotifications.syncTokenWithBackend();
   }
 
   /// Tras [AuthRepository.register] (tokens ya persistidos).
@@ -91,7 +91,7 @@ class SessionNotifier extends Notifier<AuthUser?> {
     state = user;
     authListenable.value = AppSessionStatus.authenticated;
     // Registrar token FCM en backend y enviar push de bienvenida si aún no se hizo.
-    PushNotifications.syncTokenWithBackend();
+    Future<void>.microtask(PushNotifications.syncTokenWithBackend);
   }
 
   Future<void> signOut() async {
