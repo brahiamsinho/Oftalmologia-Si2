@@ -59,6 +59,22 @@ class FacturacionRepository {
     }
   }
 
+  /// GET `facturacion/facturas/<id>/comprobante/` — PDF del comprobante.
+  Future<List<int>> fetchComprobantePdf(String idFactura) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        'facturacion/facturas/$idFactura/comprobante/',
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: const {'Accept': 'application/pdf'},
+        ),
+      );
+      return response.data ?? const <int>[];
+    } on DioException catch (e) {
+      throw Exception(_msg(e));
+    }
+  }
+
   /// POST `facturacion/facturas/<id>/iniciar-pago-en-linea/` — obtiene URL de pasarela.
   Future<String> iniciarPagoEnLinea(String idFactura) async {
     try {

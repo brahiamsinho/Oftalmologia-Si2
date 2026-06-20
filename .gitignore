@@ -25,6 +25,7 @@ coverage.xml
 *.log
 .hypothesis/
 .pytest_cache/
+pytest-cache-files-*/
 celerybeat-schedule
 *.sage.py
 
