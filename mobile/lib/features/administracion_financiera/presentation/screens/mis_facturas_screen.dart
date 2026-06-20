@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../config/theme.dart';
@@ -309,11 +312,13 @@ class _FacturaCard extends ConsumerWidget {
         if (shouldConfirm == true) {
           await ref.read(facturacionRepositoryProvider).confirmarPagoMock(id);
           ref.invalidate(misFacturasProvider);
+          if (!ctx.mounted) return;
           if (ctx.mounted) {
             ScaffoldMessenger.of(ctx).showSnackBar(
               const SnackBar(content: Text('Pago confirmado (modo demo).')),
             );
           }
+          await _verComprobante(ctx, ref, id);
         }
         return;
       }
@@ -367,6 +372,26 @@ class _FacturaCard extends ConsumerWidget {
 
   Future<void> _verComprobante(BuildContext ctx, WidgetRef ref, String id) async {
     try {
+      final bytes = await ref.read(facturacionRepositoryProvider).fetchComprobantePdf(id);
+      if (!ctx.mounted) return;
+      if (bytes.isEmpty) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          const SnackBar(content: Text('No se pudo generar el PDF del comprobante.')),
+        );
+        return;
+      }
+      final tmpDir = await getTemporaryDirectory();
+      final filePath = '${tmpDir.path}/comprobante-$id.pdf';
+      final file = File(filePath);
+      await file.writeAsBytes(bytes, flush: true);
+
+      final opened = await launchUrl(
+        Uri.file(filePath),
+        mode: LaunchMode.externalApplication,
+      );
+      if (opened) return;
+
+      // Fallback compatible: si no hay app PDF, mostramos comprobante en texto.
       final texto = await ref.read(facturacionRepositoryProvider).fetchComprobante(id);
       if (!ctx.mounted) return;
       showModalBottomSheet<void>(
