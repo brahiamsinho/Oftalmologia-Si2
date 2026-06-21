@@ -5,10 +5,38 @@ Serializers exclusivos del dominio de usuarios y autenticación.
 Roles/Permisos → apps/roles/serializers.py y apps/permisos/serializers.py
 """
 from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, transaction
 from rest_framework import serializers
 
 from .models import TipoUsuario, TokenRecuperacion, Usuario
+
+
+class PacienteSesionMixin:
+    paciente = serializers.SerializerMethodField(read_only=True)
+
+    def get_paciente(self, obj):
+        if getattr(obj, 'tipo_usuario', None) != TipoUsuario.PACIENTE:
+            return None
+
+        try:
+            paciente = obj.paciente
+        except ObjectDoesNotExist:
+            return None
+
+        try:
+            historia = paciente.historia_clinica
+        except ObjectDoesNotExist:
+            historia = None
+
+        return {
+            'id_paciente': paciente.id_paciente,
+            'numero_historia': paciente.numero_historia,
+            'historia_clinica': None if historia is None else {
+                'id_historia_clinica': historia.id_historia_clinica,
+                'estado': historia.estado,
+            },
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -115,7 +143,8 @@ class ConfirmarPasswordSerializer(serializers.Serializer):
 # Usuario
 # ---------------------------------------------------------------------------
 
-class UsuarioSerializer(serializers.ModelSerializer):
+class UsuarioSerializer(PacienteSesionMixin, serializers.ModelSerializer):
+    paciente = serializers.SerializerMethodField(read_only=True)
     nombre_completo = serializers.SerializerMethodField()
 
     class Meta:
@@ -124,7 +153,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'nombres', 'apellidos', 'nombre_completo',
             'telefono', 'foto_perfil', 'tipo_usuario', 'estado',
             'ultimo_acceso', 'fecha_creacion', 'fecha_actualizacion',
-            'is_staff', 'is_active',
+            'is_staff', 'is_active', 'paciente',
         ]
         read_only_fields = ['id', 'ultimo_acceso', 'fecha_creacion', 'fecha_actualizacion']
 
@@ -222,15 +251,16 @@ class UsuarioCreateSerializer(serializers.ModelSerializer):
         return usuario
 
 
-class PerfilSerializer(serializers.ModelSerializer):
+class PerfilSerializer(PacienteSesionMixin, serializers.ModelSerializer):
     """Vista/edición del perfil propio — campos sensibles en solo lectura."""
+    paciente = serializers.SerializerMethodField(read_only=True)
     nombre_completo = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Usuario
         fields = [
             'id', 'username', 'email', 'nombres', 'apellidos', 'nombre_completo',
-            'telefono', 'foto_perfil', 'tipo_usuario', 'estado', 'ultimo_acceso',
+            'telefono', 'foto_perfil', 'tipo_usuario', 'estado', 'ultimo_acceso', 'paciente',
         ]
         read_only_fields = ['id', 'username', 'email', 'tipo_usuario', 'estado', 'ultimo_acceso']
 

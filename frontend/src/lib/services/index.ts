@@ -17,6 +17,7 @@ export type {
 } from './backup';
 export { permisosService }  from './permisos';
 export { historialService } from './historial';
+export { documentosClinicosService } from './documentos_clinicos';
 export { especialistasService } from './especialistas';
 export { citasService } from './citas';
 export { listConsultas, type ConsultaListaItem } from './consultas';

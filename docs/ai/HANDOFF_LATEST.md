@@ -1,6 +1,47 @@
 # HANDOFF LATEST
 
+**Fecha:** 2026-06-21 — **CU26 con vista dedicada en Atención Clínica:**
+- Se creo la ruta frontend `/recetas` bajo `gestion-atencionclinica` para documentos clinicos del paciente.
+- `Sidebar` ahora muestra CU26 separado por rol dentro de Atención Clínica: `Recetas` para staff y `Mis recetas` para pacientes.
+- Ambos accesos fueron reubicados cerca del inicio del bloque clínico para que queden visibles sin depender del scroll.
+- El buscador del sidebar también fue filtrado por rol para no mostrar accesos de CU26 que no correspondan.
+- La vista `/recetas` ahora bifurca experiencia por rol: staff busca una historia clínica y revisa sus recetas; paciente ve sus propios documentos.
+- La sección de documentos se eliminó de `/InteligenciaArtificial` para que el asistente no mezcle chat con recetas.
+- Se corrigio un `NoReverseMatch` real en el serializer de documentos usando `api:documentos-clinicos-download`, que era la causa del 500 en `GET /api/historias-clinicas/<id>/`.
+
+**Fecha:** 2026-06-21 — **IA paciente sin barrel de servicios:**
+- La pantalla `/InteligenciaArtificial` ahora lista y descarga documentos con `fetchAll` + `api` directos, sin pasar por `documentosClinicosService`.
+- Se tomó esta vía porque el runtime seguía mostrando `documentosClinicosService` como `undefined` durante desarrollo, aunque el módulo existía.
+- El historial clínico de staff puede mantener el servicio compartido; el flujo de paciente quedó blindado contra ese fallo.
+
+**Fecha:** 2026-06-21 — **Seeder demo de recetas e indicaciones:**
+- Se agrego `seeders.seed_documentos_clinicos_demo` y su registro en `manage.py seed`.
+- El seeder ahora recorre todos los pacientes del tenant demo, crea/asegura historia clinica y emite 2 documentos activos por paciente (receta + indicacion) con PDF real.
+- Esto destraba el flujo visible de recetas en `/InteligenciaArtificial` y en el modal de historial clinico, que antes quedaba vacio por falta de datos demo.
+- `PerfilSerializer` y `UsuarioSerializer` ahora exponen `paciente` como objeto con `historia_clinica`, por lo que `auth/me` alimenta bien al frontend.
+
+**Fecha:** 2026-06-21 — **IA staff solo visible para staff:**
+- Se verifico en backend que `MEDICO` accede correctamente a `GET /t/clinica-demo/api/ia/urgency-classifications/` y `GET /t/clinica-demo/api/ia/human-handoffs/`.
+- El problema operativo venia del frontend: el sidebar y las pantallas de IA de staff estaban expuestas a sesiones de paciente.
+- Se agrego guard de acceso y mensajes de restriccion en `clasificaciones` y `derivaciones-criticas`, y se oculto el acceso flotante al asistente para cuentas que no son paciente.
+
+**Fecha:** 2026-06-20 — **CU26 hardening de acceso:**
+- Se agregó `IsPacienteOrStaff` para limitar lectura/descarga de documentos clínicos a pacientes y personal autorizado.
+- La parte de escritura sigue restringida a `IsMedicoOrAdmin`.
+
+**Fecha:** 2026-06-20 — **CU26 emisión desde módulos clínicos:**
+- Consulta, preoperatorio, cirugías y postoperatorio ya emiten documentos clínicos autorizados al crear o actualizar.
+- La lógica de emisión se centralizó en `backend/apps/atencionClinica/documentos_clinicos/services.py` con upsert por origen.
+- La emisión usa PDFs generados desde el contenido del registro y mantiene la descarga segura por historia clínica.
+
 ## Resumen
+
+**Fecha:** 2026-06-20 — **CU26 documentos clínicos descargables:**
+- Se agregó la app tenant `apps.atencionClinica.documentos_clinicos` para recetas/indicaciones autorizadas.
+- `GET /api/auth/me/` ahora devuelve `paciente.historia_clinica.id_historia_clinica`, evitando que el frontend adivine IDs.
+- Los documentos se listan y descargan por rutas anidadas bajo la historia clínica.
+- `HistoriaClinicaDetalleSerializer.recetas` dejó de ser placeholder y ahora devuelve documentos reales.
+- El paciente ve la sección “Mis documentos” en `/InteligenciaArtificial`; el staff ve descarga desde historial clínico.
 
 **Fecha:** 2026-06-18 — **Derivacion critica automatica:**
 - CU24 ahora crea el handoff critico automaticamente cuando la clasificacion sale `CRITICO`.

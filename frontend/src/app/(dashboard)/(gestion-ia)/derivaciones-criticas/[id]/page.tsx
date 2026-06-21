@@ -1,12 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { AxiosError } from 'axios';
 import {
   AlertTriangle, ArrowLeft, CheckCircle, Clock, Loader2,
   ShieldCheck, UserRound, UserCheck, XCircle,
 } from 'lucide-react';
 
+import { useAuth } from '@/context/AuthContext';
 import {
   acceptHandoff,
   cancelHandoff,
@@ -47,19 +50,32 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export default function DerivacionDetailPage() {
+  const { user, isLoading: authLoading } = useAuth();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [data, setData] = useState<CriticalHandoffDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const canView = !!user && user.tipo_usuario !== 'PACIENTE';
 
   useEffect(() => {
+    if (!canView) {
+      setLoading(false);
+      return;
+    }
+
     getHandoff(Number(id))
       .then(setData)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Error al cargar derivación'))
+      .catch((e) => {
+        if (e instanceof AxiosError && e.response?.status === 403) {
+          setError('Tu usuario no tiene permiso para ver esta derivacion.');
+          return;
+        }
+        setError(e instanceof Error ? e.message : 'Error al cargar derivación');
+      })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [canView, id]);
 
   const handleAccept = useCallback(async () => {
     setActionLoading('accept');
@@ -125,6 +141,30 @@ export default function DerivacionDetailPage() {
     return (
       <div className="flex items-center justify-center py-32">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
+  if (!canView) {
+    return (
+      <div className="mx-auto max-w-3xl py-10">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+          <h1 className="text-base font-bold">Acceso restringido</h1>
+          <p className="mt-2 leading-6">
+            Esta pantalla es solo para personal de la clínica. Las derivaciones criticas no están disponibles para cuentas de paciente.
+          </p>
+          <Link href="/derivaciones-criticas" className="mt-4 inline-flex rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700">
+            Volver al listado
+          </Link>
+        </div>
       </div>
     );
   }

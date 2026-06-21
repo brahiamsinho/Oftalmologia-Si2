@@ -68,6 +68,10 @@ SEEDERS = {
         'seeders.seed_demo_paciente',
         'Demo paciente + citas',
     ),
+    'documentos_clinicos_demo': (
+        'seeders.seed_documentos_clinicos_demo',
+        'Documentos clinicos demo',
+    ),
     'reporting_6months': (
         'seeders.seed_reporting_6months',
         'Datos históricos de 6 meses para reportes',

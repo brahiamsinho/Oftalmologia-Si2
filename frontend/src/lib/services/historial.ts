@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import type { DocumentoClinicoAutorizado } from '@/lib/types';
 import type { PaginatedResponse } from '@/lib/types';
 
 export interface HistoriaClinica {
@@ -15,7 +16,7 @@ export interface HistoriaClinicaDetalle extends HistoriaClinica {
   antecedentes: unknown[];
   diagnosticos: unknown[];
   evoluciones: unknown[];
-  recetas: unknown[];
+  recetas: DocumentoClinicoAutorizado[];
 }
 
 export interface HistoriaClinicaCreate {

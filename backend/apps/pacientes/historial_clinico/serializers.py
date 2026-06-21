@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import HistoriaClinica
+from apps.atencionClinica.documentos_clinicos.serializers import DocumentoClinicoSerializer
 
 class HistoriaClinicaSerializer(serializers.ModelSerializer):
     paciente_nombre = serializers.SerializerMethodField()
@@ -46,4 +47,8 @@ class HistoriaClinicaDetalleSerializer(HistoriaClinicaSerializer):
         return []
 
     def get_recetas(self, _obj):
-        return []
+        return DocumentoClinicoSerializer(
+            _obj.documentos_clinicos.select_related('id_historia_clinica__id_paciente', 'creado_por').all(),
+            many=True,
+            context=self.context,
+        ).data

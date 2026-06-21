@@ -9,6 +9,7 @@ from apps.pacientes.pacientes.models import Paciente
 
 from .models import Consulta, Estudio
 from .serializers import ConsultaSerializer, EstudioSerializer
+from apps.atencionClinica.documentos_clinicos.services import emitir_documento_desde_consulta
 
 
 class ConsultaViewSet(viewsets.ModelViewSet):
@@ -59,7 +60,9 @@ class ConsultaViewSet(viewsets.ModelViewSet):
                 EstadoCita.REPROGRAMADA,
             ):
                 cita.estado = EstadoCita.ATENDIDA
-                cita.save(update_fields=['estado'])
+            cita.save(update_fields=['estado'])
+
+        emitir_documento_desde_consulta(consulta, creado_por=self.request.user)
 
         registrar_bitacora(
             usuario=self.request.user,
@@ -74,6 +77,7 @@ class ConsultaViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         consulta = serializer.save()
+        emitir_documento_desde_consulta(consulta, creado_por=self.request.user)
         registrar_bitacora(
             usuario=self.request.user,
             modulo='consultas',

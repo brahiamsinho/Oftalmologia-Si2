@@ -28,6 +28,7 @@ api_patterns = [
     path('historias-clinicas/<int:id_historia_clinica>/', include('apps.atencionClinica.antecedentes.urls')),
     path('consultas/', include('apps.atencionClinica.consultas.urls')),
     path('medicion-visual/', include('apps.atencionClinica.medicion_visual.urls')),
+    path('', include('apps.atencionClinica.documentos_clinicos.urls')),
     path('notificaciones/', include('apps.crm.notificaciones.urls')),
     path('', include('apps.backup.urls')),
     path('', include('apps.reportes.urls')),

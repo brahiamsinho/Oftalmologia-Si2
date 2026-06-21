@@ -37,6 +37,18 @@ export interface Usuario {
   fecha_actualizacion: string;
   is_staff: boolean;
   roles?: Rol[];
+  paciente?: UsuarioPacienteAcceso | null;
+}
+
+export interface UsuarioHistoriaClinicaAcceso {
+  id_historia_clinica: number;
+  estado: string;
+}
+
+export interface UsuarioPacienteAcceso {
+  id_paciente: number;
+  numero_historia: string;
+  historia_clinica: UsuarioHistoriaClinicaAcceso | null;
 }
 
 export interface UsuarioCreate {
@@ -120,7 +132,7 @@ export interface PacienteCreate {
 export type AccionBitacora =
   | 'LOGIN' | 'LOGOUT' | 'LOGIN_FALLIDO'
   | 'CREAR' | 'EDITAR' | 'ELIMINAR'
-  | 'CAMBIAR_PASSWORD' | 'RECUPERAR_PASSWORD'
+  | 'CAMBIAR_PASSWORD' | 'RECUPERAR_PASSWORD' | 'DESCARGAR'
   | 'REPROGRAMAR' | 'CANCELAR' | 'CONFIRMAR';
 
 export interface RegistroBitacora {
@@ -136,6 +148,33 @@ export interface RegistroBitacora {
   ip_origen: string | null;
   user_agent?: string | null;
   fecha_evento: string;
+}
+
+// ── Documentos clínicos ──────────────────────────────────────────────────────
+export type DocumentoClinicoTipo = 'RECETA' | 'INDICACION';
+export type DocumentoClinicoEstado = 'ACTIVO' | 'REVOCADO' | 'VENCIDO';
+
+export interface DocumentoClinicoAutorizado {
+  id_documento_clinico: number;
+  id_historia_clinica: number;
+  paciente_nombre: string;
+  numero_historia: string;
+  tipo_documento: DocumentoClinicoTipo;
+  tipo_documento_display: string;
+  titulo: string;
+  contenido: string | null;
+  estado: DocumentoClinicoEstado;
+  estado_display: string;
+  fecha_emision: string;
+  fecha_vencimiento: string | null;
+  creado_por: number | null;
+  creador_nombre: string | null;
+  origen_modulo: string | null;
+  origen_registro_id: number | null;
+  observaciones: string | null;
+  tiene_archivo: boolean;
+  nombre_archivo: string | null;
+  descarga_url: string | null;
 }
 
 // ── Paginación (DRF por defecto) ──────────────────────────────────────────────

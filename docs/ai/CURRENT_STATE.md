@@ -1,5 +1,56 @@
 # CURRENT STATE
 
+## Actualizacion 2026-06-21 — CU26 ya tiene vista dedicada en Atención Clínica
+
+- Se creo `frontend/src/app/(dashboard)/(gestion-atencionclinica)/recetas/page.tsx` como pantalla dedicada para recetas e indicaciones clinicas.
+- `Sidebar` ahora separa CU26 por rol dentro de `Atención Clínica`: `Recetas` para staff y `Mis recetas` para pacientes.
+- `Recetas` y `Mis recetas` quedaron reubicados dentro de `Atención Clínica` para que no dependan del scroll y sean visibles de inmediato.
+- El buscador del sidebar también filtra CU26 por rol, así no mezcla accesos de paciente y staff.
+- La vista `/recetas` es bifurcada por rol: staff busca una historia clínica y ve sus recetas; paciente ve sus propios documentos sin pasar por IA.
+- La pantalla de `/InteligenciaArtificial` quedó solo para el asistente virtual; se eliminó la sección de documentos clínicos.
+- Se corrigio el `NoReverseMatch` del detalle de historia usando el namespace correcto `api:documentos-clinicos-download` en el serializer de documentos.
+
+## Actualizacion 2026-06-21 — IA paciente ya no depende del barrel de servicios
+
+- La pantalla `/InteligenciaArtificial` dejó de usar `documentosClinicosService` y ahora pide documentos directamente con `fetchAll` + `api`.
+- Esto evita el `TypeError: Cannot read properties of undefined (reading 'list')` que seguía apareciendo por el módulo de documentos durante HMR/dev.
+- El modal de historial clínico sigue funcionando con el mismo enfoque de documentos reales y PDFs generados.
+
+## Actualizacion 2026-06-21 — Seeder demo para recetas e indicaciones
+
+- Se agrego `backend/seeders/seed_documentos_clinicos_demo.py` para crear historias clinicas demo y emitir recetas/indicaciones visibles en UI para todos los pacientes del tenant demo.
+- El comando `seed --tenant clinica-demo --only documentos_clinicos_demo` deja a 33 pacientes con historia clinica y documentos PDF reales.
+- Se verifico en Docker que `brandon` y `sofia` conservan 2 documentos activos cada uno y que `auth/me` devuelve `paciente.historia_clinica` como objeto.
+- Se corrigio `PerfilSerializer` / `UsuarioSerializer` para que `paciente` vuelva a ser un objeto con `historia_clinica`, no un entero PK.
+
+## Actualizacion 2026-06-21 — IA staff visible solo para staff
+
+- Se verifico en backend que `MEDICO` si puede consumir `GET /t/clinica-demo/api/ia/urgency-classifications/` y `GET /t/clinica-demo/api/ia/human-handoffs/`.
+- El 403 que veia el frontend venia de exponer pantallas de staff a sesiones de paciente, no de un bug en `apps.ia.views`.
+- Se ajusto la UI para ocultar las rutas de clasificaciones/derivaciones a pacientes y para mostrar un aviso de acceso restringido en esas pantallas.
+- El layout del dashboard dejo de mostrar el acceso flotante al asistente virtual para cuentas que no son paciente.
+
+## Actualizacion 2026-06-20 — CU26 hardening de acceso a documentos
+
+- La lectura/descarga de documentos clínicos quedó limitada a pacientes y personal autorizado con una nueva permiso compartida `IsPacienteOrStaff`.
+- El endpoint de documentos no acepta ya cualquier token autenticado del tenant; sigue permitiendo al paciente solo su propia historia y al staff operar sobre el esquema clínico.
+
+## Actualizacion 2026-06-20 — CU26 emisión desde módulos clínicos
+
+- Las consultas, preoperatorio, cirugías y postoperatorio ahora emiten documentos clínicos autorizados al crear o actualizar el registro.
+- La emisión reutiliza un helper único en `backend/apps/atencionClinica/documentos_clinicos/services.py` para generar o reemplazar el PDF, evitando duplicación de lógica.
+- El documento queda atado al origen del registro (`origen_modulo` + `origen_registro_id`) y se actualiza en lugar de duplicarse silenciosamente.
+- Los documentos emitidos siguen llegando al paciente por la vista de historia clínica y por la sección “Mis documentos”.
+
+## Actualizacion 2026-06-20 — CU26 documentos clínicos descargables
+
+- Se implementó un nuevo submódulo tenant en `backend/apps/atencionClinica/documentos_clinicos` para recetas e indicaciones autorizadas.
+- El contrato de `GET /api/auth/me/` ahora expone la ficha del paciente con `id_historia_clinica`, para no pedir IDs manuales en el frontend.
+- La descarga es segura y anidada por historia clínica: `GET /api/historias-clinicas/<id>/documentos-clinicos/<pk>/download/`.
+- `HistoriaClinicaDetalleSerializer.recetas` ya devuelve documentos clínicos reales en vez de un placeholder vacío.
+- El frontend paciente en `/InteligenciaArtificial` ahora muestra la sección “Mis documentos” y descarga los archivos autorizados.
+- La pantalla de historial clínico staff también lista y descarga documentos desde el modal de detalle.
+
 ## Actualizacion 2026-06-18 — Derivacion critica automatica
 
 - La derivacion humana critica ahora se crea automaticamente cuando CU24 devuelve un caso `CRITICO` con `requiere_atencion_humana=True`.

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, SlidersHorizontal, Loader2, ScrollText, LogIn, LogOut, Plus, Edit2, Trash2, Key, AlertTriangle, RefreshCw, Calendar } from 'lucide-react';
+import { Search, SlidersHorizontal, Loader2, ScrollText, LogIn, LogOut, Plus, Edit2, Trash2, Key, AlertTriangle, RefreshCw, Calendar, Download } from 'lucide-react';
 import { bitacoraService } from '@/lib/services';
 import type { RegistroBitacora, AccionBitacora } from '@/lib/types';
 
@@ -16,6 +16,7 @@ const ACCION: Record<AccionBitacora, { label: string; color: string; icon: React
   ELIMINAR:          { label: 'Eliminar',           color: 'bg-red-100 text-red-700',       icon: <Trash2  className="w-3 h-3" /> },
   CAMBIAR_PASSWORD:  { label: 'Cambiar contraseña', color: 'bg-purple-100 text-purple-700', icon: <Key     className="w-3 h-3" /> },
   RECUPERAR_PASSWORD:{ label: 'Recuperar contraseña',color: 'bg-orange-100 text-orange-700',icon: <Key    className="w-3 h-3" /> },
+  DESCARGAR:         { label: 'Descargar',         color: 'bg-cyan-100 text-cyan-700',     icon: <Download className="w-3 h-3" /> },
   REPROGRAMAR:       { label: 'Reprogramar',        color: 'bg-indigo-100 text-indigo-700', icon: <RefreshCw className="w-3 h-3" /> },
   CANCELAR:          { label: 'Cancelar',           color: 'bg-red-100 text-red-700',       icon: <AlertTriangle className="w-3 h-3" /> },
   CONFIRMAR:         { label: 'Confirmar',          color: 'bg-green-100 text-green-700',   icon: <Calendar className="w-3 h-3" /> },

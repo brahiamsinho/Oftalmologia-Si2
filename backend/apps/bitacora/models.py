@@ -19,6 +19,7 @@ class AccionBitacora(models.TextChoices):
     REPROGRAMAR = 'REPROGRAMAR', 'Reprogramar cita'
     CANCELAR = 'CANCELAR', 'Cancelar cita'
     CONFIRMAR = 'CONFIRMAR', 'Confirmar cita'
+    DESCARGAR = 'DESCARGAR', 'Descargar documento'
 
 
 class Bitacora(models.Model):

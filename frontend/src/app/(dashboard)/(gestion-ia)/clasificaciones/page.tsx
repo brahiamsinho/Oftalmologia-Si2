@@ -1,8 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { AlertTriangle, Brain, CheckCircle2, Clock, Loader2, UserRound, XCircle } from 'lucide-react';
+import { AxiosError } from 'axios';
 
+import { useAuth } from '@/context/AuthContext';
 import { listClassifications } from '@/services/iaService';
 import type { UrgencyClassificationItem } from '@/services/iaService';
 
@@ -16,16 +19,53 @@ const NIVEL_STYLE: Record<string, string> = {
 };
 
 export default function ClasificacionesPage() {
+  const { user, isLoading: authLoading } = useAuth();
   const [items, setItems] = useState<UrgencyClassificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const canView = !!user && user.tipo_usuario !== 'PACIENTE';
 
   useEffect(() => {
+    if (!canView) {
+      setLoading(false);
+      return;
+    }
+
     listClassifications()
       .then(setItems)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Error al cargar clasificaciones'))
+      .catch((e) => {
+        if (e instanceof AxiosError && e.response?.status === 403) {
+          setError('Tu usuario no tiene permiso para ver las clasificaciones de urgencia.');
+          return;
+        }
+        setError(e instanceof Error ? e.message : 'Error al cargar clasificaciones');
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [canView]);
+
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
+  if (!canView) {
+    return (
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 py-10">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+          <h1 className="text-base font-bold">Acceso restringido</h1>
+          <p className="mt-2 leading-6">
+            Esta pantalla es solo para personal de la clínica. Las clasificaciones de urgencia no están disponibles para cuentas de paciente.
+          </p>
+          <Link href="/dashboard" className="mt-4 inline-flex rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700">
+            Volver al dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

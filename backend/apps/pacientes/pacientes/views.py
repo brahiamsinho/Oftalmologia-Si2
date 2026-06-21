@@ -10,7 +10,7 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 
 from apps.bitacora.models import AccionBitacora
-from apps.core.permissions import IsAdministrativoOrAdmin
+from apps.core.permissions import IsAdministrativoOrAdmin, IsStaffUser
 from apps.core.utils import get_client_ip, registrar_bitacora
 
 from .models import Paciente
@@ -19,7 +19,6 @@ from .serializers import PacienteCreateSerializer, PacienteSerializer
 
 class PacienteViewSet(viewsets.ModelViewSet):
     queryset = Paciente.objects.select_related('usuario').all()
-    permission_classes = [IsAuthenticated, IsAdministrativoOrAdmin]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['estado_paciente', 'sexo', 'tipo_documento']
     search_fields = [
@@ -31,6 +30,11 @@ class PacienteViewSet(viewsets.ModelViewSet):
     ]
     ordering_fields = ['apellidos', 'nombres', 'fecha_registro', 'numero_historia']
     ordering = ['apellidos', 'nombres']
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return [IsAuthenticated(), IsStaffUser()]
+        return [IsAuthenticated(), IsAdministrativoOrAdmin()]
 
     def get_queryset(self):
         queryset = super().get_queryset()

@@ -130,5 +130,5 @@ Paquetes ya avanzados: **Administrativa** CU18–CU20 (backend).
 | **3** | IA | **CU23** | Parcial/avanzado — asistente Paciente backend + NL → reporte |
 | **4** | IA | **CU24** | Backend implementado — urgencia chatbot determinística |
 | **5** | IA | **CU25** | No implementado — derivar a humano |
-| — | Atención clínica | **CU26** | Revisar — recetas/indicaciones descargables |
+| — | Atención clínica | **CU26** | Implementado — recetas/indicaciones descargables |
 | — | CRM | **CU17** | Parcial — recordatorios (cron/UI pendiente) |

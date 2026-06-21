@@ -7,6 +7,7 @@ from apps.bitacora.models import AccionBitacora
 from apps.core.permissions import IsMedicoOrAdmin
 from apps.core.utils import get_client_ip, registrar_bitacora
 from apps.pacientes.pacientes.models import Paciente
+from apps.atencionClinica.documentos_clinicos.services import emitir_documento_desde_preoperatorio
 
 from .models import EstadoPreoperatorio, Preoperatorio
 from .serializers import PreoperatorioSerializer
@@ -75,6 +76,7 @@ class PreoperatorioViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         instance = serializer.save()
         self._aplicar_validacion(instance)
+        emitir_documento_desde_preoperatorio(instance, creado_por=self.request.user)
         registrar_bitacora(
             usuario=self.request.user,
             modulo='preoperatorio',
@@ -89,6 +91,7 @@ class PreoperatorioViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         instance = serializer.save()
         self._aplicar_validacion(instance)
+        emitir_documento_desde_preoperatorio(instance, creado_por=self.request.user)
         registrar_bitacora(
             usuario=self.request.user,
             modulo='preoperatorio',

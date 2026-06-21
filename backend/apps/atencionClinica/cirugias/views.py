@@ -9,6 +9,7 @@ from apps.bitacora.models import AccionBitacora
 from apps.core.permissions import IsMedicoOrAdmin
 from apps.core.utils import get_client_ip, registrar_bitacora
 from apps.pacientes.pacientes.models import Paciente
+from apps.atencionClinica.documentos_clinicos.services import emitir_documento_desde_cirugia
 
 from .models import Cirugia, EstadoCirugia
 from .serializers import CirugiaSerializer
@@ -61,6 +62,7 @@ class CirugiaViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save(cirujano=self.request.user)
+        emitir_documento_desde_cirugia(instance, creado_por=self.request.user)
         registrar_bitacora(
             usuario=self.request.user,
             modulo='cirugias',
@@ -74,6 +76,7 @@ class CirugiaViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         instance = serializer.save()
+        emitir_documento_desde_cirugia(instance, creado_por=self.request.user)
         registrar_bitacora(
             usuario=self.request.user,
             modulo='cirugias',

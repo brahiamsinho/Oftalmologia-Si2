@@ -9,7 +9,9 @@ import {
 import axios from 'axios';
 import { fetchAll } from '@/lib/api';
 import { historialService } from '@/lib/services';
+import { documentosClinicosService } from '@/lib/services/documentos_clinicos';
 import type { HistoriaClinica, HistoriaClinicaCreate, HistoriaClinicaDetalle } from '@/lib/services/historial';
+import type { DocumentoClinicoAutorizado } from '@/lib/types';
 import type { Paciente } from '@/lib/types';
 
 function formatHistoriaApiError(data: unknown): string {
@@ -44,6 +46,7 @@ function DetalleModal({
 }) {
   const [detalle, setDetalle] = useState<HistoriaClinicaDetalle | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   useEffect(() => {
     historialService.get(historia.id_historia_clinica)
@@ -51,6 +54,26 @@ function DetalleModal({
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [historia.id_historia_clinica]);
+
+  const handleDownload = async (documento: DocumentoClinicoAutorizado) => {
+    if (!documento.tiene_archivo) return;
+
+    setDownloadError(null);
+    try {
+      const blob = await documentosClinicosService.download(
+        historia.id_historia_clinica,
+        documento.id_documento_clinico,
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = documento.nombre_archivo ?? `documento_${documento.id_documento_clinico}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setDownloadError('No se pudo descargar el documento clínico.');
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
@@ -136,13 +159,47 @@ function DetalleModal({
 
               <Section title="Recetas">
                 {detalle.recetas.length > 0 ? (
-                  <div className="px-4 py-3 text-sm text-gray-700">
-                    Hay {detalle.recetas.length} receta(s) emitidas.
+                  <div className="space-y-3 px-4 py-3">
+                    {detalle.recetas.map((doc) => (
+                      <div key={doc.id_documento_clinico} className="rounded-xl border border-gray-200 bg-white p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-900">{doc.titulo}</p>
+                            <p className="mt-1 text-xs text-gray-500">
+                              {doc.tipo_documento_display} · {new Date(doc.fecha_emision).toLocaleDateString('es-ES')}
+                            </p>
+                            {doc.contenido && (
+                              <p className="mt-2 line-clamp-2 text-sm text-gray-700">{doc.contenido}</p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            disabled={!doc.tiene_archivo}
+                            onClick={() => void handleDownload(doc)}
+                            className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Descargar
+                          </button>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-gray-500">
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5">{doc.estado_display}</span>
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5">{doc.creador_nombre ?? 'Sistema'}</span>
+                          {doc.nombre_archivo && (
+                            <span className="rounded-full bg-gray-100 px-2 py-0.5">{doc.nombre_archivo}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="px-4 py-3 text-sm text-gray-400">Sin recetas</div>
                 )}
               </Section>
+              {downloadError && (
+                <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {downloadError}
+                </div>
+              )}
             </>
           )}
         </div>

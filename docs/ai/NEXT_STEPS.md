@@ -4,6 +4,14 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 
 - [ ] **CU23 hibrido:** smoke test del rewrite Gemini + fallback seguro + historial desde `id_conversacion` en Docker.
 - [ ] **CU25 auto handoff:** validar en Docker que una clasificacion crítica crea `CriticalHumanHandoff` y notifica staff sin accion manual.
+- [x] **CU26 documentos clínicos:** validar en Docker que el listado/descarga anidada respeta permisos de paciente y staff.
+- [ ] **CU26 split por rol:** validar en navegador que PACIENTE ve `Mis recetas` en `Paciente` y MEDICO ve `Recetas` en `Atención Clínica`.
+- [ ] **IA staff frontend:** probar en navegador con sesiones `PACIENTE` y `MEDICO` que Sidebar, layout y pantallas de staff quedan correctamente filtradas.
+- [x] **Seeder demo recetas:** crear datos demo de historias clinicas y documentos para que el flujo de recetas no quede vacio en clinica-demo.
+- [x] **auth/me paciente:** corregir serializacion de `paciente` para que exponga `historia_clinica` y no un PK suelto.
+- [x] **Seeder cobertura total CU26:** extender el seeder para todos los pacientes del tenant demo, no solo Brandon y Sofia.
+- [x] **IA paciente hotfix runtime:** quitar dependencia del barrel de `documentosClinicosService` en `/InteligenciaArtificial` y usar `api` + `fetchAll` directo.
+- [x] **CU26 IA cleanup:** retirar la sección de documentos clínicos de `/InteligenciaArtificial` para dejar ahí solo el asistente virtual.
 
 **Contexto SaaS:** ver **`docs/ai/PLATFORM_SAAS.md`** antes de cambiar auth, tenants o rutas públicas.
 
@@ -67,6 +75,10 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] **CU24 Backend:** clasificación de urgencia del chatbot en endpoint separado `POST /t/<slug>/api/ia/urgency-classification/`, reglas determinísticas, persistencia tenant-aware y bitácora sin mensaje clínico completo.
 - [x] **CU24 Code review:** tests ruta tenant canonical, aislamiento schema, spoofing tolera DRF, matcher evita falso positivo por substring, admin readonly, mapa PUDS corregido.
 - [x] **CU24 pytest Docker verde:** fix `Domain.domain` coincide con `Tenant.slug` para `TenantSubfolderMiddleware` en tests. `docker compose exec backend pytest apps/ia/tests -q` -> `13 passed in 89.54s`.
+- [x] **CU26 Backend + frontend:** app tenant `documentos_clinicos`, `auth/me` enriquecido con historia del paciente, descarga segura anidada y UI de documentos en paciente + historial.
+- [x] **CU26 vista dedicada:** crear `/recetas` en Atención Clínica y enlazarla desde Sidebar.
+- [x] **IA frontend guard:** ocultar rutas de staff (`clasificaciones`, `derivaciones-criticas`) para pacientes y mostrar acceso restringido en esas pantallas.
+- [x] **Seeder documentos demo:** `seeders.seed_documentos_clinicos_demo` crea historia clinica + receta/indicacion PDF para Brandon y Sofia.
 - [x] **Merge origin/Carlos en spint_4_comienzos:** resuelto conflicto 3-way en CURRENT_STATE.md, HANDOFF_LATEST.md y PACKAGE_CU_MAP.md. CU23 + CU24 integrados en una rama.
 - [ ] **CU23 + CU24:** validar en Docker (`manage.py check`, pytest, migrate_schemas --tenant) cuando Docker Desktop esté disponible.
 - [ ] **CU25:** implementar derivación humana real a partir de `ChatbotUrgencyClassification.estado_derivacion=PENDIENTE` para casos críticos; no está hecho todavía.
@@ -126,6 +138,7 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [ ] CU23 + CU24: ejecutar validacion en Docker (`manage.py check`, pytest, migrate_schemas --tenant) cuando Docker Desktop este disponible.
 - [ ] CU23 frontend Paciente: probar manualmente `/InteligenciaArtificial` con cuenta `PACIENTE` y backend migrado; validar flujo normal, historial y flujo con sintomas de riesgo.
 - [ ] CU23 frontend Paciente: probar manualmente `/InteligenciaArtificial` con cuenta `PACIENTE` y backend migrado; validar flujo normal y flujo con sintomas de riesgo.
+- [ ] CU26 UX cleanup: decidir si `/InteligenciaArtificial` conserva la sección de documentos o solo redirige a `/recetas`.
 - [ ] PWA: validar instalación en Chrome/Edge (desktop) y flujo manual en iOS (Agregar a inicio).
 - [ ] PWA producción: servir frontend con HTTPS para criterios completos de instalabilidad.
 - [ ] Multi-tenant: documentar procedimiento para crear nuevo tenant en produccion (comando o endpoint + seeders).

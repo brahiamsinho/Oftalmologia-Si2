@@ -7,6 +7,7 @@ import Header  from '@/components/layout/Header';
 import { ClinicSessionGate } from '@/components/auth/ClinicSessionGate';
 import { SidebarProvider, useSidebar } from '@/context/SidebarContext';
 import { TenantProvider, useTenant }   from '@/context/TenantContext';
+import { useAuth } from '@/context/AuthContext';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { X, Clock, TrendingUp, MessageSquareMore } from 'lucide-react';
 
@@ -64,8 +65,10 @@ function TrialBanner() {
 // ── Layout interno ─────────────────────────────────────────────────────────────
 function DashboardInner({ children }: { children: React.ReactNode }) {
   const { isCollapsed, isMobileDrawerOpen, closeMobileDrawer } = useSidebar();
+  const { user } = useAuth();
   const isDesktop = useMediaQuery('(min-width: 768px)', false);
   const marginLeft = isDesktop ? (isCollapsed ? 64 : 244) : 0;
+  const isPatient = user?.tipo_usuario === 'PACIENTE';
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -87,13 +90,15 @@ function DashboardInner({ children }: { children: React.ReactNode }) {
         <main className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
           {children}
         </main>
-        <Link
-          href="/InteligenciaArtificial"
-          className="fixed bottom-6 right-6 z-50 flex min-h-[56px] min-w-[56px] items-center justify-center gap-2 rounded-full bg-blue-700 text-white shadow-lg transition hover:bg-blue-800 hover:shadow-xl active:scale-95"
-          aria-label="Asistente virtual"
-        >
-          <MessageSquareMore className="h-6 w-6" aria-hidden />
-        </Link>
+        {isPatient && (
+          <Link
+            href="/InteligenciaArtificial"
+            className="fixed bottom-6 right-6 z-50 flex min-h-[56px] min-w-[56px] items-center justify-center gap-2 rounded-full bg-blue-700 text-white shadow-lg transition hover:bg-blue-800 hover:shadow-xl active:scale-95"
+            aria-label="Asistente virtual"
+          >
+            <MessageSquareMore className="h-6 w-6" aria-hidden />
+          </Link>
+        )}
       </div>
     </div>
   );

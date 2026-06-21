@@ -2,6 +2,69 @@
 
 ---
 
+**Fecha:** 2026-06-21
+**Decision:** Separar CU26 por rol en el sidebar: staff ve `Recetas` dentro de Atención Clínica y paciente ve `Mis recetas` dentro de un grupo propio `Paciente`.
+**Motivo:** El caso de uso debe ser visible donde corresponde por contexto de trabajo. El médico necesita la receta como parte del flujo asistencial y el paciente necesita su acceso sin mezclarlo con el asistente virtual.
+**Impacto:** `/recetas` pasa a ser una vista bifurcada por rol; `InteligenciaArtificial` deja de mostrar documentos clínicos y el sidebar refleja el paquete CU26 con una navegación más limpia.
+
+---
+
+**Fecha:** 2026-06-21
+**Decision:** Reubicar los accesos de CU26 dentro de `Atención Clínica` para que queden visibles sin scroll.
+**Motivo:** Aunque el acceso existía, quedaba demasiado abajo del menú y el usuario no lo veía. La navegación clínica no debe esconder un CU implementado.
+**Impacto:** `Mis recetas` y `Recetas` aparecen dentro de `Atención Clínica`, mejorando descubribilidad y alineación con el paquete CU26.
+
+---
+
+**Fecha:** 2026-06-21
+**Decision:** Crear una vista dedicada `/recetas` dentro de Atención Clínica para CU26 en lugar de dejar los documentos solo dentro de `/InteligenciaArtificial`.
+**Motivo:** Los documentos clínicos pertenecen al flujo asistencial, no al módulo de IA. Separarlos mejora la arquitectura visual, la trazabilidad del CU26 y evita que la funcionalidad quede escondida en una pantalla de propósito distinto.
+**Impacto:** `Sidebar` gana un acceso propio bajo Atención Clínica; el frontend paciente puede seguir usando `/InteligenciaArtificial` como acceso secundario, pero la referencia principal del CU26 pasa a ser `/recetas`.
+
+---
+
+**Fecha:** 2026-06-21
+**Decision:** Hacer que `/InteligenciaArtificial` consuma documentos clínicos con `api` + `fetchAll` directo en lugar de depender de `documentosClinicosService`.
+**Motivo:** Durante desarrollo el runtime seguía viendo el servicio como `undefined`, aun después de corregir el barrel. Para la pantalla paciente era más seguro eliminar esa dependencia.
+**Impacto:** El flujo de documentos del paciente queda menos acoplado al barrel de servicios y evita el crash en `.list(...)`.
+
+---
+
+**Fecha:** 2026-06-21
+**Decision:** Crear un seeder demo dedicado para historias clinicas y documentos (recetas/indicaciones) en lugar de depender de datos manuales.
+**Motivo:** El flujo ya existia en backend y frontend, pero el tenant demo no tenia historias ni documentos clinicos visibles. Sin data, la UI parecia rota aunque el contrato funcionara.
+**Impacto:** `seed --tenant clinica-demo --only documentos_clinicos_demo` ahora deja pacientes demo con historia clinica y PDFs reales para todos los pacientes del tenant demo, permitiendo validar el flujo end-to-end sin tocar logica productiva.
+
+---
+
+**Fecha:** 2026-06-21
+**Decision:** Ocultar en el frontend las rutas y accesos de IA pensados para staff cuando la sesión es de paciente, y mostrar una vista de acceso restringido en las pantallas directas.
+**Motivo:** El backend de IA de staff ya estaba correcto para `MEDICO`; el 403 venia de exponer enlaces a usuarios que no debian ver ese modulo. La UX tiene que seguir el contrato de permisos reales.
+**Impacto:** `Sidebar` y `layout.tsx` dejan de mostrar accesos de staff a pacientes, y `clasificaciones`/`derivaciones-criticas` no disparan llamadas API innecesarias cuando el rol no corresponde.
+
+---
+
+**Fecha:** 2026-06-20
+**Decision:** Restringir lectura/descarga de documentos clínicos a `IsPacienteOrStaff` y dejar escritura solo para `IsMedicoOrAdmin`.
+**Motivo:** Un token autenticado no debe implicar acceso a información clínica descargable; el acceso debe seguir el rol y la historia del paciente.
+**Impacto:** `DocumentoClinicoViewSet` separa lectura y escritura con permisos distintos y reduce superficie de exposición dentro del tenant.
+
+---
+
+**Fecha:** 2026-06-20
+**Decision:** Emitir documentos clínicos desde `perform_create`/`perform_update` de consulta, preoperatorio, cirugía y postoperatorio usando un helper de upsert por origen.
+**Motivo:** Cada módulo clínico ya tiene información suficiente para producir una indicación o resumen descargable, y centralizar la lógica evita duplicación y desalineación entre módulos.
+**Impacto:** Los documentos pasan a generarse automáticamente desde la operación clínica real, se mantienen vinculados al origen y se regeneran cuando el registro cambia.
+
+---
+
+**Fecha:** 2026-06-20
+**Decision:** Exponer la historia clínica del paciente en `GET /api/auth/me/` y descargar documentos clínicos mediante rutas anidadas por historia.
+**Motivo:** El frontend paciente no debe adivinar IDs ni depender de estado local frágil para resolver la ficha; la URL anidada mantiene la regla de seguridad y evita fugas por rutas planas.
+**Impacto:** `PerfilSerializer` y `UsuarioSerializer` ahora incluyen `paciente.historia_clinica`, el nuevo submódulo `documentos_clinicos` vive dentro de Atención clínica y las descargas pasan por bitácora con `DESCARGAR`.
+
+---
+
 **Fecha:** 2026-06-18
 **Decision:** Automatizar la derivacion humana critica al crear una clasificacion CU24 `CRITICO`.
 **Motivo:** La derivacion no debe depender de una accion manual de staff cuando el clasificador ya marco una urgencia real; eso introduce demora operativa y riesgo clinico.

@@ -113,6 +113,7 @@ TENANT_APPS = [
     'apps.atencionClinica.preoperatorio',
     'apps.atencionClinica.cirugias',
     'apps.atencionClinica.postoperatorio',
+    'apps.atencionClinica.documentos_clinicos',
 
     # CRM por clínica.
     'apps.crm',

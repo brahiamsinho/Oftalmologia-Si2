@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   ScrollText,
   ClipboardList,
+  FileText,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -53,6 +54,7 @@ type NavEntry = {
   icon: React.ElementType;
   group?: string;
   keywords?: string; // CU número, sinónimos, etc.
+  role?: 'patient' | 'staff' | 'all';
 };
 
 const NAV_CATALOG: NavEntry[] = [
@@ -60,6 +62,7 @@ const NAV_CATALOG: NavEntry[] = [
   // Pacientes
   { label: "Pacientes", href: "/pacientes", icon: Users, group: "Pacientes", keywords: "CU01 listado gestión" },
   { label: "Historial Clínico", href: "/historial", icon: ClipboardList, group: "Pacientes", keywords: "CU03 historia médica expediente" },
+  { label: "Mis recetas", href: "/recetas", icon: FileText, group: "Paciente", keywords: "CU26 recetas indicaciones documentos clínicos", role: "patient" },
   // Atención Clínica
   { label: "Registrar Consulta", href: "/registrar-consulta", icon: Stethoscope, group: "Atención Clínica", keywords: "CU05 nueva consulta atención" },
   { label: "Consultas", href: "/consultas", icon: List, group: "Atención Clínica", keywords: "CU06 listado visitas" },
@@ -70,6 +73,7 @@ const NAV_CATALOG: NavEntry[] = [
   { label: "Preoperatorio", href: "/preoperatorio", icon: ClipboardList, group: "Atención Clínica", keywords: "CU09 pre operatorio preparación" },
   { label: "Cirugías", href: "/cirugias", icon: Slice, group: "Atención Clínica", keywords: "CU10 intervención quirúrgica operación" },
   { label: "Postoperatorio", href: "/postoperatorio", icon: HeartPulse, group: "Atención Clínica", keywords: "CU11 recuperación seguimiento post" },
+  { label: "Recetas", href: "/recetas", icon: FileText, group: "Atención Clínica", keywords: "CU26 recetas indicaciones documentos clínicos", role: "staff" },
   // CRM
   { label: "Segmentaciones", href: "/crm/segmentaciones", icon: Tags, group: "CRM", keywords: "CU12 grupos segmentos pacientes" },
   { label: "Campañas CRM", href: "/crm/campanas", icon: Megaphone, group: "CRM", keywords: "CU13 campaña comunicación marketing" },
@@ -102,8 +106,10 @@ const NAV_CATALOG: NavEntry[] = [
 
 function SidebarSearch({
   onClose,
+  isPatient,
 }: {
   onClose: () => void;
+  isPatient: boolean;
 }) {
   const pathname = usePathname();
   const [query, setQuery] = useState("");
@@ -113,6 +119,8 @@ function SidebarSearch({
   const results = q.length < 1
     ? []
     : NAV_CATALOG.filter((item) => {
+        const allowedByRole = !item.role || item.role === 'all' || item.role === (isPatient ? 'patient' : 'staff');
+        if (!allowedByRole) return false;
         const haystack = `${item.label} ${item.group ?? ""} ${item.keywords ?? ""}`.toLowerCase();
         return haystack.includes(q);
       });
@@ -313,11 +321,16 @@ function NavGroup({
 // ── Sidebar ────────────────────────────────────────────────────────────────────
 export default function Sidebar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const { isCollapsed, isMobileDrawerOpen, toggle, closeMobileDrawer } =
     useSidebar();
   const isDesktop = useMediaQuery("(min-width: 768px)", false);
   const { orgData, flags, loading: tenantLoading } = useTenant();
+  const isPatient = user?.tipo_usuario === 'PACIENTE';
+  const canAccessStaffIA = !!user && !isPatient;
+  const showIAGroup = !!user;
+  const showPatientRecipes = isPatient;
+  const showStaffRecipes = !!user && !isPatient;
 
   const is = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
@@ -428,7 +441,7 @@ export default function Sidebar() {
         </div>
       ) : (
         <div className="border-b border-gray-100">
-          <SidebarSearch onClose={closeMobileDrawer} />
+          <SidebarSearch onClose={closeMobileDrawer} isPatient={isPatient} />
         </div>
       )}
 
@@ -490,7 +503,9 @@ export default function Sidebar() {
               is("/evaluaciones-quirurgicas") ||
               is("/preoperatorio") ||
               is("/cirugias") ||
-              is("/postoperatorio")
+              is("/postoperatorio") ||
+              (showPatientRecipes && is("/recetas")) ||
+              (showStaffRecipes && is("/recetas"))
             }
             collapsed={isCollapsed}
             defaultOpen={
@@ -502,9 +517,33 @@ export default function Sidebar() {
               is("/evaluaciones-quirurgicas") ||
               is("/preoperatorio") ||
               is("/cirugias") ||
-              is("/postoperatorio")
+              is("/postoperatorio") ||
+              (showPatientRecipes && is("/recetas")) ||
+              (showStaffRecipes && is("/recetas"))
             }
           >
+            {showPatientRecipes && (
+              <NavItem
+                href="/recetas"
+                label="Mis recetas"
+                icon={FileText}
+                active={is("/recetas")}
+                collapsed={false}
+                depth={1}
+                onNavigate={closeMobileDrawer}
+              />
+            )}
+            {showStaffRecipes && (
+              <NavItem
+                href="/recetas"
+                label="Recetas"
+                icon={FileText}
+                active={is("/recetas")}
+                collapsed={false}
+                depth={1}
+                onNavigate={closeMobileDrawer}
+              />
+            )}
             <NavItem
               href="/registrar-consulta"
               label="Registrar Consulta"
@@ -589,6 +628,7 @@ export default function Sidebar() {
           </NavGroup>
         </ul>
 
+        {/* Paciente */}
         {/* CRM — comunicación con pacientes; visible siempre; permisos en API */}
         <ul className="space-y-0.5 mt-1">
           <NavGroup
@@ -703,43 +743,51 @@ export default function Sidebar() {
         </ul>
 
         {/* IA */}
-        <ul className="space-y-0.5 mt-1">
-          <NavGroup
-            label="Inteligencia Artificial"
-            icon={Bot}
-            active={is("/asistente-virtual") || is("/InteligenciaArtificial") || is("/derivaciones-criticas") || is("/clasificaciones")}
-            collapsed={isCollapsed}
-            defaultOpen={is("/asistente-virtual") || is("/InteligenciaArtificial") || is("/derivaciones-criticas") || is("/clasificaciones")}
-          >
-            <NavItem
-              href="/InteligenciaArtificial"
-              label="Asistente Virtual"
-              icon={MessageSquare}
-              active={is("/asistente-virtual") || is("/InteligenciaArtificial")}
-              collapsed={false}
-              depth={1}
-              onNavigate={closeMobileDrawer}
-            />
-            <NavItem
-              href="/clasificaciones"
-              label="Clasificaciones de Urgencia"
-              icon={Brain}
-              active={is("/clasificaciones")}
-              collapsed={false}
-              depth={1}
-              onNavigate={closeMobileDrawer}
-            />
-            <NavItem
-              href="/derivaciones-criticas"
-              label="Derivaciones Críticas"
-              icon={AlertTriangle}
-              active={is("/derivaciones-criticas")}
-              collapsed={false}
-              depth={1}
-              onNavigate={closeMobileDrawer}
-            />
-          </NavGroup>
-        </ul>
+        {showIAGroup && (
+          <ul className="space-y-0.5 mt-1">
+            <NavGroup
+              label="Inteligencia Artificial"
+              icon={Bot}
+              active={is("/InteligenciaArtificial") || (canAccessStaffIA && (is("/derivaciones-criticas") || is("/clasificaciones")))}
+              collapsed={isCollapsed}
+              defaultOpen={is("/InteligenciaArtificial") || (canAccessStaffIA && (is("/derivaciones-criticas") || is("/clasificaciones")))}
+            >
+              {isPatient && (
+                <NavItem
+                  href="/InteligenciaArtificial"
+                  label="Asistente Virtual"
+                  icon={MessageSquare}
+                  active={is("/InteligenciaArtificial")}
+                  collapsed={false}
+                  depth={1}
+                  onNavigate={closeMobileDrawer}
+                />
+              )}
+              {canAccessStaffIA && (
+                <>
+                  <NavItem
+                    href="/clasificaciones"
+                    label="Clasificaciones de Urgencia"
+                    icon={Brain}
+                    active={is("/clasificaciones")}
+                    collapsed={false}
+                    depth={1}
+                    onNavigate={closeMobileDrawer}
+                  />
+                  <NavItem
+                    href="/derivaciones-criticas"
+                    label="Derivaciones Críticas"
+                    icon={AlertTriangle}
+                    active={is("/derivaciones-criticas")}
+                    collapsed={false}
+                    depth={1}
+                    onNavigate={closeMobileDrawer}
+                  />
+                </>
+              )}
+            </NavGroup>
+          </ul>
+        )}
 
         <div className="my-2 border-t border-gray-100 mx-1" />
 

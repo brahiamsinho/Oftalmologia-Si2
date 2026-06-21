@@ -69,6 +69,18 @@ class IsStaffOrReadOnly(BasePermission):
         return request.user and request.user.is_staff
 
 
+class IsPacienteOrStaff(BasePermission):
+    """Paciente o personal clínico/administrativo activo."""
+    message = 'Acceso restringido a pacientes y personal autorizado.'
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        return request.user.tipo_usuario in (
+            'PACIENTE', 'ADMIN', 'ADMINISTRATIVO', 'MEDICO', 'ESPECIALISTA',
+        )
+
+
 class IsPlatformAdministrator(BasePermission):
     """
     Solo sesión JWT de plataforma (``PlatformJWTUser`` / ``platform_administrator``).

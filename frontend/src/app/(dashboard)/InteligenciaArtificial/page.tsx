@@ -596,6 +596,7 @@ export default function InteligenciaArtificialPage() {
               </div>
             </dl>
           </section>
+
         </aside>
       </div>
     </div>
