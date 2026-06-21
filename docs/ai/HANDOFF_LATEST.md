@@ -2,6 +2,14 @@
 
 ## Resumen
 
+**Fecha:** 2026-06-21 — **CU24 vuelve a notificar al staff:**
+- El flujo `apps.InteligenciaArtificial` ahora crea notificaciones persistentes al detectar urgencia en el asistente del paciente.
+- Las urgencias medias se guardan como `clasificacion_urgencia` y las altas/críticas como `derivacion_urgente`.
+- Se agregó prueba de regresión para verificar que la clasificación media también produzca avisos para el equipo.
+
+**Fecha:** 2026-06-21 — **Frontend dev sin Turbo:**
+- `frontend/package.json` dejó de usar `next dev --turbo` para evitar el fallo de fuentes que aparecía en `localhost:3000/dashboard`.
+
 **Fecha:** 2026-06-21 � **CU25 polling web de notificaciones:**
 - `Header.tsx` concentra el estado de notificaciones del badge y el dropdown, y hace polling silencioso cada 20s con cleanup al desmontar.
 - `/notificaciones` tambi�n refresca cada 20s mientras est� visible.

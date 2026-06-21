@@ -1,5 +1,16 @@
 ﻿# CURRENT STATE
 
+## Actualización 2026-06-21 — CU24 vuelve a notificar al staff
+
+- `backend/apps/InteligenciaArtificial/views.py` ahora dispara notificaciones persistentes cuando el asistente del paciente activa `requiere_clasificacion_urgencia`.
+- Las clasificaciones de urgencia medias crean avisos con `tipo=clasificacion_urgencia`; las altas/críticas usan `tipo=derivacion_urgente`.
+- Se agregó cobertura en `backend/apps/InteligenciaArtificial/tests/test_clasificador_urgencia.py` para evitar que vuelva a romperse el flujo.
+
+## Actualización 2026-06-21 — Frontend dev sin Turbo para evitar error de fuentes
+
+- Se cambió `frontend/package.json` para que `npm run dev` use `next dev` en lugar de `next dev --turbo`.
+- Esto evita el error de compilación de fuentes de Next/Turbopack en el entorno local.
+
 ## Actualizaci�n 2026-06-21 � CU25: polling web para notificaciones
 
 ### Frontend

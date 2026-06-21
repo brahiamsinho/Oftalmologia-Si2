@@ -6,6 +6,7 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 
 ## Corto Plazo
 
+- [x] **CU24 notificación de urgencia:** el asistente de paciente vuelve a notificar al staff cuando detecta una clasificación de urgencia; media usa `clasificacion_urgencia` y alta/crítica usa `derivacion_urgente`.
 - [x] **CU25 web polling refresh:** badge/dropdown del header y `/notificaciones` ahora refrescan autom�ticamente con polling ligero y cleanup al desmontar.
 - [x] **CU25 backend/frontend:** derivaci�n urgente implementada; queda validaci�n manual con mensajes de trauma/p�rdida s�bita de visi�n/dolor ocular intenso y ajuste fino si aparecen falsos positivos.
 - [x] **Mobile chatbot para PACIENTE:** `IaAccess` habilita `PACIENTE`, existe quick access en home y el asistente usa copy m�s paciente-friendly.

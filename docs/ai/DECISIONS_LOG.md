@@ -2,6 +2,20 @@
 
 ---
 
+**Fecha:** 2026-06-21
+**Decision:** El flujo `apps.InteligenciaArtificial` notificará al staff cuando el asistente del paciente active `requiere_clasificacion_urgencia`, usando `clasificacion_urgencia` para casos medios y `derivacion_urgente` para altas/críticas.
+**Motivo:** El paciente seguía viendo la clasificación de urgencia, pero el equipo dejó de recibir el aviso persistente en el flujo CU23/CU24.
+**Impacto:** Se restaura la alerta al staff desde el endpoint del paciente sin mezclarlo con el chatbot CU25 y se preserva la semántica clínica de cada nivel.
+
+---
+
+**Fecha:** 2026-06-21
+**Decision:** El frontend de desarrollo dejará de usar `next dev --turbo` y usará `next dev` estándar.
+**Motivo:** Turbopack estaba fallando al resolver la fuente de Google en el entorno local, bloqueando la carga del dashboard.
+**Impacto:** El desarrollo local vuelve a ser estable; se sacrifica velocidad de arranque de Turbo a cambio de compatibilidad.
+
+---
+
 **Fecha:** 2026-06-20
 **Decision:** Las siglas internas (`CU24`, `CU`) no deben aparecer en el texto visible al paciente; la UI debe usar lenguaje clinico natural.
 **Motivo:** El nombre tecnico del caso de uso es util para desarrollo y trazabilidad, pero en la interfaz de paciente se percibe como jerga de implementacion.

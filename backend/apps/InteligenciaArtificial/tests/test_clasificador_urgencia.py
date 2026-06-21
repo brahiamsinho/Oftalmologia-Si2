@@ -12,6 +12,7 @@ from apps.InteligenciaArtificial.models import (
 from apps.InteligenciaArtificial.services.asistente_virtual import AsistenteVirtualService
 from apps.InteligenciaArtificial.services.clasificador_urgencia import ClasificadorUrgenciaService
 from apps.InteligenciaArtificial.views import AsistenteVirtualPacienteViewSet
+from apps.crm.notificaciones.models import Notificacion
 from apps.tenant.models import Domain, Tenant
 
 
@@ -99,24 +100,46 @@ class AsistenteVirtualCu24IntegrationTest(TestCase):
             )
 
     def test_consulta_urgente_autocrea_clasificacion(self):
+        staff_users = []
         with schema_context(self.tenant.schema_name):
+            staff_users = [
+                User.objects.create_user(
+                    username='adm_cu24',
+                    email='adm_cu24@example.com',
+                    password='testpass123',
+                    nombres='Admin',
+                    apellidos='CU24',
+                    tipo_usuario='ADMINISTRATIVO',
+                ),
+                User.objects.create_user(
+                    username='med_cu24',
+                    email='med_cu24@example.com',
+                    password='testpass123',
+                    nombres='Medico',
+                    apellidos='CU24',
+                    tipo_usuario='MEDICO',
+                ),
+            ]
             view = AsistenteVirtualPacienteViewSet.as_view({'post': 'consultar'})
             request = self.factory.post(
                 '/t/cu24-api-test/api/inteligencia-artificial/asistente-virtual/',
-                {'mensaje': 'Tengo dolor ocular intenso y vision perdida desde hace minutos.'},
+                {'mensaje': 'Tengo vision borrosa leve.'},
                 format='json',
             )
             force_authenticate(request, user=self.user)
 
             response = view(request)
 
-            self.assertEqual(response.status_code, 201)
-            self.assertTrue(response.data['requiere_clasificacion_urgencia'])
-            self.assertIn('clasificacion_urgencia', response.data)
-            self.assertEqual(
-                response.data['clasificacion_urgencia']['estado'],
-                EstadoClasificacionUrgencia.PENDIENTE,
-            )
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.data['requiere_clasificacion_urgencia'])
+        self.assertIn('clasificacion_urgencia', response.data)
+        self.assertEqual(
+            response.data['clasificacion_urgencia']['estado'],
+            EstadoClasificacionUrgencia.PENDIENTE,
+        )
+        self.assertEqual(response.data['clasificacion_urgencia']['nivel_urgencia'], 'MEDIA')
 
+        with schema_context(self.tenant.schema_name):
             self.assertEqual(ClasificacionUrgencia.objects.count(), 1)
             self.assertEqual(ClasificacionUrgencia.objects.first().id_usuario, self.user)
+            self.assertEqual(Notificacion.objects.filter(tipo='clasificacion_urgencia').count(), len(staff_users))

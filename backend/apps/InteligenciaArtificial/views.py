@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -19,6 +21,73 @@ from apps.InteligenciaArtificial.services.asistente_virtual import AsistenteVirt
 from apps.bitacora.models import AccionBitacora
 from apps.core.permissions import IsMedicoOrAdmin, IsPaciente
 from apps.core.utils import get_client_ip, registrar_bitacora
+from apps.crm.notificaciones.services import enviar_push_a_usuario
+from apps.usuarios.users.models import EstadoUsuario, TipoUsuario, Usuario
+
+
+logger = logging.getLogger(__name__)
+
+
+_STAFF_TYPES = (
+    TipoUsuario.ADMINISTRATIVO,
+    TipoUsuario.MEDICO,
+    TipoUsuario.ESPECIALISTA,
+    TipoUsuario.ADMIN,
+)
+
+
+def _notificar_clasificacion_urgencia(*, user, interaccion, clasificacion) -> None:
+    if not interaccion.requiere_clasificacion_urgencia:
+        return
+
+    requester_name = (user.get_full_name() or user.username or 'Usuario').strip()
+    nivel = (getattr(clasificacion, 'nivel_urgencia', '') or 'media').strip().lower()
+    requiere_derivacion = bool(getattr(clasificacion, 'requiere_derivacion', False))
+    notification_type = 'derivacion_urgente' if requiere_derivacion else 'clasificacion_urgencia'
+
+    if requiere_derivacion:
+        titulo = 'Caso urgente derivado al equipo humano'
+        cuerpo = (
+            f'{requester_name} consultó el asistente. '
+            f'Se detectó una urgencia {nivel} con revisión prioritaria. '
+            'Revisar la conversación y coordinar atención inmediata.'
+        )
+    else:
+        titulo = f'Clasificación de urgencia {nivel}'
+        cuerpo = (
+            f'{requester_name} consultó el asistente. '
+            f'Se detectó una clasificación de urgencia {nivel}. '
+            'Revisar la conversación y definir conducta clínica.'
+        )
+
+    recipients = list(
+        Usuario.objects.filter(
+            is_active=True,
+            estado=EstadoUsuario.ACTIVO,
+            tipo_usuario__in=_STAFF_TYPES,
+        )
+        .exclude(pk=user.pk)
+        .only('id', 'username', 'nombres', 'apellidos', 'tipo_usuario'),
+    )
+
+    if not recipients:
+        logger.warning('No se encontraron usuarios de staff para notificar la clasificación de urgencia.')
+        return
+
+    payload = {
+        'origen': 'asistente_virtual_cu24',
+        'nivel': nivel,
+        'tipo': notification_type,
+    }
+
+    for recipient in recipients:
+        enviar_push_a_usuario(
+            recipient.pk,
+            titulo,
+            cuerpo,
+            data=payload,
+            tipo=notification_type,
+        )
 
 
 class AsistenteVirtualPacienteViewSet(
@@ -76,6 +145,7 @@ class AsistenteVirtualPacienteViewSet(
         clasificacion = None
         if interaccion.requiere_clasificacion_urgencia:
             clasificacion = ClasificadorUrgenciaService.clasificar_interaccion(interaccion)
+            _notificar_clasificacion_urgencia(user=request.user, interaccion=interaccion, clasificacion=clasificacion)
 
         registrar_bitacora(
             usuario=request.user,
