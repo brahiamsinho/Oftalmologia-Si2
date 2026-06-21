@@ -11,6 +11,7 @@ import { fetchAll } from '@/lib/api';
 import { historialService } from '@/lib/services';
 import type { HistoriaClinica, HistoriaClinicaCreate, HistoriaClinicaDetalle } from '@/lib/services/historial';
 import type { Paciente } from '@/lib/types';
+import { DocumentosClinicosStaffPanel } from './DocumentosClinicosStaffPanel';
 
 function formatHistoriaApiError(data: unknown): string {
   if (!data || typeof data !== 'object') return 'No se pudo guardar la historia clínica.';
@@ -134,14 +135,10 @@ function DetalleModal({
                 )}
               </Section>
 
-              <Section title="Recetas">
-                {detalle.recetas.length > 0 ? (
-                  <div className="px-4 py-3 text-sm text-gray-700">
-                    Hay {detalle.recetas.length} receta(s) emitidas.
-                  </div>
-                ) : (
-                  <div className="px-4 py-3 text-sm text-gray-400">Sin recetas</div>
-                )}
+              <Section title="Recetas e indicaciones">
+                <div className="px-4 py-4">
+                  <DocumentosClinicosStaffPanel historiaId={historia.id_historia_clinica} />
+                </div>
               </Section>
             </>
           )}

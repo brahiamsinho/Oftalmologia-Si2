@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 
 import '../../../../config/theme.dart';
 import '../../../../core/ui/widgets/app_async_states.dart';
+import '../../data/clinical_repository.dart';
+import '../../../reportes/data/report_file_share.dart';
 import '../providers/patient_clinical_provider.dart';
 
 /// Consultas y estudios del paciente (API filtrada por rol).
@@ -14,9 +16,9 @@ class PatientClinicalScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final idx = initialTab.clamp(0, 1);
+    final idx = initialTab.clamp(0, 2);
     return DefaultTabController(
-      length: 2,
+      length: 3,
       initialIndex: idx,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
@@ -26,6 +28,7 @@ class PatientClinicalScreen extends StatelessWidget {
             tabs: [
               Tab(text: 'Consultas'),
               Tab(text: 'Estudios'),
+              Tab(text: 'Documentos'),
             ],
           ),
         ),
@@ -33,6 +36,7 @@ class PatientClinicalScreen extends StatelessWidget {
           children: [
             _ConsultasTab(),
             _EstudiosTab(),
+            _DocumentosTab(),
           ],
         ),
       ),
@@ -305,6 +309,159 @@ class _EstudiosTab extends ConsumerWidget {
                                     ),
                               ),
                             ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _DocumentosTab extends ConsumerWidget {
+  const _DocumentosTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(patientDocumentosProvider);
+
+    return RefreshIndicator(
+      color: AppTheme.primaryColor,
+      onRefresh: () => ref.read(patientDocumentosProvider.notifier).refresh(),
+      child: AnimatedSwitcher(
+        duration: AppTheme.motionNormal,
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        child: async.when(
+          loading: () => ListView(
+            key: const ValueKey('loading-documentos'),
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(AppTheme.space4, AppTheme.space4, AppTheme.space4, 32),
+            children: const [
+              AppSkeletonTile(),
+              SizedBox(height: 10),
+              AppSkeletonTile(),
+            ],
+          ),
+          error: (_, __) => ListView(
+            key: const ValueKey('error-documentos'),
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.all(AppTheme.space4),
+            children: [
+              AppErrorStateCard(
+                message: 'No pudimos cargar tus documentos autorizados. Verificá tu conexión e intentá de nuevo.',
+                onRetry: () => ref.read(patientDocumentosProvider.notifier).refresh(),
+              ),
+            ],
+          ),
+          data: (list) {
+            if (list.isEmpty) {
+              return ListView(
+                key: const ValueKey('empty-documentos'),
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.all(AppTheme.space4),
+                children: const [
+                  AppEmptyStateCard(
+                    icon: Icons.picture_as_pdf_outlined,
+                    title: 'Sin documentos autorizados',
+                    subtitle: 'Cuando tu médico autorice una receta o indicación, aparecerá acá para descargar o compartir.',
+                  ),
+                ],
+              );
+            }
+
+            return AppFadeSlideIn(
+              key: ValueKey('data-documentos-${list.length}'),
+              child: ListView.separated(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(AppTheme.space4, AppTheme.space4, AppTheme.space4, 32),
+                itemCount: list.length,
+                separatorBuilder: (_, __) => SizedBox(height: AppTheme.space2),
+                itemBuilder: (context, i) {
+                  final d = list[i];
+                  final when = DateFormat("d MMM yyyy · HH:mm", 'es').format(d.fechaEmision.toLocal());
+                  final subtitle = d.autorizadoEn != null
+                      ? 'Autorizado el ${DateFormat("d MMM yyyy · HH:mm", 'es').format(d.autorizadoEn!.toLocal())}'
+                      : 'Pendiente de autorización';
+
+                  return Semantics(
+                    label: 'Documento ${d.titulo} del ${when}. ${d.estaAutorizado ? 'Autorizado' : 'Pendiente'}.',
+                    child: Material(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Ink(
+                        padding: EdgeInsets.all(AppTheme.space3),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0A0F172A),
+                              blurRadius: 8,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              when,
+                              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                    color: AppTheme.primaryColor,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            SizedBox(height: AppTheme.space1),
+                            Text(
+                              d.titulo,
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            SizedBox(height: AppTheme.space1),
+                            Text(
+                              subtitle,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.textMuted,
+                                  ),
+                            ),
+                            SizedBox(height: AppTheme.space2),
+                            Text(
+                              d.contenido,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.textMuted,
+                                  ),
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: AppTheme.space2),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: FilledButton.tonalIcon(
+                                onPressed: d.estaAutorizado
+                                    ? () async {
+                                        final bytes = await ref
+                                            .read(clinicalRepositoryProvider)
+                                            .downloadDocumentoMine(d.idDocumentoClinico);
+                                        await saveAndShareReportFile(
+                                          bytes: bytes,
+                                          filename: d.nombreArchivoDescarga.isNotEmpty
+                                              ? d.nombreArchivoDescarga
+                                              : '${d.titulo}.pdf',
+                                        );
+                                      }
+                                    : null,
+                                icon: const Icon(Icons.download_outlined),
+                                label: const Text('Descargar / compartir'),
+                              ),
+                            ),
                           ],
                         ),
                       ),

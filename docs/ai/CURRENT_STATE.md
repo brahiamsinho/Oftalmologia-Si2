@@ -1,5 +1,24 @@
 ﻿# CURRENT STATE
 
+## Actualización 2026-06-21 — CU26 staff UI web
+
+- `frontend/src/app/(dashboard)/(gestion-pacientes)/historial/page.tsx` ahora integra el panel CU26 dentro del modal de detalle para que el staff cree borradores, autorice documentos y descargue PDFs sin salir de la historia clínica.
+- `frontend/src/app/(dashboard)/(gestion-pacientes)/historial/DocumentosClinicosStaffPanel.tsx` centraliza la lista, el formulario de borrador y las acciones de autorizar/descargar con estados de carga, vacío, error y éxito.
+- `frontend/src/lib/services/historial.ts` expone los helpers de listado, creación y autorización sobre los endpoints ya existentes de CU26.
+
+## Actualización 2026-06-21 — CU26 UI web y mobile
+
+- `frontend/src/app/(dashboard)/(gestion-pacientes)/historial/page.tsx` ahora lista y descarga los documentos autorizados desde el modal de detalle.
+- `mobile/lib/features/home/presentation/screens/patient_clinical_screen.dart` agrega un tab `Documentos` para ver y compartir recetas/indicaciones autorizadas.
+- Ambos clientes reutilizan el backend CU26 ya implementado y mantienen el acceso tenant-aware.
+
+## Actualización 2026-06-21 — CU26 documentos clínicos autorizados
+
+- Se agregó `DocumentoClinicoAutorizado` en `backend/apps/pacientes/historial_clinico` para recetas e indicaciones con estado, paciente, historia, doctor autorizador, timestamp y filename de descarga.
+- `HistoriaClinicaViewSet` ahora expone el detalle con `recetas` reales; el serializer ya no devuelve `[]`.
+- Se incorporaron endpoints staff/paciente para crear, autorizar, listar y descargar PDFs con reportlab en `backend/apps/pacientes/historial_clinico/services.py`.
+- Se agregaron pruebas de autorización, descarga PDF y aislamiento por tenant en `backend/apps/pacientes/historial_clinico/tests/test_documentos_clinicos.py`.
+
 ## Actualización 2026-06-21 — CU24 vuelve a notificar al staff
 
 - `backend/apps/InteligenciaArtificial/views.py` ahora dispara notificaciones persistentes cuando el asistente del paciente activa `requiere_clasificacion_urgencia`.

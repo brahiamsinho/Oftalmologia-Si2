@@ -3,6 +3,20 @@
 ---
 
 **Fecha:** 2026-06-21
+**Decision:** La UI de CU26 se integrará en los puntos de historial clínico ya existentes: modal de detalle en web y tab `Documentos` en mobile.
+**Motivo:** Evitar crear pantallas nuevas para un flujo que ya pertenece al historial clínico y reducir fricción de navegación para pacientes y staff.
+**Impacto:** Se reutiliza la arquitectura actual, la web muestra descarga directa y el móvil comparte archivos desde el tab clínico sin duplicar rutas.
+
+---
+
+**Fecha:** 2026-06-21
+**Decision:** CU26 se implementa en `apps.pacientes.historial_clinico` con un único modelo `DocumentoClinicoAutorizado` y rutas separadas para staff/paciente, en lugar de crear una app nueva.
+**Motivo:** La historia clínica ya es el punto natural de agregación del contenido clínico y era la forma más pequeña de cambiar sin romper la arquitectura modular existente.
+**Impacto:** Se simplifica la trazabilidad de recetas e indicaciones, `get_recetas()` deja de ser un stub y la descarga PDF queda centralizada en un servicio de este mismo módulo.
+
+---
+
+**Fecha:** 2026-06-21
 **Decision:** El flujo `apps.InteligenciaArtificial` notificará al staff cuando el asistente del paciente active `requiere_clasificacion_urgencia`, usando `clasificacion_urgencia` para casos medios y `derivacion_urgente` para altas/críticas.
 **Motivo:** El paciente seguía viendo la clasificación de urgencia, pero el equipo dejó de recibir el aviso persistente en el flujo CU23/CU24.
 **Impacto:** Se restaura la alerta al staff desde el endpoint del paciente sin mezclarlo con el chatbot CU25 y se preserva la semántica clínica de cada nivel.

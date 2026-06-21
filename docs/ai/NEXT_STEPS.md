@@ -6,6 +6,8 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 
 ## Corto Plazo
 
+- [x] **CU26 documentos clínicos autorizados:** modelo persistente, endpoints staff/paciente, PDF de descarga y `get_recetas()` real ya están implementados en backend.
+- [x] **CU26 UI web y mobile:** el historial clínico web lista, crea borradores, autoriza y descarga documentos desde el modal de detalle; el móvil tiene un tab `Documentos` para compartirlos.
 - [x] **CU24 notificación de urgencia:** el asistente de paciente vuelve a notificar al staff cuando detecta una clasificación de urgencia; media usa `clasificacion_urgencia` y alta/crítica usa `derivacion_urgente`.
 - [x] **CU25 web polling refresh:** badge/dropdown del header y `/notificaciones` ahora refrescan autom�ticamente con polling ligero y cleanup al desmontar.
 - [x] **CU25 backend/frontend:** derivaci�n urgente implementada; queda validaci�n manual con mensajes de trauma/p�rdida s�bita de visi�n/dolor ocular intenso y ajuste fino si aparecen falsos positivos.

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/clinical_repository.dart';
+import '../../domain/documento_clinico_autorizado.dart';
 import '../../domain/consulta_resumen.dart';
 import '../../domain/estudio_resumen.dart';
 
@@ -36,6 +37,24 @@ class PatientEstudiosNotifier extends AsyncNotifier<List<EstudioResumen>> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
       () => ref.read(clinicalRepositoryProvider).listEstudiosMine(),
+    );
+  }
+}
+
+final patientDocumentosProvider =
+    AsyncNotifierProvider<PatientDocumentosNotifier, List<DocumentoClinicoAutorizado>>(
+  PatientDocumentosNotifier.new,
+);
+
+class PatientDocumentosNotifier extends AsyncNotifier<List<DocumentoClinicoAutorizado>> {
+  @override
+  Future<List<DocumentoClinicoAutorizado>> build() =>
+      ref.read(clinicalRepositoryProvider).listDocumentosMine();
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref.read(clinicalRepositoryProvider).listDocumentosMine(),
     );
   }
 }

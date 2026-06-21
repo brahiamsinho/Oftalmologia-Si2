@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../domain/documento_clinico_autorizado.dart';
 import '../domain/consulta_resumen.dart';
 import '../domain/estudio_resumen.dart';
 
@@ -51,6 +52,30 @@ class ClinicalRepository {
       return all;
     } on DioException catch (e) {
       throw Exception(_message(e, 'estudios'));
+    }
+  }
+
+  Future<List<DocumentoClinicoAutorizado>> listDocumentosMine() async {
+    try {
+      final response = await _dio.get<dynamic>('mis-documentos-clinicos/');
+      final raw = _extractResults(response.data);
+      return raw
+          .map((e) => DocumentoClinicoAutorizado.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } on DioException catch (e) {
+      throw Exception(_message(e, 'documentos'));
+    }
+  }
+
+  Future<List<int>> downloadDocumentoMine(int documentoId) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        'mis-documentos-clinicos/$documentoId/download/',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      return response.data ?? const <int>[];
+    } on DioException catch (e) {
+      throw Exception(_message(e, 'documento'));
     }
   }
 

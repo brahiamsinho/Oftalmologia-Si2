@@ -2,6 +2,22 @@
 
 ## Resumen
 
+**Fecha:** 2026-06-21 — **CU26 staff UI web dentro del historial:**
+- El modal de detalle del historial clínico ya contiene un panel staff para CU26: crear borrador, autorizar documento y descargar PDF desde el mismo flujo.
+- El panel usa el endpoint de listado staff por historia y concentra loading, empty, error y éxito en un solo componente reutilizable.
+- Se mantiene la ruta existente; no se agregó navegación nueva.
+
+**Fecha:** 2026-06-21 — **CU26 UI web y mobile:**
+- Web: el modal de detalle del historial clínico lista las recetas/indicaciones autorizadas y permite descargar el PDF.
+- Mobile: la pantalla de historial clínico suma un tab `Documentos` para compartir o descargar los autorizados.
+- Ambos clientes consumen los endpoints CU26 existentes sin duplicar lógica clínica.
+
+**Fecha:** 2026-06-21 — **CU26 documentos clínicos autorizados:**
+- Se implementó el modelo persistente `DocumentoClinicoAutorizado` en `apps.pacientes.historial_clinico` para recetas e indicaciones con flujo de borrador → autorización.
+- Se agregaron endpoints de staff para crear/autorizar y de paciente para listar/descargar solo documentos autorizados dentro del tenant.
+- La descarga genera PDF server-side con reportlab y filename seguro, y `HistoriaClinicaDetalleSerializer.get_recetas()` ya retorna documentos reales.
+- Cobertura agregada para autorización, bloqueo de paciente, PDF y aislamiento por tenant.
+
 **Fecha:** 2026-06-21 — **CU24 vuelve a notificar al staff:**
 - El flujo `apps.InteligenciaArtificial` ahora crea notificaciones persistentes al detectar urgencia en el asistente del paciente.
 - Las urgencias medias se guardan como `clasificacion_urgencia` y las altas/críticas como `derivacion_urgente`.
