@@ -56,47 +56,17 @@ function formatRelative(iso: string): string {
   return `Hace ${Math.floor(h / 24)} d`;
 }
 
-function NotifPanel({ onClose }: { onClose: () => void }) {
-  const [items, setItems]       = useState<Notificacion[]>([]);
-  const [noLeidas, setNoLeidas] = useState(0);
-  const [loading, setLoading]   = useState(true);
-  const [marking, setMarking]   = useState(false);
+type NotifPanelProps = {
+  items: Notificacion[];
+  noLeidas: number;
+  loading: boolean;
+  marking: boolean;
+  onClose: () => void;
+  onMarkAll: () => void;
+  onMarkOne: (n: Notificacion) => void;
+};
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await notificacionesService.list();
-      setItems(res.results ?? []);
-      setNoLeidas(res.no_leidas ?? 0);
-    } catch {
-      // si falla simplemente no mostramos
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
-
-  const marcarTodas = async () => {
-    if (marking || noLeidas === 0) return;
-    setMarking(true);
-    try {
-      await notificacionesService.marcarTodasLeidas();
-      setItems(prev => prev.map(n => ({ ...n, leida: true })));
-      setNoLeidas(0);
-    } finally {
-      setMarking(false);
-    }
-  };
-
-  const marcarUna = async (n: Notificacion) => {
-    if (n.leida) return;
-    try {
-      await notificacionesService.marcarLeida(n.id);
-      setItems(prev => prev.map(x => x.id === n.id ? { ...x, leida: true } : x));
-      setNoLeidas(prev => Math.max(0, prev - 1));
-    } catch {/* silencioso */}
-  };
+function NotifPanel({ items, noLeidas, loading, marking, onClose, onMarkAll, onMarkOne }: NotifPanelProps) {
 
   return (
     <div className="absolute right-0 top-full mt-2 w-[360px] bg-white rounded-2xl border border-gray-200 shadow-xl z-50 overflow-hidden">
@@ -114,7 +84,7 @@ function NotifPanel({ onClose }: { onClose: () => void }) {
         <div className="flex items-center gap-1">
           {noLeidas > 0 && (
             <button
-              onClick={() => void marcarTodas()}
+              onClick={() => void onMarkAll()}
               disabled={marking}
               title="Marcar todas como leídas"
               className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
@@ -165,7 +135,7 @@ function NotifPanel({ onClose }: { onClose: () => void }) {
             {items.map(n => (
               <li key={n.id}>
                 <button
-                  onClick={() => void marcarUna(n)}
+                  onClick={() => void onMarkOne(n)}
                   className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-start gap-3 group
                     ${!n.leida ? 'bg-blue-50/40' : ''}`}
                 >
@@ -210,9 +180,14 @@ export default function Header() {
   const pathname = usePathname();
   const [dropOpen, setDropOpen]   = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [notifItems, setNotifItems] = useState<Notificacion[]>([]);
   const [noLeidas, setNoLeidas]   = useState(0);
+  const [notifLoading, setNotifLoading] = useState(true);
+  const [notifMarking, setNotifMarking] = useState(false);
   const dropRef   = useRef<HTMLDivElement>(null);
   const notifRef  = useRef<HTMLDivElement>(null);
+  const notifMountedRef = useRef(false);
+  const notifRefreshInFlightRef = useRef(false);
 
   const nombre   = user?.nombres   ?? '';
   const apellido = user?.apellidos ?? '';
@@ -220,12 +195,43 @@ export default function Header() {
   const role     = user?.tipo_usuario?.toLowerCase().replace(/_/g, ' ') ?? '';
   const init     = initials(nombre, apellido);
 
-  // Cargar contador de no leídas al montar
-  useEffect(() => {
-    notificacionesService.list({ no_leidas: true })
-      .then(r => setNoLeidas(r.no_leidas ?? 0))
-      .catch(() => {/* silencioso si no hay permisos */});
+  const refreshNotifications = useCallback(async (opts?: { silent?: boolean }) => {
+    if (notifRefreshInFlightRef.current) return;
+    notifRefreshInFlightRef.current = true;
+
+    const silent = opts?.silent ?? false;
+    if (!silent) {
+      setNotifLoading(true);
+    }
+
+    try {
+      const res = await notificacionesService.list();
+      if (!notifMountedRef.current) return;
+      setNotifItems(res.results ?? []);
+      setNoLeidas(res.no_leidas ?? 0);
+    } catch {
+      // silencioso: el header no debe interrumpir la navegación
+    } finally {
+      if (notifMountedRef.current && !silent) {
+        setNotifLoading(false);
+      }
+      notifRefreshInFlightRef.current = false;
+    }
   }, []);
+
+  useEffect(() => {
+    notifMountedRef.current = true;
+    void refreshNotifications();
+
+    const intervalId = window.setInterval(() => {
+      void refreshNotifications({ silent: true });
+    }, 20_000);
+
+    return () => {
+      notifMountedRef.current = false;
+      window.clearInterval(intervalId);
+    };
+  }, [refreshNotifications]);
 
   // Cerrar dropdowns al hacer clic afuera
   useEffect(() => {
@@ -245,6 +251,34 @@ export default function Header() {
   const crumb = Object.entries(BREADCRUMB)
     .filter(([k]) => pathname.startsWith(k))
     .sort((a, b) => b[0].length - a[0].length)[0]?.[1] ?? 'Inicio';
+
+  const marcarTodas = useCallback(async () => {
+    if (notifMarking || noLeidas === 0) return;
+    setNotifMarking(true);
+    notifRefreshInFlightRef.current = true;
+    try {
+      await notificacionesService.marcarTodasLeidas();
+      setNotifItems((prev) => prev.map((n) => ({ ...n, leida: true })));
+      setNoLeidas(0);
+    } finally {
+      notifRefreshInFlightRef.current = false;
+      setNotifMarking(false);
+    }
+  }, [notifMarking, noLeidas]);
+
+  const marcarUna = useCallback(async (n: Notificacion) => {
+    if (n.leida) return;
+    notifRefreshInFlightRef.current = true;
+    try {
+      await notificacionesService.marcarLeida(n.id);
+      setNotifItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, leida: true } : x)));
+      setNoLeidas((prev) => Math.max(0, prev - 1));
+    } catch {
+      // silencioso
+    } finally {
+      notifRefreshInFlightRef.current = false;
+    }
+  }, []);
 
   return (
     <header className="sticky top-0 z-30 h-[60px] bg-white border-b border-gray-200 flex items-center justify-between px-4 gap-4">
@@ -278,13 +312,15 @@ export default function Header() {
           </button>
 
           {notifOpen && (
-            <NotifPanel onClose={() => {
-              setNotifOpen(false);
-              // Recargar contador al cerrar
-              notificacionesService.list({ no_leidas: true })
-                .then(r => setNoLeidas(r.no_leidas ?? 0))
-                .catch(() => {});
-            }} />
+            <NotifPanel
+              items={notifItems}
+              noLeidas={noLeidas}
+              loading={notifLoading}
+              marking={notifMarking}
+              onClose={() => setNotifOpen(false)}
+              onMarkAll={() => void marcarTodas()}
+              onMarkOne={(n) => void marcarUna(n)}
+            />
           )}
         </div>
 

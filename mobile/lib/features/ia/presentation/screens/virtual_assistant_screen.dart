@@ -14,14 +14,22 @@ class VirtualAssistantScreen extends ConsumerStatefulWidget {
   const VirtualAssistantScreen({super.key});
 
   @override
-  ConsumerState<VirtualAssistantScreen> createState() => _VirtualAssistantScreenState();
+  ConsumerState<VirtualAssistantScreen> createState() =>
+      _VirtualAssistantScreenState();
 }
 
-class _VirtualAssistantScreenState extends ConsumerState<VirtualAssistantScreen> {
+class _VirtualAssistantScreenState
+    extends ConsumerState<VirtualAssistantScreen> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
 
-  static const _suggestions = [
+  static const _patientSuggestions = [
+    '¿Qué necesito antes de mi consulta?',
+    '¿Cómo consulto un turno o un cambio de horario?',
+    '¿Cómo reviso una cobertura o un pago?',
+  ];
+
+  static const _staffSuggestions = [
     '¿Cómo priorizo urgencias oftalmológicas de hoy?',
     '¿Qué datos necesito antes de una cirugía de cataratas?',
     '¿Cómo explico un copago con seguro al paciente?',
@@ -57,6 +65,7 @@ class _VirtualAssistantScreenState extends ConsumerState<VirtualAssistantScreen>
   Widget build(BuildContext context) {
     final user = ref.watch(sessionNotifierProvider);
     final theme = Theme.of(context);
+    final isPatient = user?.tipoUsuario == 'PACIENTE';
 
     if (user == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -72,7 +81,7 @@ class _VirtualAssistantScreenState extends ConsumerState<VirtualAssistantScreen>
             child: AppEmptyStateCard(
               icon: Icons.lock_outline_rounded,
               title: 'Acceso restringido',
-              subtitle: IaAccess.deniedMessage(user.tipoUsuario),
+              subtitle: IaAccess.deniedMessage(),
               centered: true,
             ),
           ),
@@ -98,11 +107,13 @@ class _VirtualAssistantScreenState extends ConsumerState<VirtualAssistantScreen>
           children: [
             Text(
               'Asistente virtual',
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              style: theme.textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ),
             Text(
               tenantLabel,
-              style: theme.textTheme.labelSmall?.copyWith(color: AppTheme.textMuted),
+              style: theme.textTheme.labelSmall
+                  ?.copyWith(color: AppTheme.textMuted),
             ),
           ],
         ),
@@ -112,7 +123,9 @@ class _VirtualAssistantScreenState extends ConsumerState<VirtualAssistantScreen>
               tooltip: 'Limpiar chat',
               onPressed: state.loading
                   ? null
-                  : () => ref.read(virtualAssistantProvider.notifier).clearConversation(),
+                  : () => ref
+                      .read(virtualAssistantProvider.notifier)
+                      .clearConversation(),
               icon: const Icon(Icons.delete_outline_rounded),
             ),
         ],
@@ -137,22 +150,28 @@ class _VirtualAssistantScreenState extends ConsumerState<VirtualAssistantScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Apoyo clínico y administrativo',
+                            isPatient
+                                ? 'Ayuda con tu atención'
+                                : 'Apoyo clínico y administrativo',
                             style: theme.textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.w800,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Consultá sobre agenda, pacientes, seguros, reportes y flujos '
-                            'de $tenantLabel. No reemplaza el criterio médico.',
+                            isPatient
+                                ? 'Consultá sobre turnos, preparación de consultas, coberturas y pagos. No reemplaza la evaluación médica.'
+                                : 'Consultá sobre agenda, pacientes, seguros, reportes y flujos de $tenantLabel. No reemplaza el criterio médico.',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: AppTheme.textMuted,
                               height: 1.4,
                             ),
                           ),
                           const SizedBox(height: 12),
-                          ..._suggestions.map(
+                          ...(isPatient
+                                  ? _patientSuggestions
+                                  : _staffSuggestions)
+                              .map(
                             (s) => Padding(
                               padding: const EdgeInsets.only(bottom: 8),
                               child: ActionChip(
@@ -192,7 +211,8 @@ class _VirtualAssistantScreenState extends ConsumerState<VirtualAssistantScreen>
                     child: AppErrorStateCard(
                       message: state.error!,
                       onRetry: () {
-                        final last = state.messages.where((m) => m.isUser).lastOrNull;
+                        final last =
+                            state.messages.where((m) => m.isUser).lastOrNull;
                         if (last != null) {
                           ref
                               .read(virtualAssistantProvider.notifier)

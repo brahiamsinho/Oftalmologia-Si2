@@ -1,104 +1,35 @@
-# CURRENT STATE
+﻿# CURRENT STATE
 
-## Actualizacion 2026-06-20 — UX paciente: sin siglas CU en la interfaz
-
-- Se limpiaron las siglas tecnicas visibles al paciente en el asistente virtual.
-- La respuesta del backend ya no menciona `CU24`; ahora habla de valoracion/ clasificacion de urgencia clinica.
-- La tarjeta mobile de urgencia tambien dejo de mostrar `CU24` y ahora presenta solo `Urgencia <nivel> (<puntaje>/100)`.
-
-## Actualizacion 2026-06-20 — Fix mobile CU23: conversationId UUID valido
-
-- Se detecto que el flujo mobile de paciente estaba generando `conversationId` con formato propio (`mob-...`), pero el backend exige `UUIDField` en `id_conversacion`.
-- Se corrigio `PatientVirtualAssistantNotifier` para generar un UUID v4 real antes de llamar a `POST /t/<slug>/api/inteligencia-artificial/asistente-virtual/`.
-- Esto elimina el error genérico `No se pudo obtener respuesta del asistente.` que aparecia al intentar enviar un mensaje desde la app.
-- Validacion:
-  - `flutter analyze` -> sin errores nuevos en los archivos tocados; quedan warnings/info historicos en otras pantallas
-
-## Actualizacion 2026-06-20 — Mobile paciente: asistente virtual CU23/CU24
-
-- Se agrego la pantalla mobile `patient_virtual_assistant_screen.dart` para paciente con acceso propio a CU23.
-- Se separo el acceso del staff (`/asistente-virtual`) del flujo de paciente (`/asistente-virtual-paciente`).
-- El repositorio mobile de IA ahora consume:
-  - `POST /t/<slug>/api/inteligencia-artificial/asistente-virtual/`
-  - `GET /t/<slug>/api/inteligencia-artificial/interacciones-asistente/`
-- Se corrigieron dos detalles de compilacion/analyzer en el contrato mobile:
-  - icono inexistente `shield_alert_outlined` -> `shield_outlined`
-  - cast innecesario en el parser de `factores_clinicos`
-- Validacion actual:
-  - `flutter analyze` -> sin errores en los archivos tocados; persisten warnings/info historicos en otras pantallas
-
-## Actualizacion 2026-06-20 — CU24: clasificacion formal de urgencia chatbot
-
-- Se formalizo CU24 dentro de `backend/apps/InteligenciaArtificial` con el modelo `ClasificacionUrgencia` y el servicio `ClasificadorUrgenciaService`.
-- Cuando CU23 detecta sintomas de riesgo, ahora crea automaticamente una clasificacion persistida con:
-  - `nivel_urgencia` (BAJA / MEDIA / ALTA / CRITICA),
-  - `puntaje_riesgo` 0..100,
-  - factores clinicos explicables,
-  - recomendacion y flag de derivacion.
-- Se agrego endpoint staff para revisar clasificaciones:
-  - `GET /t/<slug>/api/inteligencia-artificial/clasificaciones-urgencia/`
-  - `GET /t/<slug>/api/inteligencia-artificial/clasificaciones-urgencia/pendientes/`
-  - `PATCH /t/<slug>/api/inteligencia-artificial/clasificaciones-urgencia/<id>/revisar/`
-- Frontend CU23 ahora puede mostrar el badge `CU24 <nivel> · <puntaje>/100` cuando la clasificacion ya existe.
-- Validacion:
-  - `docker compose exec backend python manage.py check` -> OK
-  - `docker compose exec backend pytest apps/InteligenciaArtificial/tests/test_clasificador_urgencia.py -q` -> 3 passed
-  - `docker compose exec frontend npm run lint` -> OK con warnings historicos no bloqueantes
-
-## Actualización 2026-06-02 — Mobile: comprobante en PDF tras pago
-
-- En mobile facturación (`Mis Facturas`) el comprobante ahora intenta abrirse en **PDF real**.
-- `FacturacionRepository` agrega `fetchComprobantePdf(idFactura)` con `ResponseType.bytes`.
-- `MisFacturasScreen`:
-  - guarda bytes PDF en directorio temporal,
-  - abre archivo `.pdf` con app externa del dispositivo,
-  - mantiene fallback al comprobante de texto si no hay visor PDF.
-- UX post-pago demo:
-  - tras `confirmar-pago-mock`, la app abre automáticamente el comprobante PDF.
-- Validación:
-  - `flutter analyze` sobre archivos modificados -> OK.
-
-## Actualizacion 2026-06-17 (CU23 frontend - diseno asistente virtual Paciente)
+## Actualizaci�n 2026-06-21 � CU25: polling web para notificaciones
 
 ### Frontend
-- Nueva pantalla en `frontend/src/app/(dashboard)/InteligenciaArtificial/page.tsx`.
-- Ruta del dashboard: `/InteligenciaArtificial`.
-- Diseno implementado: chat para Paciente, accesos rapidos, panel lateral de temas, alerta de riesgo, estado de sesion y marca visual cuando backend activa CU24.
-- Servicio frontend extendido en `frontend/src/services/iaService.ts` con `postPatientAssistantMessage(...)`, `getPatientAssistantHistory(...)` y tipos del contrato CU23.
-- Navegacion actualizada: `Sidebar`, `Header` y `middleware.ts`.
-- Ajuste tecnico en `frontend/next.config.js`: carga dinamica ESM de `@serwist/next` para que `next lint` pueda cargar la config.
-- Fix minimo en facturacion: comillas escapadas en texto de QR para cumplir `react/no-unescaped-entities`.
+- `frontend/src/components/layout/Header.tsx` mantiene un �nico estado de notificaciones para badge + dropdown y hace polling cada 20s para refrescar sin recargar la app.
+- `frontend/src/app/(dashboard)/notificaciones/page.tsx` tambi�n hace polling cada 20s mientras est� montada.
+- Ambos flujos limpian el intervalo al desmontar; el header ignora errores de forma silenciosa y la p�gina conserva su estado de error actual.
 
-### Validacion
-- `npm install` ejecutado para restaurar dependencias faltantes del frontend.
-- `npm run lint` OK con warnings existentes en reportes, facturacion y `app/layout.tsx`.
-- `npm run build` fue abortado por duracion; no se considera validacion de esta tarea.
+## Actualizaci�n 2026-06-20 � Mobile chatbot disponible para PACIENTE
 
-## Actualizacion 2026-06-17 (CU23 backend - asistente virtual para Paciente)
+### Mobile
+- `mobile/lib/features/ia/domain/ia_access.dart` ahora permite `PACIENTE` en el asistente virtual y mantiene una ruta separada para el chatbot del paciente.
+- `mobile/lib/features/home/presentation/widgets/patient_quick_access_row.dart` agrega un acceso visible al asistente en el dashboard del paciente.
+- `mobile/lib/features/ia/presentation/screens/virtual_assistant_screen.dart` y `patient_virtual_assistant_screen.dart` usan copy y sugerencias m�s neutrales y sin siglas visibles al paciente.
+
+### Backend IA
+- `backend/apps/ia/services/chatbot.py` refuerza el prompt para evitar frases staff-c�ntricas en respuestas orientadas a pacientes y favorecer copy como "un profesional de la cl�nica".
+
+## Actualizaci�n 2026-06-20 � CU25: derivaci�n de casos cr�ticos del asistente
 
 ### Backend
-- Nueva app tenant `apps.InteligenciaArtificial` dentro de `backend/apps/InteligenciaArtificial`.
-- Integracion en `TENANT_APPS`, porque las interacciones del asistente pertenecen al schema de cada clinica.
-- Nuevo modelo auditable `InteraccionAsistenteVirtual` (`ia_interacciones_asistente_virtual`) para guardar paciente/usuario, conversacion, mensaje, respuesta, intencion, estado, prioridad, sintomas detectados, metadata, IP, user agent y fecha.
-- Nuevo servicio deterministico `AsistenteVirtualService` para intenciones autorizadas: citas/horarios, procedimientos, preoperatorio, postoperatorio, seguros/facturacion, sistema, saludo, fuera de alcance y no comprendida.
-- Si detecta sintomas o senales de riesgo, marca `requiere_clasificacion_urgencia=True`, `estado=REQUIERE_CU24` y `metadata.cu24_activado=True`.
-- Nuevas rutas tenant:
-  - `POST /t/<slug>/api/inteligencia-artificial/asistente-virtual/`
-  - alias `POST /t/<slug>/api/ia/asistente-virtual/`
-  - historial `GET /t/<slug>/api/inteligencia-artificial/interacciones-asistente/`
-- Seguridad: JWT tenant autenticado + `IsPaciente`; registra bitacora sin copiar el texto completo de la consulta en la descripcion de auditoria.
-- Tests agregados en `backend/apps/InteligenciaArtificial/tests/test_asistente_virtual.py`.
+- `apps.ia.services.derivation` detecta se�ales cr�ticas/urgentes en el flujo del chatbot (p�rdida s�bita de visi�n, dolor ocular intenso, trauma ocular, exposici�n qu�mica, etc.).
+- Cuando el caso es urgente, se crean notificaciones persistentes con `enviar_push_a_usuario` para usuarios activos de staff (`ADMINISTRATIVO`, `MEDICO`, `ESPECIALISTA`, `ADMIN`).
+- La derivaci�n registra bit�cora con la acci�n `DERIVAR` y deja trazabilidad del evento en el schema de la cl�nica.
+- `ChatbotMessageView` devuelve un bloque `derivacion` con el estado de la derivaci�n, el motivo y el tipo de notificaci�n.
+- Cobertura de pruebas en `backend/apps/ia/tests/test_chatbot_derivation.py`.
 
-### Validacion
-- `python manage.py check` y `pytest` no pudieron ejecutarse en host por falta de Django/DRF en el Python local.
-- Docker no estaba levantado (`dockerDesktopLinuxEngine` no disponible), por lo que tampoco se pudo validar dentro del contenedor.
-- Validacion estatica ejecutada: parseo/compilacion de sintaxis con `compile(...)` sobre los archivos nuevos: OK.
-
-### Pendiente operativo
-- Ejecutar cuando Docker este disponible:
-  - `docker compose exec backend python manage.py check`
-  - `docker compose exec backend pytest apps/InteligenciaArtificial/tests/test_asistente_virtual.py -q`
-  - `docker compose exec backend python manage.py migrate_schemas --tenant`
+### Frontend
+- `frontend/src/app/(dashboard)/notificaciones/page.tsx` consume el backend real, muestra contador de no le�das, lista, lectura individual y marcar todo le�do.
+- Las derivaciones urgentes se resaltan con una etiqueta visual clara.
+- `frontend/src/app/(dashboard)/(gestion-ia)/asistente-virtual/page.tsx` muestra una alerta humana simple cuando el backend deriva un caso.
 
 ## Actualización 2026-06-01 — CU21: Pago QR + Transferencia bancaria
 
@@ -513,7 +444,7 @@
 - Se creo la equivalencia oficial en Cursor usando **Project Rules** en `.cursor/rules/agent-*.mdc` (orchestrator + 10 especialistas), invocables por `@agent-*`.
 - Se agrego `.cursor/rules/README.md` como indice operativo y `.cursor/agents/README.md` como puntero.
 - Se mantuvo `.opencode/agents/` como fuente original compatible con OpenCode y se dejo trazado el puente OpenCode <-> Cursor en `.opencode/README.md`.
-- Se corrigio conflicto de merge en `.opencode/README.md` (marcadores `<<<<<<<`, `=======`, `>>>>>>>`).
+- Se corrigio conflicto de merge en `.opencode/README.md` (marcadores tipicos de merge).
 
 ## Actualizacion 2026-05-10 (build frontend + Fase 0 plan)
 
@@ -1096,3 +1027,4 @@ Ejecutar: `docker compose exec backend python manage.py seed --only demo_pacient
 ---
 
 _(Actualizado: 2026-05-09)_
+

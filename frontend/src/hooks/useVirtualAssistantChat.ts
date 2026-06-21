@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AxiosError } from 'axios';
 
 import { postChatbotMessage, type ChatHistoryItem } from '@/services/iaService';
+import type { ChatbotDerivacionResponse } from '@/services/iaService';
 
 export interface ChatMessage extends ChatHistoryItem {
   id: string;
@@ -15,6 +16,7 @@ interface UseVirtualAssistantChatResult {
   loading: boolean;
   error: string | null;
   model: string | null;
+  derivacion: ChatbotDerivacionResponse | null;
   sendMessage: (text: string) => Promise<void>;
   clearConversation: () => void;
 }
@@ -36,6 +38,7 @@ export function useVirtualAssistantChat(): UseVirtualAssistantChatResult {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [model, setModel] = useState<string | null>(null);
+  const [derivacion, setDerivacion] = useState<ChatbotDerivacionResponse | null>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
 
   useEffect(() => {
@@ -46,6 +49,7 @@ export function useVirtualAssistantChat(): UseVirtualAssistantChatResult {
     setMessages([]);
     setError(null);
     setModel(null);
+    setDerivacion(null);
   }, []);
 
   const sendMessage = useCallback(async (text: string) => {
@@ -76,6 +80,7 @@ export function useVirtualAssistantChat(): UseVirtualAssistantChatResult {
       };
       setMessages((prev) => [...prev, assistantMessage]);
       setModel(response.model);
+      setDerivacion(response.derivacion ?? null);
     } catch (err: unknown) {
       const msg =
         extractAxiosMessage(err) ??
@@ -92,6 +97,7 @@ export function useVirtualAssistantChat(): UseVirtualAssistantChatResult {
     loading,
     error,
     model,
+    derivacion,
     sendMessage,
     clearConversation,
   };

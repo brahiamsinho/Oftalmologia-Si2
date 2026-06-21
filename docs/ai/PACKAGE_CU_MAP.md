@@ -1,4 +1,4 @@
-# PACKAGE_CU_MAP — Paquetes PUDS ↔ código
+﻿# PACKAGE_CU_MAP — Paquetes PUDS ↔ código
 
 **Fuente de verdad** para numeración de casos de uso (diagramas §3.10 Paquetes y casos de uso).  
 Actualizado: 2026-05-23.
@@ -101,9 +101,11 @@ Predefinidos del sistema (`is_system_report=True`) se consideran **parte de CU21
 
 | CU | Nombre | App | API |
 |----|--------|-----|-----|
-| CU23 | Asistente virtual Paciente + NL → reporte | `apps.InteligenciaArtificial` + `apps.ia` | `/api/inteligencia-artificial/asistente-virtual/`, `/api/ia/asistente-virtual/`, `/api/ia/nlp-to-report/` |
-| CU24 | Clasificación formal de urgencia chatbot | `apps.InteligenciaArtificial` | `/api/inteligencia-artificial/clasificaciones-urgencia/` |
-| CU25 | Derivación a personal humano | pendiente | usa la clasificación CU24 como disparador |
+| CU23 | Asistente virtual Paciente + NL -> reporte | `apps.InteligenciaArtificial` + `apps.ia` | `/api/inteligencia-artificial/asistente-virtual/`, `/api/ia/asistente-virtual/`, `/api/ia/nlp-to-report/` |
+| CU24 | Clasificacion formal de urgencia chatbot | `apps.InteligenciaArtificial` | `/api/inteligencia-artificial/clasificaciones-urgencia/` |
+| CU25 | Derivacion a personal humano + notificaciones | `apps.ia` | `/api/ia/chatbot/` + `/api/notificaciones/` |
+
+> CU25 ya quedo implementado en backend + bandeja de notificaciones; CU24 alimenta la derivacion como disparador formal.
 
 ---
 
@@ -127,8 +129,9 @@ Paquetes ya avanzados: **Administrativa** CU18–CU20 (backend).
 |-----------|---------|-----|--------|
 | **1** | Reportes | **CU21** | Parcial — CSV + QBE; falta cerrar motor/whitelist |
 | **2** | Reportes | **CU22** | Parcial — plantillas personalizadas + web `/reportes` |
-| **3** | IA | **CU23** | Parcial/avanzado — asistente Paciente backend + NL → reporte (Gemini legacy) |
-| **4** | IA | **CU24** | Implementado — clasificación formal de urgencia |
-| **5** | IA | **CU25** | No implementado — derivar a humano |
+| **3** | IA | **CU23** | Parcial - asistente Paciente backend + NL -> reporte |
+| **4** | IA | **CU24** | Implementado - clasificacion formal de urgencia |
+| **5** | IA | **CU25** | Implementado - derivar a humano |
 | — | Atención clínica | **CU26** | Revisar — recetas/indicaciones descargables |
 | — | CRM | **CU17** | Parcial — recordatorios (cron/UI pendiente) |
+

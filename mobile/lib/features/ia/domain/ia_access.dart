@@ -1,26 +1,25 @@
-/// Reglas de acceso al asistente virtual (CU23) en móvil.
+﻿/// Reglas de acceso al asistente virtual (CU23) en móvil.
 class IaAccess {
   IaAccess._();
 
-  static const Set<String> _staffRoles = {
+  static const Set<String> _allowedRoles = {
     'ADMIN',
     'ADMINISTRATIVO',
     'MEDICO',
     'ESPECIALISTA',
+    'PACIENTE',
   };
 
   static bool canUseVirtualAssistant(String tipoUsuario) {
-    return _staffRoles.contains(tipoUsuario);
+    return _allowedRoles.contains(tipoUsuario);
   }
 
   static bool canUsePatientVirtualAssistant(String tipoUsuario) {
     return tipoUsuario == 'PACIENTE';
   }
 
-  static String deniedMessage(String tipoUsuario) {
-    if (tipoUsuario == 'PACIENTE') {
-      return 'No tenés acceso a este asistente. Usá el chatbot de paciente en tu pantalla de inicio.';
-    }
-    return 'Tu rol no tiene acceso al asistente virtual en esta app.';
+  static String deniedMessage() {
+    return 'El asistente virtual no está habilitado para tu usuario en esta app.';
   }
 }
+

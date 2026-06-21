@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 
 from apps.ia.serializers import ChatbotMessageRequestSerializer, NlpToReportRequestSerializer
 from apps.ia.services.chatbot import GeminiChatbotAssistant, GeminiChatbotError
+from apps.ia.services.derivation import derive_critical_case_to_staff
 from apps.ia.services.nlp_translator import GeminiQBETranslator, GeminiTranslatorError
 from apps.reportes.services.export_intent import parse_export_formats_from_query
 from apps.reportes.services.qbe_engine import QBESafeQueryError, QBEEngine
@@ -100,5 +101,12 @@ class ChatbotMessageView(APIView):
                 {'detail': str(exc), 'reply': ''},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
+
+        derivacion = derive_critical_case_to_staff(
+            user=request.user,
+            message=message,
+            reply=result['reply'],
+        )
+        result['derivacion'] = derivacion
 
         return Response(result, status=status.HTTP_200_OK)

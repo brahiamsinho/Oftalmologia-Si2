@@ -11,7 +11,7 @@ function formatHour(isoDate: string): string {
 }
 
 export default function AsistenteVirtualPage() {
-  const { messages, loading, error, sendMessage, clearConversation } = useVirtualAssistantChat();
+  const { messages, loading, error, derivacion, sendMessage, clearConversation } = useVirtualAssistantChat();
   const [draft, setDraft] = useState('');
 
   const emptyState = useMemo(() => messages.length === 0, [messages.length]);
@@ -38,6 +38,17 @@ export default function AsistenteVirtualPage() {
       </header>
 
       <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        {derivacion?.derivada && (
+          <div className="border-b border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800 sm:px-5">
+            <p className="font-semibold">Caso derivado al equipo humano</p>
+            <p className="mt-1 text-red-700">
+              {derivacion.motivo
+                ? `Se detectaron signos de alarma: ${derivacion.motivo}.`
+                : 'Se detectaron signos de alarma.'}{' '}
+              El equipo fue notificado para revisión prioritaria.
+            </p>
+          </div>
+        )}
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-5">
           <div className="flex items-center gap-2">
             <div className="rounded-full bg-indigo-100 p-2 text-indigo-700">

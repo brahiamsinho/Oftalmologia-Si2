@@ -39,6 +39,32 @@ Este archivo documenta todas las decisiones técnicas arquitectónicas important
 
 ---
 
+**Fecha:** 2026-06-21
+**Decisión:** Implementar refresh automático de notificaciones con polling ligero cada 20s, reutilizando el estado del header para badge + dropdown y manteniendo `/notificaciones` con su propio polling local.
+**Motivo:** Evitar websockets o push real para un requerimiento simple, mantener el cambio mínimo y reducir tráfico duplicado consolidando el header en una sola fuente de verdad.
+**Impacto:** `Header.tsx` controla el listado, contador y acciones de lectura; la página de notificaciones refresca su lista mientras está montada y ambas limpian el intervalo al desmontar.
+
+**Fecha:** 2026-06-20
+**Decisión:** Ajustar el prompt del asistente para evitar copy staff-céntrico en respuestas orientadas a pacientes y preferir lenguaje como "un profesional de la clínica".
+**Motivo:** La conversación del chatbot mostraba frases demasiado internas para el flujo paciente, aunque el acceso ya estaba habilitado.
+**Impacto:** `backend/apps/ia/services/chatbot.py` fuerza un tono más neutral/profesional para pacientes sin afectar la lógica de derivación.
+
+---
+
+**Fecha:** 2026-06-20
+**Decisión:** El asistente virtual móvil se habilita para `PACIENTE` y se expone desde el área de accesos rápidos del home, con copy y sugerencias diferenciadas por rol.
+**Motivo:** Hacerlo descubrible para pacientes sin mover la navegación principal ni duplicar pantallas, manteniendo una UX mínima y consistente.
+**Impacto:** `IaAccess` deja de bloquear pacientes, `PatientQuickAccessRow` gana una tarjeta visible de entrada y `VirtualAssistantScreen` adapta el lenguaje a paciente o staff.
+
+---
+
+**Fecha:** 2026-06-20
+**Decisión:** La derivación de casos críticos del chatbot se resuelve en backend con heurísticas explícitas (`apps.ia.services.derivation`) y reutilizando el sistema de notificaciones existente (`Notificacion` + `enviar_push_a_usuario`) en lugar de crear una persistencia nueva.
+**Motivo:** Mantener la arquitectura actual, evitar duplicar almacenamiento y asegurar que el caso quede trazado tanto para staff como para bitácora clínica.
+**Impacto:** `ChatbotMessageView` devuelve `derivacion`, los usuarios activos de staff reciben alertas persistentes y la UI puede mostrar la derivación sin exponer siglas técnicas.
+
+---
+
 **Fecha:** 2026-05-31
 **Decisión:** Estandarizar el sistema multi-agente de OpenCode en `.opencode/agents/` con `orchestrator` como `mode: primary` y delegacion explicita por `permission.task`, agregando especialistas `reviewer`, `security`, `docs-memory`, `puds`, `ai-inference`, `ai-researcher` y `diagrams-modeling`.
 **Motivo:** Tener paridad funcional con la estrategia de orquestacion por dominio, sin mezclar formato Cursor y OpenCode, y mejorar trazabilidad de routing, seguridad y memoria viva del proyecto.

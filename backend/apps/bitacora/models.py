@@ -14,6 +14,7 @@ class AccionBitacora(models.TextChoices):
     CREAR = 'CREAR', 'Crear registro'
     EDITAR = 'EDITAR', 'Editar registro'
     ELIMINAR = 'ELIMINAR', 'Eliminar registro'
+    DERIVAR = 'DERIVAR', 'Derivar a equipo humano'
     CAMBIAR_PASSWORD = 'CAMBIAR_PASSWORD', 'Cambio de contraseña'
     RECUPERAR_PASSWORD = 'RECUPERAR_PASSWORD', 'Recuperación de contraseña'
     REPROGRAMAR = 'REPROGRAMAR', 'Reprogramar cita'

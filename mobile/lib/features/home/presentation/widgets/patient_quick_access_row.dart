@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../config/theme.dart';
 
@@ -23,12 +24,13 @@ class PatientQuickAccessRow extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(AppTheme.space5, AppTheme.space2, AppTheme.space5, 0),
+      padding: EdgeInsets.fromLTRB(
+          AppTheme.space5, AppTheme.space2, AppTheme.space5, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Accesos rápidos',
+            'Accesos rÃ¡pidos',
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w800,
               color: const Color(0xFF0F172A),
@@ -39,7 +41,8 @@ class PatientQuickAccessRow extends StatelessWidget {
             children: [
               Expanded(
                 child: Semantics(
-                  label: 'Acceso rápido: Mis citas. Ver todas tus citas programadas.',
+                  label:
+                      'Acceso rÃ¡pido: Mis citas. Ver todas tus citas programadas.',
                   button: true,
                   child: _QuickTile(
                     icon: Icons.calendar_month_rounded,
@@ -53,13 +56,14 @@ class PatientQuickAccessRow extends StatelessWidget {
               SizedBox(width: AppTheme.space2),
               Expanded(
                 child: Semantics(
-                  label: 'Acceso rápido: Historial clínico. Consultas y estudios.',
+                  label:
+                      'Acceso rÃ¡pido: Historial clÃ­nico. Consultas y estudios.',
                   button: true,
                   child: _QuickTile(
                     icon: Icons.description_outlined,
                     iconColor: const Color(0xFF0D9488),
                     title: 'Historial',
-                    subtitle: 'Consultas · estudios',
+                    subtitle: 'Consultas Â· estudios',
                     onTap: () {
                       Navigator.of(context).push<void>(
                         MaterialPageRoute<void>(
@@ -73,7 +77,8 @@ class PatientQuickAccessRow extends StatelessWidget {
               SizedBox(width: AppTheme.space2),
               Expanded(
                 child: Semantics(
-                  label: 'Acceso rápido: Contacto de emergencias con la clínica.',
+                  label:
+                      'Acceso rÃ¡pido: Contacto de emergencias con la clÃ­nica.',
                   button: true,
                   child: _QuickTile(
                     icon: Icons.phone_in_talk_rounded,
@@ -102,13 +107,14 @@ class PatientQuickAccessRow extends StatelessWidget {
             child: _QuickTile(
               icon: Icons.smart_toy_outlined,
               iconColor: const Color(0xFF2563EB),
-              title: 'Asistente',
-              subtitle: 'Chatbot',
+              title: 'Asistente virtual',
+              subtitle: 'Hablar con la clínica',
               onTap: onAsistenteVirtual,
             ),
           ),
 
-          // ── Sección Mis finanzas ──────────────────────────────────────────
+
+          // â”€â”€ SecciÃ³n Mis finanzas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           SizedBox(height: AppTheme.space4),
           Text(
             'Mis finanzas',
@@ -122,13 +128,13 @@ class PatientQuickAccessRow extends StatelessWidget {
             children: [
               Expanded(
                 child: Semantics(
-                  label: 'Acceso rápido: Mis facturas. Ver facturas y pagos.',
+                  label: 'Acceso rÃ¡pido: Mis facturas. Ver facturas y pagos.',
                   button: true,
                   child: _QuickTile(
                     icon: Icons.receipt_long_outlined,
                     iconColor: const Color(0xFF7C3AED),
                     title: 'Facturas',
-                    subtitle: 'Cobros · pagos',
+                    subtitle: 'Cobros Â· pagos',
                     onTap: () => Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
                         builder: (_) => const MisFacturasScreen(),
@@ -140,7 +146,7 @@ class PatientQuickAccessRow extends StatelessWidget {
               SizedBox(width: AppTheme.space2),
               Expanded(
                 child: Semantics(
-                  label: 'Acceso rápido: Mi cobertura de seguro.',
+                  label: 'Acceso rÃ¡pido: Mi cobertura de seguro.',
                   button: true,
                   child: _QuickTile(
                     icon: Icons.shield_outlined,
@@ -158,7 +164,7 @@ class PatientQuickAccessRow extends StatelessWidget {
               SizedBox(width: AppTheme.space2),
               Expanded(
                 child: Semantics(
-                  label: 'Acceso rápido: Mis descuentos y beneficios.',
+                  label: 'Acceso rÃ¡pido: Mis descuentos y beneficios.',
                   button: true,
                   child: _QuickTile(
                     icon: Icons.discount_outlined,
@@ -211,41 +217,43 @@ class _QuickTile extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 44),
           child: Ink(
-            padding: EdgeInsets.symmetric(vertical: AppTheme.space3, horizontal: AppTheme.space2),
+            padding: EdgeInsets.symmetric(
+                vertical: AppTheme.space3, horizontal: AppTheme.space2),
             decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0A0F172A),
-                blurRadius: 10,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: iconColor, size: 26),
-              SizedBox(height: AppTheme.space2),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0F172A),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0A0F172A),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
                 ),
-              ),
-              Text(
-                subtitle,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: AppTheme.textMuted,
+              ],
+            ),
+            child: Column(
+              children: [
+                Icon(icon, color: iconColor, size: 26),
+                SizedBox(height: AppTheme.space2),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF0F172A),
+                  ),
                 ),
-              ),
-            ],
+                Text(
+                  subtitle,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: AppTheme.textMuted,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
         ),
       ),
     );
   }
 }
+

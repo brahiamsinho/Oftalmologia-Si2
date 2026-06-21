@@ -1,4 +1,4 @@
-# NEXT STEPS
+﻿# NEXT STEPS
 
 Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tenants).
 
@@ -6,9 +6,12 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 
 ## Corto Plazo
 
-- [x] **UX paciente sin siglas CU:** limpiar textos visibles del asistente virtual para usar lenguaje clinico normal.
-- [x] **Fix mobile CU23 `id_conversacion`:** generar UUID v4 real en `PatientVirtualAssistantNotifier` para cumplir el contrato del backend.
-- [x] **Mobile paciente asistente virtual CU23/CU24:** ruta `/asistente-virtual-paciente`, repo, provider y UI propios; staff sigue en `/asistente-virtual`.
+- [x] **CU25 web polling refresh:** badge/dropdown del header y `/notificaciones` ahora refrescan autom�ticamente con polling ligero y cleanup al desmontar.
+- [x] **CU25 backend/frontend:** derivaci�n urgente implementada; queda validaci�n manual con mensajes de trauma/p�rdida s�bita de visi�n/dolor ocular intenso y ajuste fino si aparecen falsos positivos.
+- [x] **Mobile chatbot para PACIENTE:** `IaAccess` habilita `PACIENTE`, existe quick access en home y el asistente usa copy m�s paciente-friendly.
+- [x] **Mobile asistente virtual (CU23 chatbot):** `/asistente-virtual` + `POST ia/chatbot/`; staff only; tenant Dio/JWT.
+- [ ] IA asistente virtual: validar en QA conversacional 10 prompts cl�nico-operativos (paciente + staff: turnos, coberturas, reportes, urgencias) para confirmar tono/seguridad, derivaci�n, acceso PACIENTE y evitar respuestas ambiguas.
+- [ ] CU23 backend Paciente: ejecutar validacion en Docker (`manage.py check`, pytest especifico y `migrate_schemas --tenant`) cuando Docker Desktop este disponible.
 - [x] **EA UML 2.5 Secuencia CU18/CU21/CU22:** crear paquete `/Model/2.6 Diagramas de Secuencia` y diagramas SD-CU18, SD-CU21, SD-CU22 basados en codigo real backend/frontend.
 - [x] **OpenCode MCP draw.io:** agregar servidor `drawio` en `opencode.jsonc` con `npx -y @drawio/mcp` y mantener `enterprise-architect`.
 - [x] **OpenCode multi-agente (orchestrator + especialistas):** normalizar `.opencode/agents/` con routing formal, `permission.task`, subagentes `reviewer/security/docs-memory/puds/ai-inference/ai-researcher/diagrams-modeling` y skill `uml-c4-puds-diagrams`.
@@ -114,12 +117,12 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [x] Multi-tenant: crear tests de aislamiento cross-schema para verificar que datos de un tenant no son accesibles desde otro.
 - [ ] Multi-tenant: extender pruebas anti-cruce al plano HTTP tenant (`/t/<slug>/api/...`) en entorno de test, ajustando configuración de URL/middleware para evitar `404` en pytest.
 - [ ] Seguros/Descuentos: ejecutar smoke E2E en Docker (`POST/GET` convenios, afiliaciones, promociones y beneficios) para confirmar fix `date vs datetime` en entorno de contenedores.
-- [ ] Seguros: agregar tests automatizados de regresión para serialización `DateField` en convenios/afiliaciones.
-- [ ] IA asistente virtual: validar en QA conversacional 10 prompts clínico-operativos (agenda, seguros, reportes, urgencias) para confirmar tono/seguridad y evitar respuestas ambiguas.
+- [x] **CU25 web polling refresh:** badge/dropdown del header y `/notificaciones` ahora refrescan autom�ticamente con polling ligero y cleanup al desmontar.
+- [x] **CU25 backend/frontend:** derivaci�n urgente implementada; queda validaci�n manual con mensajes de trauma/p�rdida s�bita de visi�n/dolor ocular intenso y ajuste fino si aparecen falsos positivos.
+- [x] **Mobile chatbot para PACIENTE:** `IaAccess` habilita `PACIENTE`, existe quick access en home y el asistente usa copy m�s paciente-friendly.
+- [x] **Mobile asistente virtual (CU23 chatbot):** `/asistente-virtual` + `POST ia/chatbot/`; staff only; tenant Dio/JWT.
+- [ ] IA asistente virtual: validar en QA conversacional 10 prompts cl�nico-operativos (paciente + staff: turnos, coberturas, reportes, urgencias) para confirmar tono/seguridad, derivaci�n, acceso PACIENTE y evitar respuestas ambiguas.
 - [ ] CU23 backend Paciente: ejecutar validacion en Docker (`manage.py check`, pytest especifico y `migrate_schemas --tenant`) cuando Docker Desktop este disponible.
-- [x] CU24: clasificador formal de urgencia implementado en `apps.InteligenciaArtificial` con score, nivel, recomendacion y API de staff.
-- [ ] CU25: derivar caso critico a personal humano usando la clasificacion formal de CU24 y el sistema de notificaciones/bitacora.
-- [ ] CU23 frontend Paciente: probar manualmente `/asistente-virtual-paciente` con cuenta `PACIENTE` y backend migrado; validar flujo normal, historial y flujo con sintomas de riesgo.
 - [ ] PWA: validar instalación en Chrome/Edge (desktop) y flujo manual en iOS (Agregar a inicio).
 - [ ] PWA producción: servir frontend con HTTPS para criterios completos de instalabilidad.
 - [ ] Multi-tenant: documentar procedimiento para crear nuevo tenant en produccion (comando o endpoint + seeders).
@@ -147,3 +150,4 @@ Lista priorizada para Oftalmologia Si2 (actualizada tras migracion a django-tena
 - [ ] Backup: implementar panel frontend para gestion de backups (lista, crear, restaurar, descargar, configurar automatico).
 - [ ] Backup: validar limites por plan en seed (agregar campos backup a SubscriptionPlan o usar settings).
 - [ ] Backup: agregar notificacion push/email tras backup automatico exitoso o fallido.
+

@@ -23,9 +23,21 @@ export interface ChatbotRequest {
   history?: ChatHistoryItem[];
 }
 
+export interface ChatbotDerivacionResponse {
+  derivada: boolean;
+  es_urgente: boolean;
+  motivo: string | null;
+  senales: string[];
+  destinatarios: number;
+  tipo_notificacion: string;
+  titulo_notificacion: string | null;
+  cuerpo_notificacion: string | null;
+}
+
 export interface ChatbotResponse {
   reply: string;
   model: string;
+  derivacion?: ChatbotDerivacionResponse;
 }
 
 export type AssistantIntent =

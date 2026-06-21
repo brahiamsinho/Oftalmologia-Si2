@@ -1,63 +1,24 @@
-# HANDOFF LATEST
+﻿# HANDOFF LATEST
 
 ## Resumen
 
-**Fecha:** 2026-06-20 — **UX paciente: sin siglas CU visibles:**
-- Se eliminaron las siglas tecnicas visibles al paciente en el asistente virtual.
-- El texto del asistente y la tarjeta de urgencia ahora usan lenguaje clinico normal (valoracion/urgencia) sin `CU24`.
+**Fecha:** 2026-06-21 � **CU25 polling web de notificaciones:**
+- `Header.tsx` concentra el estado de notificaciones del badge y el dropdown, y hace polling silencioso cada 20s con cleanup al desmontar.
+- `/notificaciones` tambi�n refresca cada 20s mientras est� visible.
+- El header no expone errores; la p�gina mantiene su estado de error actual y ambas vistas preservan marcar como le�da / marcar todas le�das.
 
-**Fecha:** 2026-06-20 — **Fix mobile CU23: `id_conversacion` UUID válido:**
-- Se identificó que el error en la pantalla de paciente venía del `conversationId` local, que no era UUID y rompía el serializer `UUIDField` del backend.
-- Se corrigió el generador de conversación en `PatientVirtualAssistantNotifier` para producir UUID v4 reales.
-- Efecto esperado: el POST al asistente virtual ya no debería caer en el mensaje genérico de error al enviar una consulta.
-- Validacion: `flutter analyze` sin errores nuevos en los archivos tocados.
+**Fecha:** 2026-06-20 � **Mobile chatbot para PACIENTE:**
+- `IaAccess` ahora habilita `PACIENTE` para `/asistente-virtual`.
+- `PatientQuickAccessRow` sum� una tarjeta visible de �Asistente virtual� para que el paciente lo descubra desde Inicio.
+- `VirtualAssistantScreen` usa copy y sugerencias distintas para paciente y staff, manteniendo tono neutral/profesional.
+- `PatientVirtualAssistantScreen` conserva el flujo propio de paciente con historial, env�o y UI adaptada.
 
-**Fecha:** 2026-06-20 — **Mobile paciente asistente virtual CU23/CU24:**
-- Se fijo la UI mobile de paciente para el chatbot con ruta propia `/asistente-virtual-paciente`.
-- Se mantuvo el flujo staff separado en `/asistente-virtual`.
-- Se corrigieron detalles de analyzer en `patient_virtual_assistant_screen.dart` y `patient_assistant_models.dart`.
-- Validacion: `flutter analyze` sin errores en archivos tocados; solo warnings/info historicos en el resto del proyecto.
-
-**Fecha:** 2026-06-20 — **CU24 clasificacion formal de urgencia chatbot:**
-- Se agrego `ClasificacionUrgencia` + `ClasificadorUrgenciaService` en `backend/apps/InteligenciaArtificial`.
-- CU23 ahora autogenera la clasificacion cuando detecta sintomas de riesgo y la deja persistida con puntaje, nivel y recomendacion.
-- Se expuso API de staff para revisar y derivar clasificaciones:
-  - `GET /t/<slug>/api/inteligencia-artificial/clasificaciones-urgencia/`
-  - `GET /t/<slug>/api/inteligencia-artificial/clasificaciones-urgencia/pendientes/`
-  - `PATCH /t/<slug>/api/inteligencia-artificial/clasificaciones-urgencia/<id>/revisar/`
-- Frontend IA muestra badge con nivel/puntaje cuando la clasificacion existe.
-- Validacion:
-  - `docker compose exec backend python manage.py check` -> OK
-  - `docker compose exec backend pytest apps/InteligenciaArtificial/tests/test_clasificador_urgencia.py -q` -> 3 passed
-  - `docker compose exec frontend npm run lint` -> OK con warnings historicos
-
-**Fecha:** 2026-06-02 — **Mobile facturación: comprobante PDF visible tras pagar**
-- Se implementó apertura de comprobante PDF en app móvil para facturas pagadas.
-- Cambios:
-  - `FacturacionRepository.fetchComprobantePdf(...)` descarga bytes PDF autenticados.
-  - `MisFacturasScreen._verComprobante(...)` guarda PDF temporal y lo abre con `url_launcher` (`Uri.file`).
-  - fallback automático a modal texto si el dispositivo no puede abrir PDFs.
-- Mejora UX: luego de `confirmar-pago-mock` se dispara apertura automática del comprobante.
-- Verificación: `flutter analyze` (archivos facturación mobile) OK.
-
-**Fecha:** 2026-06-17 — **CU23 frontend asistente virtual para Paciente:**
-- Nueva pantalla dashboard en `frontend/src/app/(dashboard)/InteligenciaArtificial/page.tsx`.
-- Ruta protegida: `/InteligenciaArtificial`.
-- UI: chat, accesos rapidos, panel de temas, alerta de senales de riesgo, contador de interacciones y estado visual de derivacion CU24.
-- Servicio extendido: `postPatientAssistantMessage` y `getPatientAssistantHistory` en `frontend/src/services/iaService.ts`.
-- Navegacion: `Sidebar` apunta "Asistente Virtual" a `/InteligenciaArtificial`; `Header` agrega breadcrumb; `middleware.ts` protege la ruta.
-- Validacion: `npm run lint` OK con warnings historicos; `npm run build` fue abortado por duracion.
-
-**Fecha:** 2026-06-17 — **CU23 backend asistente virtual para Paciente:**
-- Se creo app tenant `apps.InteligenciaArtificial` en `backend/apps/InteligenciaArtificial`.
-- Endpoint principal: `POST /t/<slug>/api/inteligencia-artificial/asistente-virtual/`.
-- Alias compatible: `POST /t/<slug>/api/ia/asistente-virtual/`.
-- Historial del paciente: `GET /t/<slug>/api/inteligencia-artificial/interacciones-asistente/`.
-- Modelo persistente: `InteraccionAsistenteVirtual` (`ia_interacciones_asistente_virtual`), con intencion, estado, prioridad, sintomas y metadata.
-- Servicio deterministico `AsistenteVirtualService`: respuestas autorizadas para citas, horarios, procedimientos, preoperatorio, postoperatorio, seguros/facturacion y sistema.
-- Si detecta sintomas/senales de riesgo, marca `requiere_clasificacion_urgencia=True`, `estado=REQUIERE_CU24`, `metadata.cu24_activado=True`.
-- Seguridad: `IsAuthenticated + IsPaciente`; bitacora en modulo `inteligencia_artificial`.
-- Validacion pendiente en Docker: `manage.py check`, pytest especifico y `migrate_schemas --tenant`.
+**Fecha:** 2026-06-20 � **CU25 derivaci�n de casos cr�ticos del asistente:**
+- Backend `apps.ia.services.derivation` detecta casos urgentes del chatbot y deriva a staff activo usando el sistema existente de notificaciones.
+- `ChatbotMessageView` expone `derivacion` en la respuesta para que la UI pueda mostrar que el caso fue escalado.
+- Frontend `frontend/src/app/(dashboard)/notificaciones/page.tsx` consume la API real, muestra no le�das/urgentes y permite marcar le�das.
+- El asistente virtual muestra una alerta humana simple cuando se deriva un caso.
+- Pruebas agregadas en `backend/apps/ia/tests/test_chatbot_derivation.py`.
 
 **Fecha:** 2026-05-31 — **Diagramas de secuencia UML 2.5 en EA (CU18, CU21, CU22):**
 - Nuevo paquete EA: `/Model/2.6 Diagramas de Secuencia` (ID 20).
@@ -1008,3 +969,4 @@ Detalle: `docs/ai/sessions/2026-05-04-agent-multi-tenant-fase1a.md`
 NEXT_PUBLIC_API_URL=.../api     # sin segunda barra /api en paths del cliente
 tenant_slug=...                 # guardado en localStorage por TenantStorage al hacer login
 ```
+
